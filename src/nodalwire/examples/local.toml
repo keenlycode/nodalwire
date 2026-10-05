@@ -1,0 +1,16 @@
+# Foreground relay, trusted local processes only. Admission is open by default.
+endpoint = "tcp://127.0.0.1:5555"
+lease_seconds = 10.0
+send_hwm = 64
+receive_hwm = 64
+max_payload_bytes = 1048576
+
+# Cooperative name policy, not authentication (remove for open admission):
+allowed_names = ["alice", "bob", "observer"]
+
+# Directional routing denies; unspecified routes are permitted.
+# Exact names, @network membership selectors and * are supported.
+deny = [["@writers", "observer"]]
+
+[networks]
+writers = ["alice", "bob"]
