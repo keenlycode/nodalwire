@@ -1,0 +1,13 @@
+{
+  "name": "@nodalwire/client",
+  "version": "0.1.0",
+  "description": "Byte client for the trusted local NodalWire Python relay",
+  "type": "module",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=24 <25" },
+  "license": "MIT",
+  "dependencies": { "zeromq": "6.8.0" },
+  "devDependencies": { "@types/node": "24.10.1", "typescript": "5.9.3" }
+}

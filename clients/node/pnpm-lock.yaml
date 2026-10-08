@@ -1,0 +1,64 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      zeromq:
+        specifier: 6.8.0
+        version: 6.8.0
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+packages:
+
+  '@types/node@24.10.1':
+    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
+
+  cmake-ts@1.0.2:
+    resolution: {integrity: sha512-5l++JHE7MxFuyV/OwJf3ek7ZZN1aGPFPM5oUz6AnK5inQAPe4TFXRMz5sA2qg2FRgByPWdqO+gSfIPo8GzoKNQ==}
+    hasBin: true
+
+  node-addon-api@8.9.2:
+    resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
+    engines: {node: ^18 || ^20 || >= 21}
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+
+  zeromq@6.8.0:
+    resolution: {integrity: sha512-0LBpwZKNn4e6YZRDuHVvzXsSHlCx6nTk2B0O9KWQ2vUe3lau7PYPcmnFpJfOwEUTNcKn39x4GgzVU+dQyIJnNg==}
+    engines: {node: '>= 12'}
+
+snapshots:
+
+  '@types/node@24.10.1':
+    dependencies:
+      undici-types: 7.16.0
+
+  cmake-ts@1.0.2: {}
+
+  node-addon-api@8.9.2: {}
+
+  typescript@5.9.3: {}
+
+  undici-types@7.16.0: {}
+
+  zeromq@6.8.0:
+    dependencies:
+      cmake-ts: 1.0.2
+      node-addon-api: 8.9.2

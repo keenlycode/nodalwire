@@ -52,6 +52,15 @@ Unsupported `curve` and `allow_nonlocal` TOML settings are rejected explicitly,
 including `allow_nonlocal = false`; the Python API has no such options.
 NodalWire makes no secure-networking claim.
 
+## Node.js byte client
+
+The maintained TypeScript client in [`clients/node/`](clients/node/README.md)
+provides `Node.connect`, `send`, `receive` and `close` with npm-compatible ESM
+JavaScript and declarations. It targets Node 24 (tested 24.15.0, Linux x64),
+uses native `zeromq@6.8.0`, and retains the trusted-loopback byte contract below.
+Deno handles development/build tasks only; Deno runtime support is not claimed.
+The client is not published; see its README for local build/install and limits.
+
 ## Async Python API
 
 ```python

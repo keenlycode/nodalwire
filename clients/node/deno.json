@@ -1,0 +1,11 @@
+{
+  "nodeModulesDir": "manual",
+  "tasks": {
+    "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "check": "deno check --sloppy-imports src/index.ts",
+    "lint": "deno lint src tests",
+    "fmt": "deno fmt src tests deno.json tsconfig.json package.json",
+    "test": "deno task build && node --test tests/*.test.mjs && python tests/interop.py"
+  },
+  "fmt": { "lineWidth": 88 }
+}
