@@ -11,6 +11,10 @@ dependencies = [
     "pyzmq>=27.1.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/keenlycode/nodalwire"
+Issues = "https://github.com/keenlycode/nodalwire/issues"
+
 [project.scripts]
 nodalwire = "nodalwire.cli:app"
 
