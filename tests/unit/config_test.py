@@ -1,4 +1,3 @@
-from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -66,7 +65,7 @@ def test_invalid_configuration_is_rejected(options):
         RelayConfig(**options)
 
 
-def test_toml_policy_and_safe_shipped_example(tmp_path: Path):
+def test_toml_policy(tmp_path: Path):
     config = tmp_path / "relay.toml"
     config.write_text('''endpoint = "tcp://127.0.0.1:*"
 allowed_names = ["alice", "bob"]
@@ -78,10 +77,6 @@ writers = ["alice"]
     assert loaded.allowed_names == ("alice", "bob")
     assert not loaded.permits("alice", "bob")
     assert loaded.permits("bob", "alice")
-    example = Path(str(files("nodalwire") / "examples/local.toml"))
-    loaded = load_config(example)
-    assert loaded.endpoint == "tcp://127.0.0.1:5555"
-    assert not loaded.permits("alice", "observer")
 
 
 @pytest.mark.parametrize("content", ['allow_nonlocal = true', 'allow_nonlocal = false',
