@@ -26,16 +26,16 @@ with tempfile.TemporaryDirectory(prefix="package-smoke-", dir=EVIDENCE) as tempo
     consumer.mkdir()
     (consumer / "package.json").write_text(json.dumps({
         "private": True, "type": "module", "dependencies": {
-            "@nodalwire/client": f"file:{tarball}",
+            "@devcapsule/nodalwire-client": f"file:{tarball}",
         },
     }))
     (consumer / "pnpm-workspace.yaml").write_text("allowBuilds:\n  zeromq: true\n")
     run(["pnpm", "install", "--offline", "--store-dir", str(STORE)], cwd=consumer)
     run(["node", "--input-type=module", "-e",
-         'import { Node, RelayError, ReceiptTimeout } from "@nodalwire/client"; '
+         'import { Node, RelayError, ReceiptTimeout } from "@devcapsule/nodalwire-client"; '
          'if (!Node || !RelayError || !ReceiptTimeout) throw Error("exports"); '
          'console.log("PASS installed ESM exports/native import");'], cwd=consumer)
-    (consumer / "consumer.ts").write_text('''import { Node, type Message } from "@nodalwire/client";
+    (consumer / "consumer.ts").write_text('''import { Node, type Message } from "@devcapsule/nodalwire-client";
 async function application() {
   const node = await Node.connect("typed", undefined, { inboxSize: 2 });
   await node.send("peer", Uint8Array.of(0, 255), { timeout: 1 });
@@ -54,7 +54,7 @@ void application;
          "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2022",
          "consumer.ts"], cwd=consumer)
     print("PASS installed declarations and byte-only type contract", flush=True)
-    installed = consumer / "node_modules/@nodalwire/client/dist/index.js"
+    installed = consumer / "node_modules/@devcapsule/nodalwire-client/dist/index.js"
     run(["python", "tests/interop.py"], env={
         **os.environ, "NODALWIRE_CLIENT_MODULE": installed.as_uri(),
     })

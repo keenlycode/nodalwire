@@ -7,8 +7,13 @@ No authentication, encryption, RPC, encoding helpers, retries or replay.
 
 ## Use
 
-This package is not published. Build and pack this checkout, then install the
-local tarball in your application (the native `zeromq` install script is needed):
+Install the client in your application (the native `zeromq` install script is needed):
+
+```sh
+npm install @devcapsule/nodalwire-client
+```
+
+To build and pack a local checkout instead:
 
 ```sh
 cd src/nodalwire/client/node
@@ -16,7 +21,7 @@ pnpm install --frozen-lockfile --store-dir ./node_modules/.pnpm-store
 deno task build
 pnpm pack
 # In your application:
-pnpm add /absolute/path/to/nodalwire-client-0.1.0.tgz
+pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.1.0.tgz
 ```
 
 For pnpm versions requiring script approval, allow **only `zeromq`** in the
@@ -25,7 +30,7 @@ already includes that approval. Native prebuilt availability/platform requiremen
 belong to zeromq; other platforms and Node versions have not been verified.
 
 ```ts
-import { Node } from "@nodalwire/client";
+import { Node } from "@devcapsule/nodalwire-client";
 
 const alice = await Node.connect("alice", "tcp://127.0.0.1:5555");
 try {
