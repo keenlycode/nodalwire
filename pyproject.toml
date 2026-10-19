@@ -26,9 +26,11 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "nodalwire"
-source-exclude = ["**/__pycache__/**"]
+source-exclude = ["**/__pycache__/**", "src/nodalwire/client/node"]
+wheel-exclude = ["nodalwire/client/node"]
 
 [tool.ruff]
+extend-exclude = ["src/nodalwire/client/node"]
 line-length = 100
 target-version = "py312"
 

@@ -11,7 +11,7 @@ This package is not published. Build and pack this checkout, then install the
 local tarball in your application (the native `zeromq` install script is needed):
 
 ```sh
-cd clients/node
+cd src/nodalwire/client/node
 pnpm install --frozen-lockfile --store-dir ./node_modules/.pnpm-store
 deno task build
 pnpm pack
@@ -37,7 +37,7 @@ try {
 }
 ```
 
-Start the Python relay separately as described in the repository README.
+Start the Python relay separately with `nodalwire`.
 Connect waits for admission, validates the same logical names and loopback TCP
 endpoints, and normalizes `localhost` without DNS. The logical name is distinct
 from the random native routing ID. Admission tokens fence each incarnation.

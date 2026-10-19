@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 
 PACKAGE = Path(__file__).resolve().parents[1]
-ROOT = PACKAGE.parents[1]
+ROOT = PACKAGE.parents[3]
 EVIDENCE = ROOT / ".agents/var/task-space/nodalwire-runtime-check/implementation"
 STORE = Path(os.environ.get("NODALWIRE_PNPM_STORE", str(EVIDENCE / "pnpm-store")))
 

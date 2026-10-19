@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import zmq
 import zmq.asyncio
 
-from .config import RelayConfig
-from .protocol import CLOSE, DATA, ERROR, HEARTBEAT, HELLO, OK, SEND, VERSION, valid_name
+from ..config import RelayConfig
+from ..protocol import CLOSE, DATA, ERROR, HEARTBEAT, HELLO, OK, SEND, VERSION, valid_name
 
 
 @dataclass

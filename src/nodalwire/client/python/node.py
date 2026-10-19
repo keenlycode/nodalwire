@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import zmq
 import zmq.asyncio
 
-from .config import local_endpoint
-from .protocol import (
+from ...config import local_endpoint
+from ...protocol import (
     CLOSE,
     DATA,
     ERROR,
