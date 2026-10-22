@@ -32,6 +32,7 @@ from .envelope import Envelope, decode_envelope, encode_envelope
 
 _TOKEN = re.compile(rb"[0-9a-f]{32}\Z")
 _DECIMAL = re.compile(rb"[1-9][0-9]*\Z")
+_LEASE = re.compile(rb"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\Z")
 _RELAY_ERRORS = frozenset({
     "invalid_name", "admission_denied", "duplicate_name", "not_registered",
     "invalid_command", "invalid_destination", "invalid_network", "network_not_found",
@@ -197,7 +198,7 @@ class Node:
                 valid = (
                     _TOKEN.fullmatch(token) is not None
                     and len(lease) <= 32
-                    and lease.decode("ascii").strip() == lease.decode("ascii")
+                    and _LEASE.fullmatch(lease) is not None
                     and 0.1 <= float(lease) <= 3600
                     and _DECIMAL.fullmatch(limit) is not None
                     and len(limit) <= 10

@@ -103,11 +103,13 @@ def test_old_tokens_cannot_close_send_or_refresh_reused_name_and_native_address(
                 assert reply[1] == b"OK"
                 new_token = reply[4]
                 assert new_token != old_token
-                for command, extra in ((CLOSE, ()), (SEND, (b"observer", b"stale"))):
+                for command, extra in ((CLOSE, ()), (SEND, (b"default", b"observer", b"stale"))):
                     reply = await raw_request(socket, command, old_token, *extra)
                     assert reply[-1] == b"not_registered"
                 await socket.send_multipart([VERSION, HEARTBEAT, old_token])
-                reply = await raw_request(socket, SEND, new_token, b"observer", b"fresh")
+                reply = await raw_request(
+                    socket, SEND, new_token, b"default", b"observer", b"fresh"
+                )
                 assert reply[1] == b"OK"
                 assert (await observer.receive()).payload == b"fresh"
                 # Old heartbeat must not extend NEW token's lease.
@@ -115,7 +117,9 @@ def test_old_tokens_cannot_close_send_or_refresh_reused_name_and_native_address(
                 while time.monotonic() < accepted_at + lease + 0.05:
                     await socket.send_multipart([VERSION, HEARTBEAT, old_token])
                     await asyncio.sleep(0.02)
-                reply = await raw_request(socket, SEND, new_token, b"observer", b"expired")
+                reply = await raw_request(
+                    socket, SEND, new_token, b"default", b"observer", b"expired"
+                )
                 assert reply[-1] == b"not_registered"
 
     asyncio.run(check())
