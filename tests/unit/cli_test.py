@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -8,13 +9,17 @@ import pytest
 from nodalwire.cli import (
     CLIInputError,
     CLIOutputLimit,
+    _admin_arguments,
+    _admin_revision,
     _bounded_read,
     _decode_incoming,
     _env_token,
     _message_event,
     _OutputBudget,
+    _peer_operation,
     _positive_deadline,
     _read_payload,
+    _request_with_events,
 )
 
 
@@ -148,6 +153,168 @@ def test_output_budget_count_and_byte_cutoff_are_explicit():
 def test_invalid_output_bounds(count, size):
     with pytest.raises(CLIInputError):
         _OutputBudget(max_count=count, max_bytes=size)
+
+
+class _FakeNode:
+    def __init__(self, messages=(), *, reply=None, error=None, pending=False):
+        self.inbox = asyncio.Queue()
+        for message in messages:
+            self.inbox.put_nowait(message)
+        self.result = reply
+        self.error = error
+        self.pending = pending
+        self.cancelled = False
+        self.calls = []
+
+    async def request(self, destination, payload, *, network, timeout):
+        self.calls.append((destination, payload, network, timeout))
+        try:
+            if self.pending:
+                await asyncio.Future()
+            if self.error is not None:
+                raise self.error
+            return self.result
+        except asyncio.CancelledError:
+            self.cancelled = True
+            raise
+
+    async def receive(self):
+        return await self.inbox.get()
+
+    def receive_nowait(self):
+        try:
+            return self.inbox.get_nowait()
+        except asyncio.QueueEmpty:
+            return None
+
+
+def test_request_delegates_and_outputs_all_queued_unrelated_messages():
+    async def run():
+        messages = [
+            SimpleNamespace(network="other", sender="eve", payload=bytes([i])) for i in range(4)
+        ]
+        reply = SimpleNamespace(network="red", sender="bob", payload=b"reply")
+        node = _FakeNode(messages, reply=reply)
+        stream = io.StringIO()
+        output = _OutputBudget(max_count=64, max_bytes=10000, stream=stream)
+        result = await _request_with_events(
+            node, "bob", b"request", network="red", timeout=5, output=output
+        )
+        assert result is reply
+        assert node.calls == [("bob", b"request", "red", 5)]
+        assert [json.loads(line)["payload"] for line in stream.getvalue().splitlines()] == [
+            base64.b64encode(message.payload).decode() for message in messages
+        ]
+        assert node.receive_nowait() is None
+
+    asyncio.run(run())
+
+
+def test_request_failure_still_emits_queued_unrelated_data():
+    async def run():
+        message = SimpleNamespace(network="other", sender="eve", payload=b"unrelated")
+        node = _FakeNode([message], error=TimeoutError())
+        output = _OutputBudget(max_count=64, max_bytes=10000, stream=io.StringIO())
+        with pytest.raises(TimeoutError):
+            await _request_with_events(node, "bob", b"", network="red", timeout=5, output=output)
+        assert output.count == 1
+        assert node.receive_nowait() is None
+
+    asyncio.run(run())
+
+
+def test_request_output_cap_cancels_owned_request_without_retry():
+    async def run():
+        messages = [
+            SimpleNamespace(network="red", sender="eve", payload=b"noise") for _ in range(3)
+        ]
+        node = _FakeNode(messages, pending=True)
+        output = _OutputBudget(max_count=1, max_bytes=10000, stream=io.StringIO())
+        with pytest.raises(CLIOutputLimit, match="uncertain"):
+            await _request_with_events(node, "bob", b"", network="red", timeout=5, output=output)
+        assert node.cancelled
+        assert len(node.calls) == 1
+        assert output.count == 1
+
+    asyncio.run(run())
+
+
+def test_admin_argument_shapes_and_revision_fences():
+    assert _admin_arguments("config.get") == {}
+    assert _admin_arguments("network.create", network="red") == {"network": "red"}
+    assert _admin_arguments("network.update", network="red", protected=False) == {
+        "network": "red",
+        "protected": False,
+    }
+    assert _admin_arguments("member.remove", network="red", member="alice") == {
+        "network": "red",
+        "name": "alice",
+    }
+    _admin_revision("config.get", None)
+    _admin_revision("member.remove", 0)
+    for operation, kwargs in (
+        ("unknown", {}),
+        ("config.get", {"network": "red"}),
+        ("network.rotate", {"network": "red"}),
+        ("network.update", {"network": "red"}),
+        ("network.update", {"network": "red", "protected": False, "credential": "secret"}),
+        ("member.remove", {"network": "red"}),
+    ):
+        with pytest.raises(CLIInputError):
+            _admin_arguments(operation, **kwargs)
+    for operation, revision in (
+        ("config.get", 1),
+        ("admin.rotate", None),
+        ("member.remove", True),
+        ("network.create", 1 << 53),
+    ):
+        with pytest.raises(CLIInputError):
+            _admin_revision(operation, revision)
+
+
+def test_each_operation_joins_selected_network_and_reply_uses_incoming_network():
+    async def run():
+        class Peer(_FakeNode):
+            async def join(self, network, credential, *, timeout):
+                self.calls.append(("join", network, credential))
+
+            async def send(self, destination, payload, *, network, timeout):
+                self.calls.append(("send", destination, payload, network))
+
+            async def reply(self, incoming, payload, *, timeout):
+                self.calls.append(("reply", incoming.sender, payload, incoming.network))
+
+        node = Peer()
+        output = _OutputBudget(max_count=64, max_bytes=10000, stream=io.StringIO())
+        result = await _peer_operation(
+            node,
+            "send",
+            destination="bob",
+            payload=b"binary",
+            network="red",
+            credential="join-token",
+            timeout=5,
+            count=1,
+            output=output,
+        )
+        assert node.calls == [("join", "red", "join-token"), ("send", "bob", b"binary", "red")]
+        assert result["meaning"] == "native_queue_acceptance_only"
+        incoming = SimpleNamespace(network="blue", sender="alice", payload=b"request-envelope")
+        await _peer_operation(
+            node,
+            "reply",
+            destination=None,
+            payload=b"reply",
+            network="default",
+            credential=None,
+            timeout=5,
+            count=1,
+            output=output,
+            incoming=incoming,
+        )
+        assert node.calls[-2:] == [("join", "blue", None), ("reply", "alice", b"reply", "blue")]
+
+    asyncio.run(run())
 
 
 def test_stdout_failure_is_not_swallowed():

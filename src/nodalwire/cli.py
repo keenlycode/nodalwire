@@ -145,6 +145,162 @@ class _OutputBudget:
         self.bytes += size
 
 
+async def _request_with_events(
+    node,
+    destination: str,
+    payload: bytes,
+    *,
+    network: str,
+    timeout: float,
+    output: _OutputBudget,
+):
+    """Use the public client API; preserve ordinary inbox data at a bounded cutoff."""
+    request = asyncio.create_task(
+        node.request(destination, payload, network=network, timeout=timeout)
+    )
+    receiver = asyncio.create_task(node.receive())
+    output_failed = False
+    try:
+        while True:
+            done, _ = await asyncio.wait((request, receiver), return_when=asyncio.FIRST_COMPLETED)
+            if receiver in done:
+                message = receiver.result()
+                try:
+                    output.emit(_message_event(message))
+                except (CLIOutputLimit, OSError):
+                    output_failed = True
+                    raise
+                receiver = None
+            if request in done:
+                return request.result()
+            if receiver is None:
+                receiver = asyncio.create_task(node.receive())
+    finally:
+        request.cancel()
+        if receiver is not None:
+            receiver.cancel()
+        results = await asyncio.gather(
+            request, *(() if receiver is None else (receiver,)), return_exceptions=True
+        )
+        if not output_failed:
+            # receive() may return already-owned ordinary DATA despite cancellation.
+            if receiver is not None and not isinstance(results[-1], BaseException):
+                output.emit(_message_event(results[-1]))
+            while (message := node.receive_nowait()) is not None:
+                output.emit(_message_event(message))
+
+
+def _admin_arguments(
+    operation: str,
+    *,
+    network: str | None = None,
+    member: str | None = None,
+    protected: bool | None = None,
+    credential: str | None = None,
+) -> dict:
+    shapes = {
+        "config.get": (),
+        "network.list": (),
+        "network.get": ("network",),
+        "network.create": ("network", "credential"),
+        "network.update": ("network", "protected", "credential"),
+        "network.rotate": ("network", "credential"),
+        "network.delete": ("network",),
+        "member.list": ("network",),
+        "member.remove": ("network", "name"),
+        "admin.rotate": ("credential",),
+    }
+    if operation not in shapes:
+        raise CLIInputError("unknown administrative operation")
+    supplied = {
+        "network": network,
+        "name": member,
+        "protected": protected,
+        "credential": credential,
+    }
+    arguments = {key: value for key, value in supplied.items() if value is not None}
+    if arguments.keys() - set(shapes[operation]):
+        raise CLIInputError("unexpected administrative argument")
+    for key in ("network", "name"):
+        if key in shapes[operation] and not valid_name(arguments.get(key)):
+            raise CLIInputError("administrative name argument required")
+    if "protected" in shapes[operation] and type(protected) is not bool:
+        raise CLIInputError("network update requires explicit protection policy")
+    if operation in {"network.rotate", "admin.rotate"} and credential is None:
+        raise CLIInputError("new credential environment variable required")
+    if credential is not None:
+        try:
+            validate_token(credential)
+        except ValueError:
+            raise CLIInputError("invalid new credential format") from None
+    if operation == "network.update" and not protected and credential is not None:
+        raise CLIInputError("open network cannot have a join credential")
+    return arguments
+
+
+def _admin_revision(operation: str, expected_revision: int | None) -> None:
+    reads = {"config.get", "network.list", "network.get", "member.list"}
+    if operation in reads:
+        if expected_revision is not None:
+            raise CLIInputError("read operation does not accept expected revision")
+    elif type(expected_revision) is not int or not 0 <= expected_revision <= (1 << 53) - 1:
+        raise CLIInputError("mutation requires an explicit valid expected revision")
+
+
+async def _peer_operation(
+    node,
+    operation: str,
+    *,
+    destination: str | None,
+    payload: bytes,
+    network: str,
+    credential: str | None,
+    timeout: float,
+    count: int,
+    output: _OutputBudget,
+    incoming: _Incoming | None = None,
+) -> dict:
+    if operation not in {"send", "receive", "request", "reply"}:
+        raise CLIInputError("unknown client operation")
+    if not valid_name(network):
+        raise CLIInputError("invalid selected network")
+    if operation in {"send", "request"} and not valid_name(destination):
+        raise CLIInputError("destination required")
+    if type(count) is not int or not 1 <= count <= 1024:
+        raise CLIInputError("receive count must be between one and 1024")
+    if operation == "reply":
+        if incoming is None:
+            raise CLIInputError("incoming request metadata required")
+        network = incoming.network
+    async with asyncio.timeout(_positive_deadline(timeout)):
+        # Even open nondefault networks require a new explicit join per invocation.
+        await node.join(network, credential, timeout=timeout)
+        if operation == "send":
+            await node.send(destination, payload, network=network, timeout=timeout)
+            return {
+                "event": "accepted",
+                "network": network,
+                "recipient": destination,
+                "meaning": "native_queue_acceptance_only",
+            }
+        if operation == "reply":
+            await node.reply(incoming, payload, timeout=timeout)
+            return {
+                "event": "accepted",
+                "network": network,
+                "recipient": incoming.sender,
+                "meaning": "native_queue_acceptance_only",
+            }
+        if operation == "request":
+            message = await _request_with_events(
+                node, destination, payload, network=network, timeout=timeout, output=output
+            )
+            return _message_event(message, event="reply")
+        for _ in range(count):
+            output.emit(_message_event(await node.receive()))
+        return {"event": "complete", "received": count}
+
+
 async def _serve(config: RelayConfig) -> None:
     relay = Relay(config)
     endpoint = await relay.start()
