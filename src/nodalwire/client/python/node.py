@@ -74,6 +74,7 @@ class _Pending:
     command: bytes
     network: bytes | None
     future: asyncio.Future[tuple[bytes, ...]]
+    app_identity: str | None = None
 
 
 @dataclass
@@ -153,7 +154,7 @@ class Node:
 
     async def _request(
         self, command: bytes, *frames: bytes, initial: bool = False,
-        timeout: float | None = None,
+        timeout: float | None = None, app_identity: str | None = None,
     ) -> tuple[bytes, ...]:
         seconds = _seconds(self.timeout if timeout is None else timeout)
         if self._closed.is_set():
@@ -165,7 +166,7 @@ class Node:
         assert token is not None
         future = asyncio.get_running_loop().create_future()
         self._pending[request] = _Pending(
-            token, command, frames[0] if command in (JOIN, LEAVE) else None, future
+            token, command, frames[0] if command in (JOIN, LEAVE) else None, future, app_identity
         )
         body = [VERSION, command]
         if not initial:
@@ -181,7 +182,12 @@ class Node:
                     raise RelayError("connection_failed") from exc
                 return await future
         except TimeoutError as exc:
-            raise ReceiptTimeout("routing receipt timed out; effect uncertain") from exc
+            error = ReceiptTimeout("routing receipt timed out; effect uncertain")
+            self._app_error(app_identity, error)
+            raise error from exc
+        except BaseException as exc:
+            self._app_error(app_identity, exc)
+            raise
         finally:
             self._pending.pop(request, None)
             if not future.done():
@@ -249,14 +255,43 @@ class Node:
                 if command == OK and self._success(pending, tuple(frames[4:])):
                     pending.future.set_result(tuple(frames[4:]))
                 elif command == ERROR and len(frames) == 5 and _ascii(frames[4]) in _RELAY_ERRORS:
-                    pending.future.set_exception(RelayError(frames[4].decode("ascii")))
+                    error = RelayError(frames[4].decode("ascii"))
+                    self._app_error(pending.app_identity, error)
+                    pending.future.set_exception(error)
                 else:
-                    pending.future.set_exception(RelayError("invalid_receipt"))
+                    error = RelayError("invalid_receipt")
+                    self._app_error(pending.app_identity, error)
+                    pending.future.set_exception(error)
         except asyncio.CancelledError:
             raise
         except Exception:
             self._closed.set()
             self._fail_pending("connection_failed")
+
+    def _app_error(self, identity: str | None, error: BaseException) -> None:
+        # The reader/local operation decides terminal ownership synchronously,
+        # never via a later send-task done callback that DATA could overtake.
+        waiter = self._app_pending.pop(identity, None)
+        if waiter is not None:
+            waiter.future.set_exception(error)
+
+    @staticmethod
+    async def _join_owned(*tasks: asyncio.Task) -> None:
+        """Join operation-owned children without a cleanup cancel losing its result.
+
+        Call only after the operation already has a terminal result/error/cancel.
+        The original terminal event remains authoritative through repeated caller
+        cancellation while joining. No shared reader/writer is cancelled here.
+        """
+        for task in tasks:
+            task.cancel()
+        joining = asyncio.gather(*tasks, return_exceptions=True)
+        while True:
+            try:
+                await asyncio.shield(joining)
+                return
+            except asyncio.CancelledError:
+                pass
 
     def _fail_pending(self, code: str) -> None:
         for pending in self._pending.values():
@@ -349,9 +384,7 @@ class Node:
                 return message.result()
             raise
         finally:
-            for task in (message, closed):
-                task.cancel()
-            await asyncio.gather(message, closed, return_exceptions=True)
+            await self._join_owned(message, closed)
 
     async def request(
         self, destination: str, payload: bytes, *, network: str = DEFAULT_NETWORK,
@@ -385,9 +418,10 @@ class Node:
         timer = loop.call_later(
             seconds, fail, ReceiptTimeout("application reply timed out; effect uncertain")
         )
-        sender = asyncio.create_task(
-            self.send(destination, encoded, network=network, timeout=seconds)
-        )
+        sender = asyncio.create_task(self._request(
+            SEND, network.encode("ascii"), destination.encode("ascii"), encoded,
+            timeout=seconds, app_identity=identity,
+        ))
 
         def sent(task: asyncio.Task) -> None:
             if task.cancelled():
@@ -410,8 +444,7 @@ class Node:
         finally:
             timer.cancel()
             self._app_pending.pop(identity, None)
-            sender.cancel()
-            await asyncio.gather(sender, return_exceptions=True)
+            await self._join_owned(sender)
             if future.done() and not future.cancelled():
                 future.exception()
 
