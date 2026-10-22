@@ -41,6 +41,35 @@ class CLIOutputLimit(ValueError):
     """Explicit cutoff, not a claim that an outstanding request had no effect."""
 
 
+class CLIReleaseError(Exception):
+    """Operation result already emitted; release cannot relabel it no-effect."""
+
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__(code)
+
+
+async def _join_owned_cleanup(*tasks):
+    """Settle only our children without replacing the already-owned outcome.
+
+    Called from finally: pre-selection cancellation/exception still propagates
+    after cleanup. Cancellation arriving during cleanup cannot erase a selected
+    reply or a receiver result already claimed before its first cancellation.
+    """
+    task = asyncio.current_task()
+    initial_cancels = task.cancelling()
+    cleanup = asyncio.gather(*tasks, return_exceptions=True)
+    while True:
+        try:
+            return await asyncio.shield(cleanup)
+        except asyncio.CancelledError:
+            # Suppress only additional cleanup-time requests, not an active
+            # pre-selection cancellation/deadline. Keep outer timeout accounting
+            # intact so an earlier deadline still becomes TimeoutError.
+            while task.cancelling() > initial_cancels:
+                task.uncancel()
+
+
 def _bounded_read(source: BinaryIO, max_bytes: int) -> bytes:
     if type(max_bytes) is not int or not 0 <= max_bytes <= 16 * 1024 * 1024:
         raise CLIInputError("invalid input byte limit")
@@ -237,7 +266,10 @@ async def _request_with_events(
         node.request(destination, payload, network=network, timeout=timeout)
     )
     receiver = asyncio.create_task(node.receive())
+    task = asyncio.current_task()
+    entry_cancels = task.cancelling()
     output_failed = False
+    primary = None
     try:
         while True:
             done, _ = await asyncio.wait((request, receiver), return_when=asyncio.FIRST_COMPLETED)
@@ -250,22 +282,34 @@ async def _request_with_events(
                     raise
                 receiver = None
             if request in done:
-                return request.result()
+                request.result()  # Capture a definite request failure before cleanup.
+                break
             if receiver is None:
                 receiver = asyncio.create_task(node.receive())
-    finally:
-        request.cancel()
-        if receiver is not None:
-            receiver.cancel()
-        results = await asyncio.gather(
-            request, *(() if receiver is None else (receiver,)), return_exceptions=True
-        )
-        if not output_failed:
-            # receive() may return already-owned ordinary DATA despite cancellation.
-            if receiver is not None and not isinstance(results[-1], BaseException):
-                output.emit(_message_event(results[-1]))
-            while (message := node.receive_nowait()) is not None:
-                output.emit(_message_event(message))
+    except BaseException as error:
+        primary = error
+    request.cancel()
+    if receiver is not None:
+        receiver.cancel()
+    results = await _join_owned_cleanup(request, *(() if receiver is None else (receiver,)))
+    if not output_failed:
+        # receive() may return already-owned ordinary DATA despite cancellation.
+        if receiver is not None and not isinstance(results[-1], BaseException):
+            output.emit(_message_event(results[-1]))
+        while (message := node.receive_nowait()) is not None:
+            output.emit(_message_event(message))
+    if not isinstance(results[0], BaseException) and (
+        primary is None or isinstance(primary, (asyncio.CancelledError, RelayError))
+    ):
+        # The client may already own a reply but still be joining its children
+        # when our wait gets cancelled. Its successful result remains authoritative.
+        if isinstance(primary, asyncio.CancelledError):
+            while task.cancelling() > entry_cancels:
+                task.uncancel()
+        return results[0]
+    if primary is not None:
+        raise primary
+    raise results[0]
 
 
 def _admin_arguments(
@@ -423,6 +467,15 @@ def _execute(action) -> None:
     try:
         action()
         return
+    except CLIReleaseError as error:
+        event = {
+            "error": error.code,
+            "outcome": "indeterminate",
+            "phase": "release",
+            "operation_completed": True,
+            "message": "operation result was emitted before release failed; do not blindly retry",
+        }
+        status = 1
     except AdminError as error:
         event = {"error": error.code, "outcome": error.outcome, "revision": error.revision}
         status = 1
@@ -518,9 +571,10 @@ async def _client_run(
         if node is not None:
             try:
                 await node.close(timeout=0.2)
-            except (RelayError, ReceiptTimeout):
+            except (RelayError, ReceiptTimeout) as error:
                 if not failed:
-                    raise
+                    code = error.code if isinstance(error, RelayError) else "release_timeout"
+                    raise CLIReleaseError(code) from None
 
 
 def _client(

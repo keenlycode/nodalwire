@@ -8,6 +8,8 @@ import signal
 import sys
 
 import pytest
+import zmq
+import zmq.asyncio
 
 from nodalwire import AdminClient, Node
 from nodalwire.config import load_config
@@ -397,6 +399,77 @@ def test_request_output_cutoff_and_sigint_are_uncertain_and_cleanup(tmp_path, mo
                 await close_child(child)
                 await asyncio.gather(communication, return_exceptions=True)
                 await responder.close()
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("release", ["reject", "timeout"])
+@pytest.mark.parametrize("accepted", [True, False])
+def test_release_failure_preserves_accepted_result_or_primary_send_rejection(release, accepted):
+    async def run():
+        context = zmq.asyncio.Context()
+        router = context.socket(zmq.ROUTER)
+        router.setsockopt(zmq.LINGER, 0)
+        router.bind("tcp://127.0.0.1:*")
+        endpoint = router.getsockopt(zmq.LAST_ENDPOINT).decode()
+        child = await spawn("send", "peer", "--name", "accepted", "--endpoint", endpoint)
+        communication = asyncio.create_task(child.communicate(b"may-execute"))
+        token = b"a" * 32
+        commands = []
+        try:
+            while True:
+                async with asyncio.timeout(2):
+                    frames = await router.recv_multipart()
+                command = frames[2]
+                commands.append(command)
+                if command == b"HELLO":
+                    reply = [
+                        b"AR2",
+                        b"OK",
+                        b"",
+                        frames[3],
+                        token,
+                        b"10",
+                        b"1048576",
+                        b'["default"]',
+                    ]
+                elif command == b"JOIN":
+                    reply = [b"AR2", b"OK", token, frames[4], b"default", b"0"]
+                elif command == b"SEND":
+                    reply = (
+                        [b"AR2", b"OK", token, frames[4]]
+                        if accepted
+                        else [b"AR2", b"ERROR", token, frames[4], b"destination_unavailable"]
+                    )
+                elif command == b"CLOSE":
+                    if release == "reject":
+                        await router.send_multipart(
+                            [frames[0], b"AR2", b"ERROR", token, frames[4], b"not_registered"]
+                        )
+                    break
+                else:
+                    continue
+                await router.send_multipart([frames[0], *reply])
+            out, err = await asyncio.wait_for(communication, 2)
+            assert child.returncode == 1
+            error = json.loads(err)
+            if accepted:
+                assert json.loads(out)["event"] == "accepted"
+                assert error["error"] == (
+                    "not_registered" if release == "reject" else "release_timeout"
+                )
+                assert error["phase"] == "release" and error["operation_completed"] is True
+                assert error["outcome"] == "indeterminate"
+            else:
+                assert out == b""
+                assert error == {"error": "destination_unavailable", "outcome": "no_effect"}
+            assert commands.count(b"SEND") == 1
+            assert b"may-execute" not in err
+        finally:
+            await close_child(child)
+            await asyncio.gather(communication, return_exceptions=True)
+            router.close(linger=0)
+            context.term()
 
     asyncio.run(run())
 

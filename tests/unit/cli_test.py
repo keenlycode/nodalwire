@@ -21,6 +21,7 @@ from nodalwire.cli import (
     _read_payload,
     _request_with_events,
 )
+from nodalwire.protocol import RelayError
 
 
 def test_bounded_input_binary_empty_and_exact_limit(tmp_path):
@@ -272,6 +273,153 @@ def test_request_cutoff_preserves_receive_result_that_wins_cancellation():
         assert (
             json.loads(stream.getvalue())["payload"] == base64.b64encode(ordinary.payload).decode()
         )
+        assert len(asyncio.all_tasks()) == 1
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("first_event", ["reply", "cancel", "deadline", "reject"])
+@pytest.mark.parametrize("cleanup_cancels", [1, 2, 3])
+def test_single_and_repeated_cleanup_cancel_preserves_first_event_and_owned_data(
+    first_event, cleanup_cancels
+):
+    async def run():
+        receiver_started = asyncio.Event()
+        cleanup_started = asyncio.Event()
+        release = asyncio.Event()
+        reply = SimpleNamespace(network="red", sender="bob", payload=b"selected-reply")
+        rejection = RelayError("destination_unavailable")
+        ordinary = SimpleNamespace(network="other", sender="eve", payload=b"owned-ordinary")
+
+        class Peer(_FakeNode):
+            async def request(self, *args, **kwargs):
+                await receiver_started.wait()
+                if first_event == "reply":
+                    return reply
+                if first_event == "reject":
+                    raise rejection
+                return await super().request(*args, **kwargs)
+
+            async def receive(self):
+                receiver_started.set()
+                try:
+                    await asyncio.Future()
+                except asyncio.CancelledError:
+                    cleanup_started.set()
+                    waiting = asyncio.create_task(release.wait())
+                    while True:
+                        try:
+                            await asyncio.shield(waiting)
+                            return ordinary
+                        except asyncio.CancelledError:
+                            pass
+
+        peer = Peer(pending=True)
+        stream = io.StringIO()
+        deadline = asyncio.timeout(None)
+
+        async def invoke():
+            async with deadline:
+                return await _request_with_events(
+                    peer,
+                    "bob",
+                    b"request",
+                    network="red",
+                    timeout=1,
+                    output=_OutputBudget(max_count=64, max_bytes=4096, stream=stream),
+                )
+
+        operation = asyncio.create_task(invoke())
+        await receiver_started.wait()
+        if first_event == "cancel":
+            operation.cancel()
+        elif first_event == "deadline":
+            deadline.reschedule(asyncio.get_running_loop().time())
+        await cleanup_started.wait()
+        for _ in range(cleanup_cancels):
+            operation.cancel()
+            await asyncio.sleep(0)  # Explicit scheduling edge, not wallclock polling.
+        release.set()
+        if first_event == "reply":
+            assert await operation is reply
+        elif first_event == "reject":
+            with pytest.raises(RelayError) as caught:
+                await operation
+            assert caught.value is rejection
+        else:
+            with pytest.raises(
+                TimeoutError if first_event == "deadline" else asyncio.CancelledError
+            ):
+                await operation
+            assert peer.cancelled
+        if first_event != "cancel":
+            assert operation.cancelling() == 0
+        events = list(map(json.loads, stream.getvalue().splitlines()))
+        assert len(events) == 1 and events[0]["sender"] == "eve"
+        assert base64.b64decode(events[0]["payload"]) == b"owned-ordinary"
+        assert len(asyncio.all_tasks()) == 1
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("cleanup_cancels", [1, 2, 3])
+def test_client_owned_reply_before_request_coroutine_cleanup_finishes_wins_cancel(cleanup_cancels):
+    async def run():
+        receiver_started = asyncio.Event()
+        request_selected = asyncio.Event()
+        receiver_cleanup = asyncio.Event()
+        release = asyncio.Event()
+        reply = SimpleNamespace(network="red", sender="bob", payload=b"client-owned-reply")
+        ordinary = SimpleNamespace(network="other", sender="eve", payload=b"client-owned-ordinary")
+
+        class Peer(_FakeNode):
+            async def request(self, *args, **kwargs):
+                await receiver_started.wait()
+                request_selected.set()
+                waiting = asyncio.create_task(release.wait())
+                while True:
+                    try:
+                        await asyncio.shield(waiting)
+                        return reply
+                    except asyncio.CancelledError:
+                        pass  # Models result-first library child cleanup.
+
+            async def receive(self):
+                receiver_started.set()
+                try:
+                    await asyncio.Future()
+                except asyncio.CancelledError:
+                    receiver_cleanup.set()
+                    waiting = asyncio.create_task(release.wait())
+                    while True:
+                        try:
+                            await asyncio.shield(waiting)
+                            return ordinary
+                        except asyncio.CancelledError:
+                            pass
+
+        stream = io.StringIO()
+        operation = asyncio.create_task(
+            _request_with_events(
+                Peer(),
+                "bob",
+                b"request",
+                network="red",
+                timeout=1,
+                output=_OutputBudget(max_count=64, max_bytes=4096, stream=stream),
+            )
+        )
+        await request_selected.wait()
+        operation.cancel()  # Request coroutine not done, but client owns the reply.
+        await receiver_cleanup.wait()
+        for _ in range(cleanup_cancels):
+            operation.cancel()
+            await asyncio.sleep(0)
+        release.set()
+        assert await operation is reply
+        assert operation.cancelling() == 0
+        events = list(map(json.loads, stream.getvalue().splitlines()))
+        assert len(events) == 1 and events[0]["sender"] == "eve"
         assert len(asyncio.all_tasks()) == 1
 
     asyncio.run(run())
