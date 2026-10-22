@@ -1,4 +1,6 @@
-# Foreground relay, trusted local processes only. Admission is open by default.
+# Set NODALWIRE_ADMIN_TOKEN explicitly before starting; no token is generated.
+# Declared networks are open by default. Membership names are not identities.
+config_version = 2
 endpoint = "tcp://127.0.0.1:5555"
 lease_seconds = 10.0
 send_hwm = 64
@@ -9,8 +11,11 @@ max_payload_bytes = 1048576
 allowed_names = ["alice", "bob", "observer"]
 
 # Directional routing denies; unspecified routes are permitted.
-# Exact names, @network membership selectors and * are supported.
+# Exact names, @static-routing-group selectors and * are supported.
 deny = [["@writers", "observer"]]
 
-[networks]
+[routing_groups]
 writers = ["alice", "bob"]
+
+[networks.writers]
+# Open network; peers must still explicitly join it.
