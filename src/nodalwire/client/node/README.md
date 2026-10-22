@@ -174,3 +174,10 @@ Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
 run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
 Interoperability/artifact checks depend on matching Python/server implementation;
 focused fake-router tests alone are not cross-language acceptance evidence.
+`NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` can select matching reviewed Python
+source without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
+scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
+`NODALWIRE_PNPM_STORE` overrides the package-local dependency store. For an
+explicit artifact-only check while Python is unavailable, run
+`python tests/package_smoke.py --skip-interop`; its output labels real wire tests
+as skipped, not passed.
