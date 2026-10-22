@@ -644,13 +644,27 @@ def test_blocked_stdin_and_stdout_obey_deadline_without_hanging(tmp_path):
             try:
                 assert (await status(child))["event"] == "ready"
                 await sender.send("stdout-deadline", b"x" * 500000)
-                # Stop consuming stdout; JSON pipe fills, write deadline still wins.
-                await asyncio.wait_for(child.wait(), 2)
-                assert child.returncode == 1
-                assert json.loads(await child.stderr.read())["error"] == "deadline_exceeded"
-                await child.stdout.read()
+                # Keep stdout unread until stderr EOF proves the blocked-write
+                # deadline fired. Python 3.12 Process.wait() can otherwise wait
+                # for paused pipe EOF even AFTER the OS process has exited.
+                async with asyncio.timeout(2):
+                    error = json.loads(await child.stderr.read())
+                    assert error["error"] == "deadline_exceeded"
+                    output = await child.stdout.read()
+                    assert 0 < len(output) <= 2 * 1024 * 1024
+                    await child.wait()
+                    assert child.returncode == 1
             finally:
-                await close_child(child)
-                await sender.close()
+                try:
+                    if child.returncode is None:
+                        try:
+                            child.kill()
+                        except ProcessLookupError:
+                            pass
+                    # Drain and join even an already-exited child: returncode
+                    # alone does not mean its paused pipe transports are closed.
+                    await asyncio.wait_for(child.communicate(), 2)
+                finally:
+                    await sender.close()
 
     asyncio.run(run())
