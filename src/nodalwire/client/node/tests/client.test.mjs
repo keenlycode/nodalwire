@@ -23,13 +23,14 @@ async function silentRelay(admit = true) {
         if (admit && frames[2].toString() === "HELLO") {
           await router.send([
             frames[0],
-            "AR1",
+            "AR2",
             "OK",
             "",
             frames[3],
-            "test-token",
+            "0123456789abcdef0123456789abcdef",
             "10",
             "1048576",
+            '["default"]',
           ]);
         }
       }
@@ -73,8 +74,8 @@ test("logical names and local endpoints validate before transport", async () => 
 
 test("bounded inbox preserves order, wakes canceled and closed waiters", async () => {
   const inbox = new Inbox(1);
-  const first = { sender: "a", payload: Uint8Array.of(1) };
-  const second = { sender: "a", payload: Uint8Array.of(2) };
+  const first = { network: "default", sender: "a", payload: Uint8Array.of(1) };
+  const second = { network: "default", sender: "a", payload: Uint8Array.of(2) };
   await inbox.put(first);
   let accepted = false;
   const held = inbox.put(second).then(() => accepted = true);

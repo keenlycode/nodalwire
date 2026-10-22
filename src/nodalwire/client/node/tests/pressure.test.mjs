@@ -13,13 +13,14 @@ test("non-reading connected peer fills the native HWM without a JS outbound queu
     const frames = await router.receive();
     await router.send([
       frames[0],
-      "AR1",
+      "AR2",
       "OK",
       "",
       frames[3],
-      "token",
+      "0123456789abcdef0123456789abcdef",
       "10",
       "1048576",
+      '["default"]',
     ]);
     // Deliberately no more reads; this actually connected native peer never drains.
   })();
@@ -48,7 +49,7 @@ test("non-reading connected peer fills the native HWM without a JS outbound queu
     }
     assert.ok(
       acceptedWithoutReceipt,
-      "at least one native send accepted without an AR1 receipt",
+      "at least one native send accepted without an AR2 receipt",
     );
     assert.ok(full, "bounded probe reached native EAGAIN");
   } finally {

@@ -1,11 +1,17 @@
 import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
-import { abortReason, ReceiptTimeout, RelayError } from "./protocol.js";
+import {
+  abortReason,
+  ascii,
+  ReceiptTimeout,
+  RELAY_CODES,
+  RelayError,
+} from "./protocol.js";
 import type { OperationOptions } from "./protocol.js";
 
 interface Pending {
   token: Buffer;
-  resolve: (frames: Buffer[]) => void;
+  accept: (frames: Buffer[]) => void;
   reject: (error: unknown) => void;
 }
 
@@ -14,12 +20,18 @@ export class Receipts {
   private readonly pending = new Map<string, Pending>();
   constructor(private readonly capacity: number) {}
 
-  begin(token: Buffer, seconds: number, options: OperationOptions) {
+  begin<T>(
+    token: Buffer,
+    seconds: number,
+    options: OperationOptions,
+    validate: (frames: Buffer[]) => T,
+    onReject?: (error: unknown) => void,
+  ) {
     if (options.signal?.aborted) throw abortReason(options.signal);
     if (this.pending.size >= this.capacity) throw new RelayError("pending_full");
     const id = randomBytes(16).toString("hex");
     let entry: Pending;
-    const promise = new Promise<Buffer[]>((resolve, reject) => {
+    const promise = new Promise<T>((resolve, reject) => {
       const finish = () => {
         clearTimeout(timer);
         options.signal?.removeEventListener("abort", abort);
@@ -32,12 +44,18 @@ export class Receipts {
       );
       entry = {
         token,
-        resolve: (frames) => {
-          finish();
-          resolve(frames);
+        accept: (frames) => {
+          try {
+            const result = validate(frames);
+            finish();
+            resolve(result);
+          } catch {
+            entry.reject(new RelayError("invalid_receipt"));
+          }
         },
         reject: (error) => {
           finish();
+          onReject?.(error);
           reject(error);
         },
       };
@@ -52,15 +70,21 @@ export class Receipts {
   }
 
   matches(id: Buffer, token: Buffer): boolean {
-    return this.pending.get(id.toString())?.token.equals(token) ?? false;
+    const key = ascii(id);
+    return key !== undefined && (this.pending.get(key)?.token.equals(token) ?? false);
   }
 
-  accept(id: Buffer, command: string, frames: Buffer[]): void {
-    const entry = this.pending.get(id.toString());
-    if (command === "OK") entry?.resolve(frames);
+  accept(id: Buffer, command: string | undefined, frames: Buffer[]): void {
+    const key = ascii(id);
+    const entry = key === undefined ? undefined : this.pending.get(key);
+    if (!entry) return;
+    if (command === "OK") entry.accept(frames);
     else if (command === "ERROR" && frames.length === 1) {
-      entry?.reject(new RelayError(frames[0].toString("ascii")));
-    }
+      const code = ascii(frames[0]);
+      entry.reject(
+        new RelayError(code && RELAY_CODES.has(code) ? code : "invalid_receipt"),
+      );
+    } else entry.reject(new RelayError("invalid_receipt"));
   }
 
   fail(code: string): void {

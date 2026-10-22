@@ -1,5 +1,50 @@
 import { isIP } from "node:net";
 
+export const VERSION = "AR2";
+export const RELAY_CODES = new Set([
+  "invalid_name",
+  "admission_denied",
+  "duplicate_name",
+  "not_registered",
+  "invalid_command",
+  "invalid_destination",
+  "invalid_network",
+  "network_not_found",
+  "join_denied",
+  "not_member",
+  "destination_not_member",
+  "payload_too_large",
+  "route_denied",
+  "destination_unavailable",
+  "destination_full",
+  "unsupported_version",
+]);
+
+/** Never use Buffer's lossy ASCII decoding for wire identifiers. */
+export function ascii(frame: Uint8Array): string | undefined {
+  if (frame.some((byte) => byte > 127)) return;
+  return new TextDecoder().decode(frame);
+}
+
+export function credentialFrame(credential?: string): string {
+  if (credential === undefined) return "";
+  if (typeof credential !== "string" || !/^[\x21-\x7e]{1,1024}$/.test(credential)) {
+    throw new TypeError("invalid join credential");
+  }
+  return credential;
+}
+
+export interface SendOptions extends OperationOptions {
+  /** Omitted means default only, never another shared network. */
+  network?: string;
+}
+
+export interface MembershipReceipt {
+  readonly network: string;
+  readonly joined: boolean;
+  readonly changed: boolean;
+}
+
 export function validName(name: unknown): name is string {
   return typeof name === "string" && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name);
 }
