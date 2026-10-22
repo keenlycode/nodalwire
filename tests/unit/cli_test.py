@@ -239,6 +239,75 @@ def test_request_output_cap_cancels_owned_request_without_retry():
     asyncio.run(run())
 
 
+def test_request_cutoff_preserves_receive_result_that_wins_cancellation():
+    async def run():
+        started = asyncio.Event()
+        ordinary = SimpleNamespace(network="other", sender="eve", payload=b"owned-before-cutoff")
+        reply = SimpleNamespace(network="red", sender="bob", payload=b"reply")
+
+        class Peer(_FakeNode):
+            async def receive(self):
+                started.set()
+                try:
+                    await asyncio.Future()
+                except asyncio.CancelledError:
+                    return ordinary
+
+            async def request(self, *args, **kwargs):
+                await started.wait()
+                return reply
+
+        stream = io.StringIO()
+        output = _OutputBudget(max_count=64, max_bytes=10000, stream=stream)
+        result = await _request_with_events(
+            Peer(),
+            "bob",
+            b"request",
+            network="red",
+            timeout=5,
+            output=output,
+        )
+        assert result is reply
+        assert output.count == 1
+        assert (
+            json.loads(stream.getvalue())["payload"] == base64.b64encode(ordinary.payload).decode()
+        )
+        assert len(asyncio.all_tasks()) == 1
+
+    asyncio.run(run())
+
+
+def test_request_caller_cancellation_settles_owned_tasks():
+    async def run():
+        started = asyncio.Event()
+
+        class Peer(_FakeNode):
+            async def request(self, *args, **kwargs):
+                started.set()
+                return await super().request(*args, **kwargs)
+
+        node = Peer(pending=True)
+        output = _OutputBudget(max_count=64, max_bytes=10000, stream=io.StringIO())
+        task = asyncio.create_task(
+            _request_with_events(
+                node,
+                "bob",
+                b"",
+                network="red",
+                timeout=5,
+                output=output,
+            )
+        )
+        await started.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert node.cancelled
+        assert len(asyncio.all_tasks()) == 1
+
+    asyncio.run(run())
+
+
 def test_admin_argument_shapes_and_revision_fences():
     assert _admin_arguments("config.get") == {}
     assert _admin_arguments("network.create", network="red") == {"network": "red"}
