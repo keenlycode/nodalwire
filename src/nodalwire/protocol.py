@@ -1,5 +1,7 @@
 """Private wire vocabulary; application payloads remain opaque bytes."""
 
+import json
+import math
 import re
 
 VERSION = b"AR2"
@@ -30,6 +32,39 @@ def valid_credential(credential: object) -> bool:
         and 1 <= len(credential) <= MAX_CREDENTIAL_BYTES
         and all(0x21 <= ord(char) <= 0x7E for char in credential)
     )
+
+
+def json_object(data: bytes, *, max_bytes: int = MAX_ADMIN_JSON) -> dict:
+    """Strict bounded JSON object for control traffic; never interpolate input."""
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON key")
+            result[key] = value
+        return result
+
+    def nonfinite(value):
+        raise ValueError("nonfinite JSON value")
+
+    def finite_float(value):
+        result = float(value)
+        if not math.isfinite(result):
+            raise ValueError("nonfinite JSON value")
+        return result
+
+    if len(data) > max_bytes:
+        raise ValueError("JSON size limit exceeded")
+    try:
+        result = json.loads(
+            data.decode("utf-8"), object_pairs_hook=unique,
+            parse_constant=nonfinite, parse_float=finite_float
+        )
+        if not isinstance(result, dict):
+            raise ValueError("expected JSON object")
+        return result
+    except (ValueError, UnicodeError, RecursionError) as exc:
+        raise ValueError("invalid JSON object") from exc
 
 
 class RelayError(Exception):
