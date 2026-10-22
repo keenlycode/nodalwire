@@ -14,7 +14,7 @@ SOURCE = Path(os.environ.get(
 )).resolve()
 sys.path.insert(0, str(SOURCE))
 
-from nodalwire import Node, Relay, RelayConfig  # noqa: E402
+from nodalwire import AdminClient, Node, Relay, RelayConfig  # noqa: E402
 from nodalwire.client.python import decode_envelope  # noqa: E402
 from nodalwire.config import NetworkConfig  # noqa: E402
 from nodalwire.credentials import make_verifier  # noqa: E402
@@ -41,18 +41,27 @@ async def scenario(protected_default=False):
     endpoint = await relay.start()
     service = asyncio.create_task(relay.run())
     echo = None
+    denied = None
+    admin = None
     reflector = None
     child = None
     seen = []
     try:
         echo = await Node.connect("py-echo", endpoint)
+        if not protected_default:
+            # Test deny policy against an existing registered destination; a
+            # missing destination correctly rejects before policy evaluation.
+            denied = await Node.connect("py-denied", endpoint)
         if protected_default:
             await echo.join("default", "fixture-default-token")
         else:
             await echo.join("team", "fixture-team-token")
             await echo.join("other")
 
+        admin = await AdminClient.connect(relay.admin_endpoint, token="fixture-admin-token")
+
         async def reflect():
+            revision = 0
             while True:
                 message = await echo.receive()
                 assert message.sender == "js-node", message.sender
@@ -62,6 +71,23 @@ async def scenario(protected_default=False):
                     # Ordinary unrelated DATA must survive request correlation.
                     await echo.send(message.sender, b"unrelated", network=message.network)
                     await echo.reply(message, envelope.payload)
+                elif message.payload == b"rotate-team-fixture":
+                    result = await admin.call(
+                        "network.rotate", {"network": "team", "credential": "fixture-team-new"},
+                        expected_revision=revision,
+                    )
+                    revision = result.revision
+                    # Existing memberships survive rotation: this send still works.
+                    await echo.send("js-node", b"rotated-team", network="team")
+                elif message.payload == b"remove-team-fixture":
+                    # Receipt proves native acceptance before explicit removal;
+                    # client must retain this DATA even after removal is effective.
+                    await echo.send("js-node", b"accepted-before-remove", network="team")
+                    await admin.call(
+                        "member.remove", {"network": "team", "name": "js-node"},
+                        expected_revision=revision,
+                    )
+                    await echo.send("js-node", b"removed-team", network="default")
                 elif message.payload == b"python-request":
                     response = await echo.request(
                         "js-node", bytes(range(256)), network=message.network,
@@ -112,6 +138,10 @@ async def scenario(protected_default=False):
             await asyncio.gather(reflector, return_exceptions=True)
         if echo is not None:
             await echo.close()
+        if denied is not None:
+            await denied.close()
+        if admin is not None:
+            await admin.close()
         service.cancel()
         await asyncio.gather(service, return_exceptions=True)
         await relay.close()

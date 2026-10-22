@@ -129,6 +129,47 @@ async function openScenario() {
       "python-request-ok",
     );
     await alice.join("default");
+    await alice.send("py-echo", Buffer.from("rotate-team-fixture"), {
+      network: "team",
+    });
+    assert.equal(
+      Buffer.from((await boundedReceive(alice)).payload).toString(),
+      "rotated-team",
+    );
+    // Rotation changes future joins, not existing Python/Node memberships.
+    await alice.send("py-echo", Uint8Array.of(6), { network: "team" });
+    assert.equal((await boundedReceive(alice)).payload[0], 6);
+    const newcomer = await Node.connect("newcomer", endpoint);
+    try {
+      await assert.rejects(
+        newcomer.join("team", "fixture-team-token"),
+        status("join_denied"),
+      );
+      assert.equal((await newcomer.join("team", "fixture-team-new")).joined, true);
+    } finally {
+      await newcomer.close();
+    }
+    await alice.send("py-echo", Buffer.from("remove-team-fixture"), {
+      network: "team",
+    });
+    const acceptedBeforeRemoval = await boundedReceive(alice);
+    assert.equal(acceptedBeforeRemoval.network, "team");
+    assert.equal(
+      Buffer.from(acceptedBeforeRemoval.payload).toString(),
+      "accepted-before-remove",
+    );
+    const removed = await boundedReceive(alice);
+    assert.equal(removed.network, "default");
+    assert.equal(Buffer.from(removed.payload).toString(), "removed-team");
+    await assert.rejects(
+      alice.send("py-echo", new Uint8Array(), { network: "team" }),
+      status("not_member"),
+    );
+    await assert.rejects(
+      alice.join("team", "fixture-team-token"),
+      status("join_denied"),
+    );
+    await alice.join("team", "fixture-team-new");
   } finally {
     await alice.close();
   }
@@ -138,7 +179,7 @@ async function openScenario() {
   await Promise.all([replacement.close(), replacement.close()]);
   await replacement.close();
   console.log(
-    "PASS AR2 multi-membership/no fallback, binary request/reply both directions, unrelated DATA, heartbeat and release",
+    "PASS AR2 multi-membership/no fallback, binary request/reply both directions, unrelated DATA, rotation future joins/removal cutoff, heartbeat and release",
   );
 
   const source = await Node.connect("source", endpoint);
