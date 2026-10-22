@@ -67,7 +67,11 @@ function flatObject(text: string): Map<string, unknown> | undefined {
     whitespace();
     if (text[index++] !== ":") return;
     whitespace();
+    const valueStart = index;
     const value = token(text[index] === '"' ? string : number);
+    // JSON.parse erases integer-vs-float lexical type (1.0 / 1e0 become 1).
+    // The shared Python codec requires the version to be an integer token.
+    if (key === "v" && text.slice(valueStart, index) !== "1") return;
     fields.set(key, value);
     whitespace();
     const separator = text[index++];
