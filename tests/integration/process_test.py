@@ -1,5 +1,6 @@
 import asyncio
 import errno
+import os
 import signal
 import socket
 import sys
@@ -8,15 +9,22 @@ from pathlib import Path
 
 import pytest
 
+from .helpers import TEST_ADMIN_VERIFIER
+
 
 @asynccontextmanager
-async def service(config: Path):
+async def service(config: Path, *, env=None):
+    environment = dict(os.environ)
+    environment.pop("NODALWIRE_ADMIN_TOKEN", None)
+    if env is not None:
+        environment.update(env)
     process = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
         "nodalwire",
         "--config",
         str(config),
+        env=environment,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -40,7 +48,11 @@ async def service(config: Path):
 def test_cli_service_and_two_application_processes_native_bytes(tmp_path: Path):
     async def check():
         config = tmp_path / "relay.toml"
-        config.write_text('endpoint = "tcp://127.0.0.1:*"\n')
+        config.write_text(f'''config_version = 2
+endpoint = "tcp://127.0.0.1:*"
+admin_endpoint = "tcp://127.0.0.1:*"
+admin_verifier = "{TEST_ADMIN_VERIFIER}"
+''')
         children = []
         endpoint = ""
         try:
