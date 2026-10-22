@@ -4,7 +4,7 @@ import pytest
 
 from nodalwire.client.python.envelope import Envelope, decode_envelope, encode_envelope
 from nodalwire.client.python.node import Message
-from nodalwire.protocol import RelayError
+from nodalwire.protocol import ERROR, RelayError
 
 from .protocol_test import admit, data, dispose, fake_router, packet, receipt
 
@@ -36,6 +36,145 @@ def test_request_reply_before_receipt_preserves_unrelated_wrong_matches_and_bina
                 for payload, network, sender in wrong:
                     assert node.receive_nowait() == Message(sender, payload, network)
                 assert node.receive_nowait() is None
+            finally:
+                await dispose(node)
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize("malformed_success", [False, True])
+def test_reader_rejection_before_adjacent_reply_wins_and_late_reply_is_ordinary(malformed_success):
+    async def check():
+        async with fake_router() as (router, endpoint):
+            node, address = await admit(router, endpoint)
+            try:
+                operation = asyncio.create_task(node.request("beta", b"x"))
+                sent = await packet(router)
+                envelope = decode_envelope(sent[7])
+                late = encode_envelope(Envelope("reply", envelope.id, b"late"))
+                if malformed_success:
+                    await receipt(router, sent, b"unexpected extra success frame")
+                    code = "invalid_receipt"
+                else:
+                    await receipt(router, sent, b"not_member", command=ERROR)
+                    code = "not_member"
+                # Do not let request/send task callbacks run to completion first.
+                await data(router, address, late)
+                with pytest.raises(RelayError, match=code):
+                    await asyncio.wait_for(operation, 1)
+                assert (await asyncio.wait_for(node.receive(), 1)).payload == late
+                assert not node._pending and not node._app_pending
+            finally:
+                await dispose(node)
+    asyncio.run(check())
+
+
+def test_reader_reply_before_adjacent_send_rejection_keeps_owned_result():
+    async def check():
+        async with fake_router() as (router, endpoint):
+            node, address = await admit(router, endpoint)
+            try:
+                operation = asyncio.create_task(node.request("beta", b"x"))
+                sent = await packet(router)
+                envelope = decode_envelope(sent[7])
+                await data(
+                    router, address, encode_envelope(Envelope("reply", envelope.id, b"first"))
+                )
+                await receipt(router, sent, b"not_member", command=ERROR)
+                assert await asyncio.wait_for(operation, 1) == Message("beta", b"first")
+                assert node.receive_nowait() is None
+                assert not node._pending and not node._app_pending
+            finally:
+                await dispose(node)
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize("cancel_count", [1, 2])
+def test_owned_reply_survives_cancellation_during_final_sender_join(cancel_count):
+    async def check():
+        async with fake_router() as (router, endpoint):
+            node, address = await admit(router, endpoint)
+            try:
+                operation = asyncio.create_task(node.request("beta", b"x"))
+                sent = await packet(router)
+                envelope = decode_envelope(sent[7])
+                loop = asyncio.get_running_loop()
+                remaining = cancel_count
+
+                def cancel():
+                    nonlocal remaining
+                    operation.cancel()
+                    remaining -= 1
+                    if remaining:
+                        loop.call_soon(cancel)
+
+                node._app_pending[envelope.id].future.add_done_callback(
+                    lambda _: loop.call_soon(cancel)
+                )
+                await data(
+                    router, address, encode_envelope(Envelope("reply", envelope.id, b"owned"))
+                )
+                assert await operation == Message("beta", b"owned")
+                assert not node._pending and not node._app_pending
+            finally:
+                await dispose(node)
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize("cancel_count", [1, 2])
+def test_owned_ordinary_data_survives_cancellation_during_receive_join(cancel_count):
+    async def check():
+        async with fake_router() as (router, endpoint):
+            node, address = await admit(router, endpoint)
+            try:
+                loop = asyncio.get_running_loop()
+                owner = loop.create_future()
+                original_get = node._inbox.get
+
+                async def observed_get():
+                    owner.set_result(asyncio.current_task())
+                    return await original_get()
+
+                node._inbox.get = observed_get
+                operation = asyncio.create_task(node.receive())
+                getter = await owner
+                remaining = cancel_count
+
+                def cancel():
+                    nonlocal remaining
+                    operation.cancel()
+                    remaining -= 1
+                    if remaining:
+                        loop.call_soon(cancel)
+
+                getter.add_done_callback(lambda _: loop.call_soon(cancel))
+                await data(router, address, b"ordinary-owned")
+                assert await operation == Message("beta", b"ordinary-owned")
+                assert node.receive_nowait() is None
+            finally:
+                await dispose(node)
+    asyncio.run(check())
+
+
+def test_receive_cancellation_before_ownership_leaves_following_data_readable():
+    async def check():
+        async with fake_router() as (router, endpoint):
+            node, address = await admit(router, endpoint)
+            try:
+                started = asyncio.Event()
+                original_get = node._inbox.get
+
+                async def observed_get():
+                    started.set()
+                    return await original_get()
+
+                node._inbox.get = observed_get
+                operation = asyncio.create_task(node.receive())
+                await started.wait()
+                operation.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await operation
+                await data(router, address, b"after cancel")
+                assert await asyncio.wait_for(node.receive(), 1) == Message("beta", b"after cancel")
             finally:
                 await dispose(node)
     asyncio.run(check())

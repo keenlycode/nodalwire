@@ -32,7 +32,7 @@ from .envelope import Envelope, decode_envelope, encode_envelope
 
 _TOKEN = re.compile(rb"[0-9a-f]{32}\Z")
 _DECIMAL = re.compile(rb"[1-9][0-9]*\Z")
-_LEASE = re.compile(rb"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\Z")
+_LEASE = re.compile(rb"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\Z")
 _RELAY_ERRORS = frozenset({
     "invalid_name", "admission_denied", "duplicate_name", "not_registered",
     "invalid_command", "invalid_destination", "invalid_network", "network_not_found",
@@ -158,9 +158,13 @@ class Node:
     ) -> tuple[bytes, ...]:
         seconds = _seconds(self.timeout if timeout is None else timeout)
         if self._closed.is_set():
-            raise RelayError("closed")
+            error = RelayError("closed")
+            self._app_error(app_identity, error)
+            raise error
         if len(self._pending) >= self.max_pending:
-            raise RelayError("pending_full")
+            error = RelayError("pending_full")
+            self._app_error(app_identity, error)
+            raise error
         request = secrets.token_hex(16).encode("ascii")
         token = b"" if initial else self._token
         assert token is not None

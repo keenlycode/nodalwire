@@ -126,6 +126,9 @@ def test_malformed_matching_membership_success_immediately_rejects(extra):
     (TOKEN, b"nan", b"1000", b"[]"), (TOKEN, b"10", b"0", b"[]"),
     (TOKEN, b"10", b"1000", b'["red"]'), (b"bad", b"10", b"1000", b"[]"),
     (TOKEN, b"10", b"1000", b'null'), (TOKEN, b"10", b"1000"),
+    (TOKEN, b"1_0", b"1000", b"[]"), (TOKEN, b"+10", b"1000", b"[]"),
+    (TOKEN, b"1e1", b"1000", b"[]"), (TOKEN, b"010", b"1000", b"[]"),
+    (TOKEN, b" 10", b"1000", b"[]"), (TOKEN, b"10\n", b"1000", b"[]"),
 ])
 def test_invalid_hello_cannot_install_partial_admission(extras):
     async def check():
