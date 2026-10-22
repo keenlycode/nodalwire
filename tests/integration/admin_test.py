@@ -278,3 +278,55 @@ def test_startup_requires_admin_before_resources_and_partial_bind_failure_closes
             occupied.close(linger=0)
             context.term()
     asyncio.run(check())
+
+
+def test_live_admin_rejects_duplicate_nonfinite_unknown_and_never_echoes_secrets(monkeypatch):
+    async def check():
+        async with running_relay() as h:
+            async with await AdminClient.connect(
+                h.relay.admin_endpoint, token=TEST_ADMIN_TOKEN
+            ) as raw:
+                payloads = (
+                    b'{"op":"config.get","op":"network.delete","args":{"network":"default"}}',
+                    b'{"op":"config.get","args":{"x":1e999}}',
+                    b'{"op":"config.get","args":{},"credential":"private-secret"}',
+                    b'{"op":"private-secret","args":{}}',
+                    b'\xff',
+                )
+                for payload in payloads:
+                    await raw.socket.send_multipart([
+                        ADMIN_VERSION, b"read-test", TEST_ADMIN_TOKEN.encode(), payload,
+                    ])
+                    response = await asyncio.wait_for(raw.socket.recv_multipart(), 1)
+                    assert response[:3] == [ADMIN_VERSION, b"read-test", ERROR]
+                    assert json.loads(response[3]) == {
+                        "revision": 0, "code": "invalid_request", "outcome": "no_effect",
+                    }
+                    assert b"private-secret" not in response[3]
+                monkeypatch.setattr(h.relay.store, "redacted", lambda: {"large": "x" * 65536})
+                with pytest.raises(AdminError, match="response_too_large"):
+                    await raw.call("config.get")
+                assert h.relay.store.revision == 0
+    asyncio.run(check())
+
+
+def test_protect_default_through_admin_keeps_existing_but_new_connection_has_zero_memberships():
+    async def check():
+        async with running_relay() as h:
+            alice = await h.node("alice")
+            async with await AdminClient.connect(
+                h.relay.admin_endpoint, token=TEST_ADMIN_TOKEN
+            ) as admin:
+                await admin.call("network.update", {
+                    "network": "default", "protected": True, "credential": "default-only-join!",
+                }, expected_revision=0)
+                # Policy affects future joins; existing accepted member remains.
+                await alice.send("alice", b"not evicted")
+                assert (await alice.receive()).payload == b"not evicted"
+                bob = await h.node("bob")
+                with pytest.raises(RelayError, match="not_member"):
+                    await bob.send("alice", b"zero membership")
+                await bob.join("default", "default-only-join!")
+                await bob.send("alice", b"joined protected default")
+                assert (await alice.receive()).payload == b"joined protected default"
+    asyncio.run(check())

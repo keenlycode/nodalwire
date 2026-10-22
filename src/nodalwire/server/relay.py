@@ -183,6 +183,9 @@ class Relay:
             self._remove(registration)
 
     async def _handle(self, packet: list[zmq.Frame]) -> None:
+        # Administration may have blocked on KDF/fsync since poll/previous expiry.
+        # Never revive an expired incarnation with an already-queued heartbeat.
+        self._expire()
         if len(packet) < 3 or bytes(packet[1]) != VERSION:
             return  # Strict version rejection; no legacy insecure success/fallback.
         address, command = bytes(packet[0]), bytes(packet[2])
@@ -345,6 +348,7 @@ class Relay:
                     raise _AdminRejection("invalid_request")
                 if revision != self.store.revision:
                     raise _AdminRejection("revision_conflict")
+            self._expire()  # Authentication itself may span a lease interval.
             result = self._admin_operation(op, args, value.get("expected_revision"))
         except PersistenceIndeterminate as exc:
             self._sync_memberships(exc.committed_config)

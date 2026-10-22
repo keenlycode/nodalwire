@@ -125,6 +125,39 @@ def test_old_tokens_cannot_close_send_or_refresh_reused_name_and_native_address(
     asyncio.run(check())
 
 
+def test_expiry_is_checked_at_dispatch_and_after_blocking_admin_auth(monkeypatch):
+    from nodalwire import AdminClient
+
+    from .helpers import TEST_ADMIN_TOKEN
+
+    async def check():
+        async with running_relay() as h:
+            await h.node("alice")
+            registration = h.relay._names["alice"]
+            registration.expires = time.monotonic() - 1
+            # Simulates a packet already queued when prior admin work spans its
+            # lease: dispatch must expire it rather than resurrect via heartbeat.
+            await h.relay._handle([
+                registration.address, VERSION, HEARTBEAT, registration.token,
+            ])
+            assert "alice" not in h.relay._names
+            await h.node("bob")
+            original = h.relay.store.authenticate_admin
+
+            def authentication(token):
+                accepted = original(token)
+                h.relay._names["bob"].expires = time.monotonic() - 1
+                return accepted
+
+            monkeypatch.setattr(h.relay.store, "authenticate_admin", authentication)
+            async with await AdminClient.connect(
+                h.relay.admin_endpoint, token=TEST_ADMIN_TOKEN
+            ) as admin:
+                members = await admin.call("member.list", {"network": "default"})
+                assert members.result["members"] == []
+    asyncio.run(check())
+
+
 def test_receive_waiter_is_woken_and_resources_close_on_cancellation():
     async def check():
         async with running_relay() as h:
