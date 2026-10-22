@@ -80,6 +80,16 @@ test("codec rejects duplicate/escaped duplicate keys, noncanonical base64 and ma
   assert.ok(decodeEnvelope(wire(valid.replace('"v":1', '"\\u0076" : 1'))));
 });
 
+test("large bounded codec roundtrip does not confuse payload size with encoded limit", () => {
+  const payload = new Uint8Array(500000).fill(255);
+  const encoded = encodeEnvelope({ kind: "reply", id, payload });
+  assert.deepEqual(decodeEnvelope(encoded)?.payload, payload);
+  assert.equal(decodeEnvelope(encoded, 500000), undefined);
+  assert.throws(() => encodeEnvelope({ kind: "reply", id, payload }, 500000), {
+    message: "payload_too_large",
+  });
+});
+
 test("encoder rejects invalid input without reflecting supplied values", () => {
   for (
     const envelope of [null, {}, { kind: "bad", id, payload: new Uint8Array() }, {
