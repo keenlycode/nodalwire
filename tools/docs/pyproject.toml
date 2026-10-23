@@ -1,0 +1,9 @@
+[project]
+name = "nodalwire-docs"
+version = "0.0.0"
+description = "Isolated tooling for the NodalWire static documentation"
+requires-python = ">=3.12"
+dependencies = ["engrave==3.2.6"]
+
+[tool.uv]
+package = false

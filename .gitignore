@@ -6,3 +6,5 @@ __pycache__/
 .ruff_cache/
 dist/
 *.egg-info/
+tools/docs/node_modules/
+tools/docs/.build/

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}NodalWire · Design foundations{% endblock %}</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="{{ url('assets/_layouts/style.css') }}">
+  {% block assets %}{% endblock %}
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <div class="header-inner">
+      <div class="brand"><span>◈</span> nodalwire <span style="font-weight:400;color:var(--muted)">/ design</span></div>
+      <span class="badge">TOKEN REVIEW · DRAFT 01</span>
+    </div>
+  </header>
+  <div class="layout">
+    {% block sidebar %}
+    <nav aria-label="Documentation"><a href="{{ url('design/tokens/') }}">Design tokens</a></nav>
+    {% endblock %}
+    <main id="main">{% block content %}{% endblock %}</main>
+  </div>
+</body>
+</html>

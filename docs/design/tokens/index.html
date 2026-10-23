@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NodalWire · Design token review</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../assets/design/tokens/style.css">
+<script type="module" src="../../assets/design/tokens/index.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <div class="header-inner">
+      <div class="brand"><span>◈</span> nodalwire <span style="font-weight:400;color:var(--muted)">/ design</span></div>
+      <span class="badge">TOKEN REVIEW · DRAFT 01</span>
+    </div>
+  </header>
+  <div class="layout">
+<nav aria-label="Review sections">
+  <p class="eyebrow">Review foundations</p>
+  <a href="#palette">01 · Color palette</a>
+  <a href="#colors">02 · Semantic colors</a>
+  <a href="#typography">03 · Typography</a>
+  <a href="#geometry">04 · Space &amp; shape</a>
+  <a href="#lift">05 · Lift</a>
+  <a href="#context">06 · In context</a>
+  <a href="#states">07 · Interaction states</a>
+</nav>    <main id="main"><p class="eyebrow">NodalWire documentation / design foundations</p>
+<h1>A shared language,<br>before the pages.</h1>
+<p class="lead">A working review of color, type, spacing, and interaction. Judge the system both as individual tokens and inside a real documentation surface.</p>
+<div class="summary">
+<div><strong>Adaptive UI</strong><span>Foundation reference</span>
+</div>
+<div><strong>Light theme</strong><span>First review scope</span>
+</div>
+<div><strong>Draft 01</strong><span>Not approved or shipped</span>
+</div>
+</div>
+<div class="review-note"><strong>What we are deciding</strong>
+<p>Reading comfort, navigation density, color roles, and how much visual emphasis code and warnings need. Names and values below are proposals—not a finished design system.</p>
+</div><a class="button" href="../../assets/tokens.json" download="nodalwire-tokens-draft.json">Download token values ↓</a>
+
+<section id="palette">
+  <div class="section-heading">
+    <h2>01 / Color palette</h2>
+    <small>Adaptive + extension · 10 families × 5 shades</small>
+  </div>
+  <p>Start with the available colors before assigning interface roles. Adaptive’s GNOME palette foundations appear in their original shade order. The proposed pink family is a NodalWire extension, not part of the original palette.</p>
+  <div class="review-note">
+    <strong>Palette first. Semantics second.</strong>
+    <p>This section is the color inventory. The next section proposes which colors become text, links, surfaces, and warnings. Not every palette color is suitable for text on every background.</p>
+  </div>
+  <div class="palette-families">
+    <article class="palette-family">
+      <h3>blue</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#99c1f1" aria-hidden="true">
+</div>
+          <code>blue.1</code><span>#99c1f1</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#62a0ea" aria-hidden="true">
+</div>
+          <code>blue.2</code><span>#62a0ea</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#3584e4" aria-hidden="true">
+</div>
+          <code>blue.3</code><span>#3584e4</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#1c71d8" aria-hidden="true">
+</div>
+          <code>blue.4</code><span>#1c71d8</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#1a5fb4" aria-hidden="true">
+</div>
+          <code>blue.5</code><span>#1a5fb4</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>green</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#8ff0a4" aria-hidden="true">
+</div>
+          <code>green.1</code><span>#8ff0a4</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#57e389" aria-hidden="true">
+</div>
+          <code>green.2</code><span>#57e389</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#33d17a" aria-hidden="true">
+</div>
+          <code>green.3</code><span>#33d17a</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#2ec27e" aria-hidden="true">
+</div>
+          <code>green.4</code><span>#2ec27e</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#26a269" aria-hidden="true">
+</div>
+          <code>green.5</code><span>#26a269</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>yellow</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f9f06b" aria-hidden="true">
+</div>
+          <code>yellow.1</code><span>#f9f06b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f8e45c" aria-hidden="true">
+</div>
+          <code>yellow.2</code><span>#f8e45c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f6d32d" aria-hidden="true">
+</div>
+          <code>yellow.3</code><span>#f6d32d</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f5c211" aria-hidden="true">
+</div>
+          <code>yellow.4</code><span>#f5c211</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e5a50a" aria-hidden="true">
+</div>
+          <code>yellow.5</code><span>#e5a50a</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>orange</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ffbe6f" aria-hidden="true">
+</div>
+          <code>orange.1</code><span>#ffbe6f</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ffa348" aria-hidden="true">
+</div>
+          <code>orange.2</code><span>#ffa348</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ff7800" aria-hidden="true">
+</div>
+          <code>orange.3</code><span>#ff7800</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e66100" aria-hidden="true">
+</div>
+          <code>orange.4</code><span>#e66100</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c64600" aria-hidden="true">
+</div>
+          <code>orange.5</code><span>#c64600</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>red</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f66151" aria-hidden="true">
+</div>
+          <code>red.1</code><span>#f66151</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ed333b" aria-hidden="true">
+</div>
+          <code>red.2</code><span>#ed333b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e01b24" aria-hidden="true">
+</div>
+          <code>red.3</code><span>#e01b24</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c01c28" aria-hidden="true">
+</div>
+          <code>red.4</code><span>#c01c28</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#a51d2d" aria-hidden="true">
+</div>
+          <code>red.5</code><span>#a51d2d</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>purple</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#dc8add" aria-hidden="true">
+</div>
+          <code>purple.1</code><span>#dc8add</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c061cb" aria-hidden="true">
+</div>
+          <code>purple.2</code><span>#c061cb</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#9141ac" aria-hidden="true">
+</div>
+          <code>purple.3</code><span>#9141ac</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#813d9c" aria-hidden="true">
+</div>
+          <code>purple.4</code><span>#813d9c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#613583" aria-hidden="true">
+</div>
+          <code>purple.5</code><span>#613583</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>pink <span class="source" style="text-transform:none;font-weight:400;margin-left:.5rem">NodalWire extension · proposed</span></h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f9c6df" aria-hidden="true">
+</div>
+          <code>pink.1</code><span>#f9c6df</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f28fbd" aria-hidden="true">
+</div>
+          <code>pink.2</code><span>#f28fbd</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e75a9b" aria-hidden="true">
+</div>
+          <code>pink.3</code><span>#e75a9b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c7357c" aria-hidden="true">
+</div>
+          <code>pink.4</code><span>#c7357c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#99245c" aria-hidden="true">
+</div>
+          <code>pink.5</code><span>#99245c</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>brown</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#cdab8f" aria-hidden="true">
+</div>
+          <code>brown.1</code><span>#cdab8f</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#b5835a" aria-hidden="true">
+</div>
+          <code>brown.2</code><span>#b5835a</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#986a44" aria-hidden="true">
+</div>
+          <code>brown.3</code><span>#986a44</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#865e3c" aria-hidden="true">
+</div>
+          <code>brown.4</code><span>#865e3c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#63452c" aria-hidden="true">
+</div>
+          <code>brown.5</code><span>#63452c</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>light</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ffffff" aria-hidden="true">
+</div>
+          <code>light.1</code><span>#ffffff</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f6f5f4" aria-hidden="true">
+</div>
+          <code>light.2</code><span>#f6f5f4</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#deddda" aria-hidden="true">
+</div>
+          <code>light.3</code><span>#deddda</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c0bfbc" aria-hidden="true">
+</div>
+          <code>light.4</code><span>#c0bfbc</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#9a9996" aria-hidden="true">
+</div>
+          <code>light.5</code><span>#9a9996</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>dark</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#77767b" aria-hidden="true">
+</div>
+          <code>dark.1</code><span>#77767b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#5e5c64" aria-hidden="true">
+</div>
+          <code>dark.2</code><span>#5e5c64</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#3d3846" aria-hidden="true">
+</div>
+          <code>dark.3</code><span>#3d3846</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#241f31" aria-hidden="true">
+</div>
+          <code>dark.4</code><span>#241f31</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#000000" aria-hidden="true">
+</div>
+          <code>dark.5</code><span>#000000</span>
+        </div>
+      </div>
+    </article>
+  </div>
+  <p class="fine">Source: <a href="https://developer.gnome.org/hig/reference/palette.html">GNOME palette</a>, as referenced by Adaptive UI, for the nine original families. Pink is a proposed NodalWire extension. The original palette was intended for icons and illustrations; interface use is a design choice. Shade numbers are identifiers, not an automatic contrast scale.</p>
+</section>
+
+<section id="colors">
+<div class="section-heading">
+<h2>02 / Semantic colors</h2><small>Foundations → semantic roles</small>
+</div>
+<p class="fine">Every semantic role references the palette. Note and warning surfaces are derived tints: Color.js mixes the stated palette color with palette.light.1 in OKLCH, maps to sRGB, and resolves the final hex at build time. Recipes are proposals; no color library is shipped to the browser.</p>
+<div class="swatches"><article class="swatch">
+<div class="paint" style="background:#f6f5f4" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>canvas</code> <span class="mono" style="font-size:.75rem">#f6f5f4</span>
+<p>Page canvas</p><span class="source">palette.light.2</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#ffffff" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>surface</code> <span class="mono" style="font-size:.75rem">#ffffff</span>
+<p>Reading surfaces</p><span class="source">palette.light.1</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#241f31" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>ink</code> <span class="mono" style="font-size:.75rem">#241f31</span>
+<p>Primary text</p><span class="source">palette.dark.4</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#5e5c64" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>muted</code> <span class="mono" style="font-size:.75rem">#5e5c64</span>
+<p>Secondary text</p><span class="source">palette.dark.2</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#deddda" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>border</code> <span class="mono" style="font-size:.75rem">#deddda</span>
+<p>Decorative separators; not control boundaries</p><span class="source">palette.light.3</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#77767b" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>controlBorder</code> <span class="mono" style="font-size:.75rem">#77767b</span>
+<p>Control boundaries</p><span class="source">palette.dark.1</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#1a5fb4" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>accent</code> <span class="mono" style="font-size:.75rem">#1a5fb4</span>
+<p>Links and actions</p><span class="source">palette.blue.5</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#1c71d8" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>focus</code> <span class="mono" style="font-size:.75rem">#1c71d8</span>
+<p>Keyboard focus ring</p><span class="source">palette.blue.4</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#eff5fe" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>note</code> <span class="mono" style="font-size:.75rem">#eff5fe</span>
+<p>Information surface</p><span class="source">palette.blue.3 + 92% palette.light.1 · OKLCH → sRGB</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#fff1e1" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>warning</code> <span class="mono" style="font-size:.75rem">#fff1e1</span>
+<p>Warning surface</p><span class="source">palette.orange.1 + 78% palette.light.1 · OKLCH → sRGB</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#63452c" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>warningInk</code> <span class="mono" style="font-size:.75rem">#63452c</span>
+<p>Warning foreground</p><span class="source">palette.brown.5</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#241f31" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>code</code> <span class="mono" style="font-size:.75rem">#241f31</span>
+<p>Code surface</p><span class="source">palette.dark.4</span>
+</div>
+</article></div>
+<h3 style="margin-top:2rem">Foreground / background checks</h3>
+<div class="pairs"><div class="pair"><span>Body / surface</span><span><strong>15.97:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Secondary / surface</span><span><strong>6.58:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Link / surface</span><span><strong>6.29:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Action label / accent</span><span><strong>6.29:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Warning text / warning</span><span><strong>7.82:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Code text / code</span><span><strong>15.97:1</strong> <span class="pass">AA text ✓</span></span>
+</div></div>
+<p class="fine">WCAG contrast calculated from the exact sRGB values above, against the 4.5:1 normal-text threshold. This is not a full accessibility audit; separators are decorative.</p>
+</section>
+<section id="typography">
+<div class="section-heading">
+<h2>03 / Typography</h2><small>System sans + system mono</small>
+</div>
+<div class="controls"><label for="reading-size">Preview reading size</label><input id="reading-size" type="range" min="15" max="19" step="0.1" value="17"><output id="reading-value" for="reading-size">17px</output><button id="reset-size" type="button">Reset to Adaptive scale</button>
+</div>
+<p class="fine">The slider is a temporary review override. The source uses Adaptive’s fluid 15–17px root scale; it does not change token files.</p>
+<div class="panel">
+<div class="type-row"><span class="type-meta">H1 / 2.25rem<br>line-height 1.25</span>
+<div style="font-size:2.25rem;font-weight:600;line-height:1.25;letter-spacing:-.035em">Small relay.<br>Clear boundaries.</div>
+</div>
+<div class="type-row"><span class="type-meta">H2 / 1.875rem</span>
+<div style="font-size:1.875rem;font-weight:600;line-height:1.25">Connect with intention.</div>
+</div>
+<div class="type-row"><span class="type-meta">H3 / 1.5rem</span>
+<div style="font-size:1.5rem;font-weight:600">A network is a boundary.</div>
+</div>
+<div class="type-row"><span class="type-meta">Body / 1rem<br>line-height 1.5</span>
+<p>Good documentation makes the next step obvious. Keep explanations direct, put constraints close to examples, and distinguish a successful operation from an uncertain outcome.</p>
+</div>
+<div class="type-row"><span class="type-meta">Mono / .85rem</span><code style="font-size:.85rem">network = "studio"<br>payload = b"Hello, NodalWire"</code>
+</div>
+</div>
+</section>
+<section id="geometry">
+<div class="section-heading">
+<h2>04 / Space & shape</h2><small>Density without crowding</small>
+</div>
+<div class="geometry">
+<div class="panel">
+<h3>Spacing scale</h3>
+<p class="fine">sm / md / lg follow Adaptive. xs / xl / section extend the same rhythm for documentation.</p><div class="space-row"><code>xs · 0.25rem</code>
+<div class="bar" style="width:0.25rem">
+</div>
+</div><div class="space-row"><code>sm · 0.5rem</code>
+<div class="bar" style="width:0.5rem">
+</div>
+</div><div class="space-row"><code>md · 1rem</code>
+<div class="bar" style="width:1rem">
+</div>
+</div><div class="space-row"><code>lg · 1.5rem</code>
+<div class="bar" style="width:1.5rem">
+</div>
+</div><div class="space-row"><code>xl · 2rem</code>
+<div class="bar" style="width:2rem">
+</div>
+</div><div class="space-row"><code>section · 3rem</code>
+<div class="bar" style="width:3rem">
+</div>
+</div></div>
+<div class="panel">
+<h3>Corner vocabulary</h3>
+<p class="fine">Adaptive radii. Use modest corners for controls; larger ones only for grouped surfaces.</p>
+<div class="corners"><div>
+<div class="corner" style="border-radius:0">none</div>
+<p class="fine mono">0</p>
+</div><div>
+<div class="corner" style="border-radius:0.25rem">sm</div>
+<p class="fine mono">0.25rem</p>
+</div><div>
+<div class="corner" style="border-radius:0.75rem">md</div>
+<p class="fine mono">0.75rem</p>
+</div><div>
+<div class="corner" style="border-radius:1.5rem">lg</div>
+<p class="fine mono">1.5rem</p>
+</div><div>
+<div class="corner" style="border-radius:9999px">full</div>
+<p class="fine mono">9999px</p>
+</div></div>
+<p class="fine">Article measure: <code>68ch</code><br>Review sidebar: <code>15rem</code></p>
+</div>
+</div>
+</section>
+<section id="lift">
+  <div class="section-heading">
+    <h2>05 / Lift</h2><small>Adaptive · painted-silhouette depth</small>
+  </div>
+  <p>Compare the same surface at six lift levels. Only the filter changes: size,
+    color, border, and content stay the same. Lift is not a z-index scale.</p>
+  <div class="lift-grid" aria-label="Lift levels zero through five">
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="0"
+        data-lift-filter="none" style="filter:none">
+        <span class="lift-label">LIFT 0</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 0</strong></p>
+      <code class="lift-recipe">none</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="1"
+        data-lift-filter="drop-shadow(0 1px 2px #241f3133)" style="filter:drop-shadow(0 1px 2px #241f3133)">
+        <span class="lift-label">LIFT 1</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 1</strong></p>
+      <code class="lift-recipe">drop-shadow(0 1px 2px #241f3133)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="2"
+        data-lift-filter="drop-shadow(0 2px 4px #241f313d)" style="filter:drop-shadow(0 2px 4px #241f313d)">
+        <span class="lift-label">LIFT 2</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 2</strong></p>
+      <code class="lift-recipe">drop-shadow(0 2px 4px #241f313d)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="3"
+        data-lift-filter="drop-shadow(0 4px 7px #241f313d)" style="filter:drop-shadow(0 4px 7px #241f313d)">
+        <span class="lift-label">LIFT 3</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 3</strong></p>
+      <code class="lift-recipe">drop-shadow(0 4px 7px #241f313d)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="4"
+        data-lift-filter="drop-shadow(0 8px 12px #241f313d)" style="filter:drop-shadow(0 8px 12px #241f313d)">
+        <span class="lift-label">LIFT 4</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 4</strong></p>
+      <code class="lift-recipe">drop-shadow(0 8px 12px #241f313d)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="5"
+        data-lift-filter="drop-shadow(0 12px 18px #241f313d)" style="filter:drop-shadow(0 12px 18px #241f313d)">
+        <span class="lift-label">LIFT 5</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 5</strong></p>
+      <code class="lift-recipe">drop-shadow(0 12px 18px #241f313d)</code>
+    </div>
+  </div>
+  <div class="lift-playground">
+    <div class="lift-controls">
+      <h3>Try a surface</h3>
+      <label for="lift-level">Lift level <output id="lift-value" for="lift-level">2</output></label>
+      <input id="lift-level" type="range" min="0" max="5" step="1" value="2">
+      <label class="lift-check"><input id="lift-borders" type="checkbox" checked> Show surface borders</label>
+      <p class="fine">Controls are temporary review settings; they do not change token files.</p>
+      <code id="lift-active-recipe" class="lift-recipe">filter: drop-shadow(0 2px 4px #241f313d);</code>
+      <p id="lift-status" class="fine" aria-live="polite"></p>
+    </div>
+    <div class="lift-stage">
+      <article id="lift-live-surface" class="lift-surface" style="filter:drop-shadow(0 2px 4px #241f313d)">
+        <span class="lift-label">Surface / card specimen</span>
+        <h3>Keep the content grounded.</h3>
+        <p>Background, padding, corners and optional lift. No click behavior is implied.</p>
+      </article>
+      <div class="lift-silhouette">
+        <div id="lift-shape" style="filter:drop-shadow(0 2px 4px #241f313d)" aria-label="Transparent group with two painted shapes">
+          <span class="lift-circle"></span><span class="lift-square"></span>
+        </div>
+        <p class="fine">Transparent group · painted silhouette</p>
+      </div>
+    </div>
+  </div>
+  <div class="review-note">
+    <strong>Filter, not box-shadow</strong>
+    <p><code>filter: drop-shadow(…)</code> follows painted content. An opaque card
+      looks like a lifted box; a transparent group lifts its painted children.
+      Nonzero filters create a stacking context. Compose other filters deliberately.</p>
+    <p>Shadow ink references <code>palette.dark.4</code>: 20% alpha at level 1,
+      approximately 24% at levels 2–5. These are the original Adaptive recipes.</p>
+  </div>
+</section>
+<section id="context">
+<div class="section-heading">
+<h2>06 / In context</h2><small>Documentation specimen · not API instructions</small>
+</div>
+<div class="panel specimen">
+<aside aria-label="Noninteractive navigation specimen">
+<p class="eyebrow">Documentation</p><span>Overview</span><span class="active">Working with messages</span><span>Administration</span><span>Reference</span>
+</aside>
+<article class="article">
+<p class="eyebrow">Core concepts / payloads</p>
+<h2>Working with messages</h2>
+<p>NodalWire transports bytes. Encode text explicitly, keep payloads bounded, and decide what your application considers a successful exchange.</p>
+<h3>Prepare a payload</h3>
+<p>This standalone JavaScript fragment illustrates the presentation of a small example. It does not connect to a relay.</p>
+<div class="code-box">
+<div class="code-head"><span>JavaScript · payload preparation</span><button id="copy-code" type="button" aria-label="Copy payload example">Copy</button>
+</div>
+<pre><code id="payload-code">const network = "studio";
+const payload = new TextEncoder().encode(
+  "Hello, NodalWire"
+);</code></pre>
+</div>
+<p id="copy-status" class="fine" aria-live="polite"></p>
+<div class="warning"><strong>Design specimen: a warning needs context.</strong>
+<p>Do not communicate risk through color alone. Keep a readable title, a short explanation, and a concrete next step.</p>
+</div>
+<p class="fine">Review prompt: does the code attract enough attention without overpowering the explanation?</p>
+</article>
+</div>
+</section>
+<section id="states">
+<div class="section-heading">
+<h2>07 / Interaction states</h2><small>Controls should be recognizable</small>
+</div>
+<div class="panel">
+<p class="fine">These labeled specimens expose state styling for review. The focus specimen is illustrative; press Tab to inspect actual keyboard focus.</p>
+<div class="states">
+<div><button class="primary" type="button">Primary action</button>
+<div class="state-label">Default</div>
+</div>
+<div><button class="hover-specimen" type="button">Secondary action</button>
+<div class="state-label">Hover specimen</div>
+</div>
+<div><button class="focus-specimen" type="button">Keyboard target</button>
+<div class="state-label">Focus specimen</div>
+</div>
+<div><button disabled type="button">Unavailable</button>
+<div class="state-label">Disabled</div>
+</div>
+</div>
+</div>
+<h3 style="margin-top:2rem">Questions for this review</h3>
+<ol class="review-prompts">
+<li>Is the blue accent appropriately technical, or should the identity be quieter?</li>
+<li>Is body text comfortable at the default size and reading width?</li>
+<li>Are the code surface and warning treatment balanced?</li>
+<li>Should the eventual docs feel denser or more spacious?</li>
+</ol>
+</section>
+<footer class="footer">Maintained design foundations · Edit docs-src/; docs/ is generated.<br>Foundations adapted from <a href="https://github.com/keenlycode/automata-adaptive-ui">Adaptive UI</a>. Rendered with Engrave; assets authored in TypeScript and bundled with esbuild. No external fonts or analytics.</footer>
+</main>
+  </div>
+</body>
+</html>
