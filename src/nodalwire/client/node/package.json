@@ -1,7 +1,7 @@
 {
   "name": "@devcapsule/nodalwire-client",
-  "version": "0.1.0",
-  "description": "Byte client for the trusted local NodalWire Python relay",
+  "version": "0.2.0",
+  "description": "Network membership and byte client for the local NodalWire relay",
   "type": "module",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "types": "./dist/index.d.ts",
