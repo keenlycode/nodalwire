@@ -9,12 +9,23 @@ import zmq
 import zmq.asyncio
 
 from nodalwire import Node, ReceiptTimeout, Relay, RelayConfig, RelayError
+from nodalwire.config_store import ConfigStore
+from nodalwire.credentials import make_verifier
 from nodalwire.protocol import HELLO, VERSION
+
+TEST_ADMIN_TOKEN = "test-admin-token!"
+TEST_ADMIN_VERIFIER = make_verifier(TEST_ADMIN_TOKEN)
 
 
 class Harness:
-    def __init__(self, **config):
-        self.relay = Relay(RelayConfig(endpoint="tcp://127.0.0.1:*", **config))
+    def __init__(self, *, store=None, **config):
+        if store is None:
+            settings = {
+                "endpoint": "tcp://127.0.0.1:*", "admin_endpoint": "tcp://127.0.0.1:*",
+                "admin_verifier": TEST_ADMIN_VERIFIER, **config,
+            }
+            store = ConfigStore(RelayConfig(**settings), environ={})
+        self.relay = Relay(store=store)
         self.endpoint = ""
         self.nodes = []
 
@@ -41,6 +52,7 @@ async def running_relay(**config):
             await task
         await harness.relay.close()
         assert harness.relay.socket.closed and harness.relay.context.closed
+        assert harness.relay.admin_socket.closed
 
 
 @asynccontextmanager

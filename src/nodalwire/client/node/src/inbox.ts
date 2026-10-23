@@ -1,6 +1,7 @@
 import { abortReason, RelayError } from "./protocol.js";
 
 export interface Message {
+  readonly network: string;
   readonly sender: string;
   /** Caller-owned mutable bytes, independent of the native socket's buffers. */
   readonly payload: Uint8Array;
@@ -34,12 +35,8 @@ export class Inbox {
 
   get(signal?: AbortSignal): Promise<Message> {
     if (signal?.aborted) return Promise.reject(abortReason(signal));
-    const message = this.messages.shift();
-    if (message) {
-      this.space?.();
-      this.space = undefined;
-      return Promise.resolve(message);
-    }
+    const message = this.getNowait();
+    if (message) return Promise.resolve(message);
     if (this.closed) return Promise.reject(new RelayError("closed"));
     return new Promise<Message>((resolve, reject) => {
       const finish = () => {
@@ -60,6 +57,16 @@ export class Inbox {
       this.waiters.add(waiter);
       signal?.addEventListener("abort", abort, { once: true });
     });
+  }
+
+  /** Only queued ordinary data; empty is undefined even after close. */
+  getNowait(): Message | undefined {
+    const message = this.messages.shift();
+    if (message) {
+      this.space?.();
+      this.space = undefined;
+    }
+    return message;
   }
 
   close(): void {

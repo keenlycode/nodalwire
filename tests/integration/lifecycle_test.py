@@ -103,11 +103,13 @@ def test_old_tokens_cannot_close_send_or_refresh_reused_name_and_native_address(
                 assert reply[1] == b"OK"
                 new_token = reply[4]
                 assert new_token != old_token
-                for command, extra in ((CLOSE, ()), (SEND, (b"observer", b"stale"))):
+                for command, extra in ((CLOSE, ()), (SEND, (b"default", b"observer", b"stale"))):
                     reply = await raw_request(socket, command, old_token, *extra)
                     assert reply[-1] == b"not_registered"
                 await socket.send_multipart([VERSION, HEARTBEAT, old_token])
-                reply = await raw_request(socket, SEND, new_token, b"observer", b"fresh")
+                reply = await raw_request(
+                    socket, SEND, new_token, b"default", b"observer", b"fresh"
+                )
                 assert reply[1] == b"OK"
                 assert (await observer.receive()).payload == b"fresh"
                 # Old heartbeat must not extend NEW token's lease.
@@ -115,9 +117,44 @@ def test_old_tokens_cannot_close_send_or_refresh_reused_name_and_native_address(
                 while time.monotonic() < accepted_at + lease + 0.05:
                     await socket.send_multipart([VERSION, HEARTBEAT, old_token])
                     await asyncio.sleep(0.02)
-                reply = await raw_request(socket, SEND, new_token, b"observer", b"expired")
+                reply = await raw_request(
+                    socket, SEND, new_token, b"default", b"observer", b"expired"
+                )
                 assert reply[-1] == b"not_registered"
 
+    asyncio.run(check())
+
+
+def test_expiry_is_checked_at_dispatch_and_after_blocking_admin_auth(monkeypatch):
+    from nodalwire import AdminClient
+
+    from .helpers import TEST_ADMIN_TOKEN
+
+    async def check():
+        async with running_relay() as h:
+            await h.node("alice")
+            registration = h.relay._names["alice"]
+            registration.expires = time.monotonic() - 1
+            # Simulates a packet already queued when prior admin work spans its
+            # lease: dispatch must expire it rather than resurrect via heartbeat.
+            await h.relay._handle([
+                registration.address, VERSION, HEARTBEAT, registration.token,
+            ])
+            assert "alice" not in h.relay._names
+            await h.node("bob")
+            original = h.relay.store.authenticate_admin
+
+            def authentication(token):
+                accepted = original(token)
+                h.relay._names["bob"].expires = time.monotonic() - 1
+                return accepted
+
+            monkeypatch.setattr(h.relay.store, "authenticate_admin", authentication)
+            async with await AdminClient.connect(
+                h.relay.admin_endpoint, token=TEST_ADMIN_TOKEN
+            ) as admin:
+                members = await admin.call("member.list", {"network": "default"})
+                assert members.result["members"] == []
     asyncio.run(check())
 
 

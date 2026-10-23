@@ -38,9 +38,9 @@ def test_full_native_destination_errors_and_other_route_progresses_without_drops
                 received = []
                 for _ in accepted:
                     packet = await asyncio.wait_for(socket.recv_multipart(), 2)
-                    assert packet[:4] == [VERSION, b"DATA", token, b"sender"]
-                    assert len(packet[4]) == payload_size
-                    received.append(int.from_bytes(packet[4][:4], "big"))
+                    assert packet[:5] == [VERSION, b"DATA", token, b"default", b"sender"]
+                    assert len(packet[5]) == payload_size
+                    received.append(int.from_bytes(packet[5][:4], "big"))
                 assert received == accepted
                 assert not await socket.poll(timeout=30)
 
@@ -62,7 +62,7 @@ async def silent_receipt_peer():
         first = await socket.recv_multipart()
         assert first[1:3] == [VERSION, HELLO]
         await socket.send_multipart(
-            [first[0], VERSION, OK, b"", first[3], token, b"10", b"1048576"]
+            [first[0], VERSION, OK, b"", first[3], token, b"10", b"1048576", b'["default"]']
         )
         while True:
             packet = await socket.recv_multipart()
