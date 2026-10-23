@@ -1,6 +1,6 @@
 [project]
 name = "nodalwire"
-version = "0.2.0.dev0"
+version = "0.2.0"
 description = "A bounded native ZeroMQ byte relay for trusted local Python applications."
 readme = "README.md"
 license = "MIT"

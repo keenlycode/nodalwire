@@ -2,12 +2,18 @@
 
 ESM TypeScript byte client for the loopback-only NodalWire relay. Node.js 24;
 Deno orchestrates development, not runtime execution. Package identity remains
-`@devcapsule/nodalwire-client`; `0.2.0-dev.0` is an unpublished development version.
+`@devcapsule/nodalwire-client`; version `0.2.0` requires a matching `0.2.0` relay.
 AR2 is intentionally incompatible with AR1: neither endpoint silently downgrades.
 
 ## Build and use
 
-Install an explicitly built local artifact (no publication is required):
+For the `0.2.0` release, install the matching client:
+
+```sh
+npm install @devcapsule/nodalwire-client@0.2.0
+```
+
+For local development, install an explicitly built artifact without publication:
 
 ```sh
 cd src/nodalwire/client/node
@@ -15,7 +21,7 @@ pnpm install --frozen-lockfile --store-dir ./node_modules/.pnpm-store
 deno task build
 pnpm pack
 # From your application:
-pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.2.0-dev.0.tgz
+pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.2.0.tgz
 ```
 
 The native `zeromq` install script is required. For pnpm versions requiring script
