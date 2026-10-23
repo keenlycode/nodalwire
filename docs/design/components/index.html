@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Button + Card · Component reference</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../assets/_ui/components/style.css"><link rel="stylesheet" href="../../assets/design/components/style.css"><script type="module" src="../../assets/design/components/index.js"></script></head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <div class="header-inner">
+      <div class="brand"><span>◈</span> nodalwire <span style="font-weight:400;color:var(--muted)">/ design</span></div>
+      <span class="badge">TOKEN REVIEW · DRAFT 01</span>
+    </div>
+  </header>
+  <div class="layout">
+    <nav aria-label="Documentation"><a href="../tokens/">Design tokens</a></nav>
+    <main id="main"><p class="eyebrow">Button + Card · Approved primitives</p>
+<h1>Button + Card</h1><p class="lead">Two light-DOM web components. Native controls, ordinary content, no shadow DOM.</p>
+<section aria-labelledby="buttons"><h2 id="buttons">Button</h2><p>Blue.5 replaces the reference’s blue.4 fill for stronger text contrast. Tab to inspect the focus ring.</p>
+<div class="specimens"><nw-button id="authored"><button type="button">Server-authored action</button></nw-button><nw-button id="disabled"><button type="button" disabled>Disabled action</button></nw-button><div id="factory"></div></div>
+<output id="action-result" aria-live="polite">No actions yet.</output>
+<div class="specimens"><nw-button><button type="button">A longer label that can wrap on narrow screens without losing its content</button></nw-button></div>
+</section>
+<section aria-labelledby="cards"><h2 id="cards">Card</h2><div class="card-grid"><nw-card id="authored-card"><h3>Server-authored content</h3><p>Text and controls remain in the document. This card has a border, but no lift or interaction of its own.</p><nw-button><button id="card-action" type="button">Action inside Card</button></nw-button></nw-card><div id="factory-card"></div></div></section>
+<section aria-labelledby="forms"><h2 id="forms">Native form behavior</h2><form id="native-form"><label for="example-name">Example name</label><input id="example-name" name="example" value="Draft"><div class="specimens"><nw-button><button type="submit" name="intent" value="review">Submit locally</button></nw-button><nw-button><button type="reset">Reset draft</button></nw-button></div><output id="form-result" aria-live="polite">No submission. Nothing is sent over the network.</output></form></section>
+</main>
+  </div>
+</body>
+</html>
