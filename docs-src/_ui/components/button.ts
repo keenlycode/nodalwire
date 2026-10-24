@@ -1,5 +1,9 @@
+import { Base } from "./base";
+import { componentStyles } from "./resolved-styles";
+
 export type ButtonOptions = { label: string; type?: "button" | "submit" | "reset"; disabled?: boolean };
-export class Button extends HTMLElement {
+export class Button extends Base {
+  static { this.css = componentStyles.button; }
   get button(): HTMLButtonElement {
     const buttons = this.querySelectorAll<HTMLButtonElement>(":scope > button");
     if (buttons.length !== 1) throw new TypeError("Button requires exactly one direct native button");

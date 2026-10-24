@@ -41,9 +41,18 @@ Do not serve the repository root, tooling directories, or kernel task storage.
   remains intact; pink is a labeled NodalWire extension.
 - `_layouts/`: shared Engrave/Jinja layout and its colocated CSS-in-JS.
 - `_partials/`: reusable template fragments, not standalone pages.
-- `_ui/components/`: flat Button/Card custom-element modules and build-time
-  `style.ts`; native inner-button attributes/content remain authoritative. No
-  Shadow DOM or runtime styling dependency is required.
+- `_ui/components/`: flat custom-element modules. Button and Card inherit Base,
+  which extends the real Adapter 4.0.0 (`@devcapsule/adapter`, resolved from the
+  exact JSR revision-11 tarball in the tooling lock). Base adds shared typography,
+  text and box-sizing CSS and idempotent `.define(tagName)` registration with
+  foreign-definition protection. Adapter owns inherited class constructable
+  stylesheets and isolated instance `.css`/`css`-attribute styling in light DOM.
+  Native inner-button attributes/content remain authoritative.
+  Build-only `recipes.ts` is the single token-derived styling source: esbuild
+  injects resolved strings for Adapter static CSS; `style.ts` emits the same
+  recipes as a static no-JS fallback. No Color.js reaches browser bundles.
+  Modern CSS nesting and constructable stylesheets are required for enhancement;
+  without JS, authored native controls and the static stylesheet remain usable.
 - `design/tokens/`: the review page, colocated `style.ts`, and `index.ts` behavior.
 - `design/components/`: Button/Card reference at `/design/components/`, with
   server-authored native controls and optional factory-created examples.
@@ -96,6 +105,7 @@ Use a task-owned isolated browser, never a personal/default profile. Without tha
 explicit endpoint the browser suite is reported as skipped: ordinary `verify`
 still checks TypeScript, builds and the original Node/Python tests, but does **not**
 establish browser behavior proof. With an owned endpoint, the suite exercises
-safe factories, validation, authored native attributes/content, Card composition,
-and native submit/reset/disabled behavior. Actual keyboard, static JS-disabled
+real Adapter inheritance, Base styles, shared-sheet registration/reconnection,
+instance CSS isolation, safe factories, validation, authored native
+attributes/content, Card composition, and native submit/reset/disabled behavior. Actual keyboard, static JS-disabled
 rendering and visual review require separate bounded browser checks.

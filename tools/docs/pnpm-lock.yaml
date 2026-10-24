@@ -166,6 +166,9 @@ importers:
 
   .:
     devDependencies:
+      '@devcapsule/adapter':
+        specifier: https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz
+        version: '@jsr/devcapsule__adapter@https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz'
       colorjs.io:
         specifier: 0.7.1
         version: 0.7.1
@@ -333,6 +336,10 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@jsr/devcapsule__adapter@https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz':
+    resolution: {integrity: sha512-ZdzRcypXV0eC72uQ2NGcZDwm9/oUjEInvmff8y+CZKowPqhGyqw/zCeNXdTrdEKfLQiof/GeFv9M3Qk2AErh1Q==, tarball: https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz}
+    version: 4.0.0
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -546,6 +553,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@jsr/devcapsule__adapter@https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz': {}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true

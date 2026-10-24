@@ -1,7 +1,7 @@
-nw-button { display:inline-flex; vertical-align:middle; max-width:100%; }
-nw-button > button { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-height:2.25rem; max-width:100%; margin:0; border:1px solid #1a5fb4; border-radius:0.75rem; padding:0.5rem 1rem; background:#1a5fb4; color:#ffffff; font:inherit; font-size:.875rem; font-weight:500; line-height:1.25; text-align:center; overflow-wrap:anywhere; cursor:pointer; }
-nw-button > button:hover:not(:disabled) { background:#241f31; border-color:#241f31; }
-nw-button > button:focus-visible { outline:2px solid #1a5fb4; outline-offset:3px; }
-nw-button > button:disabled { background:#deddda; border-color:#c0bfbc; color:#5e5c64; cursor:not-allowed; }
-nw-card { display:grid; gap:1rem; padding:1.5rem; border:1px solid #c0bfbc; border-radius:0.75rem; background:#ffffff; color:#241f31; min-width:0; overflow-wrap:anywhere; }
-nw-card > :first-child { margin-top:0; } nw-card > :last-child { margin-bottom:0; }
+nw-button { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:inline-flex; vertical-align:middle; max-width:100%;
+      & > button { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-height:2.25rem; max-width:100%; margin:0; border:1px solid #1a5fb4; border-radius:0.75rem; padding:0.5rem 1rem; background:#1a5fb4; color:#ffffff; font:inherit; font-size:.875rem; font-weight:500; line-height:1.25; text-align:center; overflow-wrap:anywhere; cursor:pointer; }
+      & > button:hover:not(:disabled) { background:#241f31; border-color:#241f31; }
+      & > button:focus-visible { outline:2px solid #1a5fb4; outline-offset:3px; }
+      & > button:disabled { background:#deddda; border-color:#c0bfbc; color:#5e5c64; cursor:not-allowed; } }
+nw-card { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:grid; gap:1rem; padding:1.5rem; border:1px solid #c0bfbc; border-radius:0.75rem; background:#ffffff; color:#241f31; min-width:0; overflow-wrap:anywhere;
+      & > :first-child { margin-top:0; } & > :last-child { margin-bottom:0; } }
