@@ -1,0 +1,3 @@
+{% macro navigation_icon(name) -%}
+{% filter replace('<svg ', '<svg aria-hidden="true" focusable="false" '|safe) %}{% include 'assets/icons/gnomicon/' ~ name ~ '.svg' %}{% endfilter %}
+{%- endmacro %}

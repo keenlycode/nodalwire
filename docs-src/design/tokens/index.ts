@@ -1,3 +1,8 @@
+import { registerComponents } from "../../_ui/components";
+import { enhanceDesignNavigation } from "../_include/navigation";
+registerComponents();
+enhanceDesignNavigation();
+
 const sizeInput = document.querySelector<HTMLInputElement>("#reading-size");
 const sizeOutput = document.querySelector<HTMLOutputElement>("#reading-value");
 
@@ -75,7 +80,7 @@ if ("IntersectionObserver" in window) {
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
-      document.querySelectorAll("nav a").forEach((link) => {
+      document.querySelectorAll('nav a[href^="#"]').forEach((link) => {
         const current = link.getAttribute("href") === `#${entry.target.id}`;
         link.setAttribute("aria-current", String(current));
       });

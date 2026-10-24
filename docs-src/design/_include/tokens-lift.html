@@ -1,0 +1,52 @@
+<section id="lift">
+  <div class="section-heading">
+    <h2>05 / Lift</h2><small>Adaptive · painted-silhouette depth</small>
+  </div>
+  <p>Compare the same surface at six lift levels. Only the filter changes: size,
+    color, border, and content stay the same. Lift is not a z-index scale.</p>
+  <div class="lift-grid" aria-label="Lift levels zero through five">
+  {% for level, filter in tokens.lift.items() %}
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="{{ level }}"
+        data-lift-filter="{{ filter }}" style="filter:{{ filter }}">
+        <span class="lift-label">LIFT {{ level }}</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level {{ level }}</strong></p>
+      <code class="lift-recipe">{{ filter }}</code>
+    </div>
+  {% endfor %}
+  </div>
+  <div class="lift-playground">
+    <div class="lift-controls">
+      <h3>Try a surface</h3>
+      <label for="lift-level">Lift level <output id="lift-value" for="lift-level">2</output></label>
+      <input id="lift-level" type="range" min="0" max="5" step="1" value="2">
+      <label class="lift-check"><input id="lift-borders" type="checkbox" checked> Show surface borders</label>
+      <p class="fine">Controls are temporary review settings; they do not change token files.</p>
+      <code id="lift-active-recipe" class="lift-recipe">filter: {{ tokens.lift['2'] }};</code>
+      <p id="lift-status" class="fine" aria-live="polite"></p>
+    </div>
+    <div class="lift-stage">
+      <article id="lift-live-surface" class="lift-surface" style="filter:{{ tokens.lift['2'] }}">
+        <span class="lift-label">Surface / card specimen</span>
+        <h3>Keep the content grounded.</h3>
+        <p>Background, padding, corners and optional lift. No click behavior is implied.</p>
+      </article>
+      <div class="lift-silhouette">
+        <div id="lift-shape" style="filter:{{ tokens.lift['2'] }}" aria-label="Transparent group with two painted shapes">
+          <span class="lift-circle"></span><span class="lift-square"></span>
+        </div>
+        <p class="fine">Transparent group · painted silhouette</p>
+      </div>
+    </div>
+  </div>
+  <div class="review-note">
+    <strong>Filter, not box-shadow</strong>
+    <p><code>filter: drop-shadow(…)</code> follows painted content. An opaque card
+      looks like a lifted box; a transparent group lifts its painted children.
+      Nonzero filters create a stacking context. Compose other filters deliberately.</p>
+    <p>Shadow ink references <code>palette.dark.4</code>: 20% alpha at level 1,
+      approximately 24% at levels 2–5. These are the original Adaptive recipes.</p>
+  </div>
+</section>

@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color · NodalWire design</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../../../assets/design/_include/style.css">
+
+<link rel="stylesheet" href="../../../assets/design/tokens/style.css">
+<script type="module" src="../../../assets/design/tokens/index.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="layout">
+    <main id="main"><p class="eyebrow">Design / tokens</p>
+<h1>Color</h1><p class="lead">Canonical palette and semantic recipes, including resolved contrast checks.</p>
+<section id="palette">
+  <div class="section-heading">
+    <h2>01 / Color palette</h2>
+    <small>Adaptive + extension · 10 families × 5 shades</small>
+  </div>
+  <p>Start with the available colors before assigning interface roles. Adaptive’s GNOME palette foundations appear in their original shade order. The proposed pink family is a NodalWire extension, not part of the original palette.</p>
+  <div class="review-note">
+    <strong>Palette first. Semantics second.</strong>
+    <p>This section is the color inventory. The next section proposes which colors become text, links, surfaces, and warnings. Not every palette color is suitable for text on every background.</p>
+  </div>
+  <div class="palette-families">
+    <article class="palette-family">
+      <h3>blue</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#99c1f1" aria-hidden="true">
+</div>
+          <code>blue.1</code><span>#99c1f1</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#62a0ea" aria-hidden="true">
+</div>
+          <code>blue.2</code><span>#62a0ea</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#3584e4" aria-hidden="true">
+</div>
+          <code>blue.3</code><span>#3584e4</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#1c71d8" aria-hidden="true">
+</div>
+          <code>blue.4</code><span>#1c71d8</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#1a5fb4" aria-hidden="true">
+</div>
+          <code>blue.5</code><span>#1a5fb4</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>green</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#8ff0a4" aria-hidden="true">
+</div>
+          <code>green.1</code><span>#8ff0a4</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#57e389" aria-hidden="true">
+</div>
+          <code>green.2</code><span>#57e389</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#33d17a" aria-hidden="true">
+</div>
+          <code>green.3</code><span>#33d17a</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#2ec27e" aria-hidden="true">
+</div>
+          <code>green.4</code><span>#2ec27e</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#26a269" aria-hidden="true">
+</div>
+          <code>green.5</code><span>#26a269</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>yellow</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f9f06b" aria-hidden="true">
+</div>
+          <code>yellow.1</code><span>#f9f06b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f8e45c" aria-hidden="true">
+</div>
+          <code>yellow.2</code><span>#f8e45c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f6d32d" aria-hidden="true">
+</div>
+          <code>yellow.3</code><span>#f6d32d</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f5c211" aria-hidden="true">
+</div>
+          <code>yellow.4</code><span>#f5c211</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e5a50a" aria-hidden="true">
+</div>
+          <code>yellow.5</code><span>#e5a50a</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>orange</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ffbe6f" aria-hidden="true">
+</div>
+          <code>orange.1</code><span>#ffbe6f</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ffa348" aria-hidden="true">
+</div>
+          <code>orange.2</code><span>#ffa348</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ff7800" aria-hidden="true">
+</div>
+          <code>orange.3</code><span>#ff7800</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e66100" aria-hidden="true">
+</div>
+          <code>orange.4</code><span>#e66100</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c64600" aria-hidden="true">
+</div>
+          <code>orange.5</code><span>#c64600</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>red</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f66151" aria-hidden="true">
+</div>
+          <code>red.1</code><span>#f66151</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ed333b" aria-hidden="true">
+</div>
+          <code>red.2</code><span>#ed333b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e01b24" aria-hidden="true">
+</div>
+          <code>red.3</code><span>#e01b24</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c01c28" aria-hidden="true">
+</div>
+          <code>red.4</code><span>#c01c28</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#a51d2d" aria-hidden="true">
+</div>
+          <code>red.5</code><span>#a51d2d</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>purple</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#dc8add" aria-hidden="true">
+</div>
+          <code>purple.1</code><span>#dc8add</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c061cb" aria-hidden="true">
+</div>
+          <code>purple.2</code><span>#c061cb</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#9141ac" aria-hidden="true">
+</div>
+          <code>purple.3</code><span>#9141ac</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#813d9c" aria-hidden="true">
+</div>
+          <code>purple.4</code><span>#813d9c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#613583" aria-hidden="true">
+</div>
+          <code>purple.5</code><span>#613583</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>pink <span class="source" style="text-transform:none;font-weight:400;margin-left:.5rem">NodalWire extension · proposed</span></h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f9c6df" aria-hidden="true">
+</div>
+          <code>pink.1</code><span>#f9c6df</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f28fbd" aria-hidden="true">
+</div>
+          <code>pink.2</code><span>#f28fbd</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#e75a9b" aria-hidden="true">
+</div>
+          <code>pink.3</code><span>#e75a9b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c7357c" aria-hidden="true">
+</div>
+          <code>pink.4</code><span>#c7357c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#99245c" aria-hidden="true">
+</div>
+          <code>pink.5</code><span>#99245c</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>brown</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#cdab8f" aria-hidden="true">
+</div>
+          <code>brown.1</code><span>#cdab8f</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#b5835a" aria-hidden="true">
+</div>
+          <code>brown.2</code><span>#b5835a</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#986a44" aria-hidden="true">
+</div>
+          <code>brown.3</code><span>#986a44</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#865e3c" aria-hidden="true">
+</div>
+          <code>brown.4</code><span>#865e3c</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#63452c" aria-hidden="true">
+</div>
+          <code>brown.5</code><span>#63452c</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>light</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#ffffff" aria-hidden="true">
+</div>
+          <code>light.1</code><span>#ffffff</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#f6f5f4" aria-hidden="true">
+</div>
+          <code>light.2</code><span>#f6f5f4</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#deddda" aria-hidden="true">
+</div>
+          <code>light.3</code><span>#deddda</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#c0bfbc" aria-hidden="true">
+</div>
+          <code>light.4</code><span>#c0bfbc</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#9a9996" aria-hidden="true">
+</div>
+          <code>light.5</code><span>#9a9996</span>
+        </div>
+      </div>
+    </article>
+    <article class="palette-family">
+      <h3>dark</h3>
+      <div class="palette-legend"><span>Shade 1</span><span>Shade 5</span>
+</div>
+      <div class="palette-shades">
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#77767b" aria-hidden="true">
+</div>
+          <code>dark.1</code><span>#77767b</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#5e5c64" aria-hidden="true">
+</div>
+          <code>dark.2</code><span>#5e5c64</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#3d3846" aria-hidden="true">
+</div>
+          <code>dark.3</code><span>#3d3846</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#241f31" aria-hidden="true">
+</div>
+          <code>dark.4</code><span>#241f31</span>
+        </div>
+        <div class="palette-chip">
+          <div class="palette-color" style="background:#000000" aria-hidden="true">
+</div>
+          <code>dark.5</code><span>#000000</span>
+        </div>
+      </div>
+    </article>
+  </div>
+  <p class="fine">Source: <a href="https://developer.gnome.org/hig/reference/palette.html">GNOME palette</a>, as referenced by Adaptive UI, for the nine original families. Pink is a proposed NodalWire extension. The original palette was intended for icons and illustrations; interface use is a design choice. Shade numbers are identifiers, not an automatic contrast scale.</p>
+</section><section id="colors">
+<div class="section-heading">
+<h2>02 / Semantic colors</h2><small>Foundations → semantic roles</small>
+</div>
+<p class="fine">Every semantic role references the palette. Note and warning surfaces are derived tints: Color.js mixes the stated palette color with palette.light.1 in OKLCH, maps to sRGB, and resolves the final hex at build time. Recipes are proposals; no color library is shipped to the browser.</p>
+<div class="swatches"><article class="swatch">
+<div class="paint" style="background:#f6f5f4" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>canvas</code> <span class="mono" style="font-size:.75rem">#f6f5f4</span>
+<p>Page canvas</p><span class="source">palette.light.2</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#ffffff" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>surface</code> <span class="mono" style="font-size:.75rem">#ffffff</span>
+<p>Reading surfaces</p><span class="source">palette.light.1</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#241f31" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>ink</code> <span class="mono" style="font-size:.75rem">#241f31</span>
+<p>Primary text</p><span class="source">palette.dark.4</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#5e5c64" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>muted</code> <span class="mono" style="font-size:.75rem">#5e5c64</span>
+<p>Secondary text</p><span class="source">palette.dark.2</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#deddda" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>border</code> <span class="mono" style="font-size:.75rem">#deddda</span>
+<p>Decorative separators; not control boundaries</p><span class="source">palette.light.3</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#77767b" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>controlBorder</code> <span class="mono" style="font-size:.75rem">#77767b</span>
+<p>Control boundaries</p><span class="source">palette.dark.1</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#1a5fb4" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>accent</code> <span class="mono" style="font-size:.75rem">#1a5fb4</span>
+<p>Links and actions</p><span class="source">palette.blue.5</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#1c71d8" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>focus</code> <span class="mono" style="font-size:.75rem">#1c71d8</span>
+<p>Keyboard focus ring</p><span class="source">palette.blue.4</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#eff5fe" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>note</code> <span class="mono" style="font-size:.75rem">#eff5fe</span>
+<p>Information surface</p><span class="source">palette.blue.3 + 92% palette.light.1 · OKLCH → sRGB</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#fff1e1" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>warning</code> <span class="mono" style="font-size:.75rem">#fff1e1</span>
+<p>Warning surface</p><span class="source">palette.orange.1 + 78% palette.light.1 · OKLCH → sRGB</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#63452c" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>warningInk</code> <span class="mono" style="font-size:.75rem">#63452c</span>
+<p>Warning foreground</p><span class="source">palette.brown.5</span>
+</div>
+</article><article class="swatch">
+<div class="paint" style="background:#241f31" aria-hidden="true">
+</div>
+<div class="swatch-info"><code>code</code> <span class="mono" style="font-size:.75rem">#241f31</span>
+<p>Code surface</p><span class="source">palette.dark.4</span>
+</div>
+</article></div>
+<h3 style="margin-top:2rem">Foreground / background checks</h3>
+<div class="pairs"><div class="pair"><span>Body / surface</span><span><strong>15.97:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Secondary / surface</span><span><strong>6.58:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Link / surface</span><span><strong>6.29:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Action label / accent</span><span><strong>6.29:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Warning text / warning</span><span><strong>7.82:1</strong> <span class="pass">AA text ✓</span></span>
+</div><div class="pair"><span>Code text / code</span><span><strong>15.97:1</strong> <span class="pass">AA text ✓</span></span>
+</div></div>
+<p class="fine">WCAG contrast calculated from the exact sRGB values above, against the 4.5:1 normal-text threshold. This is not a full accessibility audit; separators are decorative.</p>
+</section></main>
+  </div>
+<div class="design-navigation" data-design-navigation>
+  <nw-button-pin hidden><button type="button" aria-label="Open design navigation" aria-controls="design-menu-panel" aria-expanded="false"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m2 13h12m-12-5h12m-12-5h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button></nw-button-pin>
+  <div id="design-menu-panel" class="design-menu-panel"><h2 class="design-menu-heading">Design</h2><nw-menu-stack class="design-menu-scroll"><nav aria-label="Design"><ul>
+  <li class="design-group" data-current-parent="tokens">
+    <a href="../">Tokens</a>
+    <details open><summary aria-label="Tokens pages"><span class="design-group-chevron"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m6 13 5.006-5-5.006-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span></summary><ul>
+      <li><a href="./" aria-current="page">Color</a></li>
+      <li><a href="../typography/">Typography</a></li>
+      <li><a href="../spacing/">Spacing</a></li>
+      <li><a href="../radius/">Radius</a></li>
+      <li><a href="../layout/">Layout</a></li>
+      <li><a href="../lift/">Lift</a></li>
+    </ul></details>
+  </li>
+  <li class="design-group">
+    <a href="../../components/">Components</a>
+    <details open><summary aria-label="Components pages"><span class="design-group-chevron"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m6 13 5.006-5-5.006-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span></summary><ul>
+      <li><a href="../../components/button/">Button</a></li>
+      <li><a href="../../components/button-pin/">ButtonPin</a></li>
+      <li><a href="../../components/card/">Card</a></li>
+      <li><a href="../../components/icon-button/">Icon Button</a></li>
+      <li><a href="../../components/code-block/">Code Block</a></li>
+      <li><a href="../../components/link/">Link</a></li>
+      <li><a href="../../components/badge/">Badge</a></li>
+      <li><a href="../../components/inline-code/">Inline Code</a></li>
+      <li><a href="../../components/top-navigation/">Top Navigation</a></li>
+      <li><a href="../../components/bottom-navigation/">Bottom Navigation</a></li>
+      <li><a href="../../components/menu-stack/">MenuStack</a></li>
+    </ul></details>
+  </li>
+</ul></nav></nw-menu-stack></div>
+</div>
+</body>
+</html>

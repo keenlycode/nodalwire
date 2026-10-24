@@ -6,17 +6,14 @@
   <title>NodalWire · Design token review</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../../assets/design/_include/style.css">
+
 <link rel="stylesheet" href="../../assets/design/tokens/style.css">
 <script type="module" src="../../assets/design/tokens/index.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header>
-    <div class="header-inner">
-      <div class="brand"><span>◈</span> nodalwire <span style="font-weight:400;color:var(--muted)">/ design</span></div>
-      <span class="badge">TOKEN REVIEW · DRAFT 01</span>
-    </div>
-  </header>
   <div class="layout">
 <nav aria-label="Review sections">
   <p class="eyebrow">Review foundations</p>
@@ -27,7 +24,8 @@
   <a href="#lift">05 · Lift</a>
   <a href="#context">06 · In context</a>
   <a href="#states">07 · Interaction states</a>
-</nav>    <main id="main"><p class="eyebrow">NodalWire documentation / design foundations</p>
+</nav>    <main id="main"><section aria-label="Reference pages"><h2>Tokens reference pages</h2><p>Choose a focused reference page, or review the combined specimens below.</p><ul><li><a href="color/">Color</a></li><li><a href="layout/">Layout</a></li><li><a href="lift/">Lift</a></li><li><a href="radius/">Radius</a></li><li><a href="spacing/">Spacing</a></li><li><a href="typography/">Typography</a></li></ul></section>
+<p class="eyebrow">NodalWire documentation / design foundations</p>
 <h1>A shared language,<br>before the pages.</h1>
 <p class="lead">A working review of color, type, spacing, and interaction. Judge the system both as individual tokens and inside a real documentation surface.</p>
 <div class="summary">
@@ -376,7 +374,6 @@
   </div>
   <p class="fine">Source: <a href="https://developer.gnome.org/hig/reference/palette.html">GNOME palette</a>, as referenced by Adaptive UI, for the nine original families. Pink is a proposed NodalWire extension. The original palette was intended for icons and illustrations; interface use is a design choice. Shade numbers are identifiers, not an automatic contrast scale.</p>
 </section>
-
 <section id="colors">
 <div class="section-heading">
 <h2>02 / Semantic colors</h2><small>Foundations → semantic roles</small>
@@ -464,8 +461,7 @@
 </div><div class="pair"><span>Code text / code</span><span><strong>15.97:1</strong> <span class="pass">AA text ✓</span></span>
 </div></div>
 <p class="fine">WCAG contrast calculated from the exact sRGB values above, against the 4.5:1 normal-text threshold. This is not a full accessibility audit; separators are decorative.</p>
-</section>
-<section id="typography">
+</section><section id="typography">
 <div class="section-heading">
 <h2>03 / Typography</h2><small>System sans + system mono</small>
 </div>
@@ -488,8 +484,7 @@
 <div class="type-row"><span class="type-meta">Mono / .85rem</span><code style="font-size:.85rem">network = "studio"<br>payload = b"Hello, NodalWire"</code>
 </div>
 </div>
-</section>
-<section id="geometry">
+</section><section id="geometry">
 <div class="section-heading">
 <h2>04 / Space & shape</h2><small>Density without crowding</small>
 </div>
@@ -537,8 +532,7 @@
 <p class="fine">Article measure: <code>68ch</code><br>Review sidebar: <code>15rem</code></p>
 </div>
 </div>
-</section>
-<section id="lift">
+</section><section id="lift">
   <div class="section-heading">
     <h2>05 / Lift</h2><small>Adaptive · painted-silhouette depth</small>
   </div>
@@ -632,8 +626,7 @@
     <p>Shadow ink references <code>palette.dark.4</code>: 20% alpha at level 1,
       approximately 24% at levels 2–5. These are the original Adaptive recipes.</p>
   </div>
-</section>
-<section id="context">
+</section><section id="context">
 <div class="section-heading">
 <h2>06 / In context</h2><small>Documentation specimen · not API instructions</small>
 </div>
@@ -662,8 +655,7 @@ const payload = new TextEncoder().encode(
 <p class="fine">Review prompt: does the code attract enough attention without overpowering the explanation?</p>
 </article>
 </div>
-</section>
-<section id="states">
+</section><section id="states">
 <div class="section-heading">
 <h2>07 / Interaction states</h2><small>Controls should be recognizable</small>
 </div>
@@ -691,9 +683,40 @@ const payload = new TextEncoder().encode(
 <li>Are the code surface and warning treatment balanced?</li>
 <li>Should the eventual docs feel denser or more spacious?</li>
 </ol>
-</section>
-<footer class="footer">Maintained design foundations · Edit docs-src/; docs/ is generated.<br>Foundations adapted from <a href="https://github.com/keenlycode/automata-adaptive-ui">Adaptive UI</a>. Rendered with Engrave; assets authored in TypeScript and bundled with esbuild. No external fonts or analytics.</footer>
+</section><footer class="footer">Maintained design foundations · Edit docs-src/; docs/ is generated.<br>Foundations adapted from <a href="https://github.com/keenlycode/automata-adaptive-ui">Adaptive UI</a>. Rendered with Engrave; assets authored in TypeScript and bundled with esbuild. No external fonts or analytics.</footer>
 </main>
   </div>
+<div class="design-navigation" data-design-navigation>
+  <nw-button-pin hidden><button type="button" aria-label="Open design navigation" aria-controls="design-menu-panel" aria-expanded="false"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m2 13h12m-12-5h12m-12-5h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button></nw-button-pin>
+  <div id="design-menu-panel" class="design-menu-panel"><h2 class="design-menu-heading">Design</h2><nw-menu-stack class="design-menu-scroll"><nav aria-label="Design"><ul>
+  <li class="design-group" data-current-parent="tokens">
+    <a href="./" aria-current="page">Tokens</a>
+    <details open><summary aria-label="Tokens pages"><span class="design-group-chevron"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m6 13 5.006-5-5.006-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span></summary><ul>
+      <li><a href="color/">Color</a></li>
+      <li><a href="typography/">Typography</a></li>
+      <li><a href="spacing/">Spacing</a></li>
+      <li><a href="radius/">Radius</a></li>
+      <li><a href="layout/">Layout</a></li>
+      <li><a href="lift/">Lift</a></li>
+    </ul></details>
+  </li>
+  <li class="design-group">
+    <a href="../components/">Components</a>
+    <details open><summary aria-label="Components pages"><span class="design-group-chevron"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m6 13 5.006-5-5.006-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span></summary><ul>
+      <li><a href="../components/button/">Button</a></li>
+      <li><a href="../components/button-pin/">ButtonPin</a></li>
+      <li><a href="../components/card/">Card</a></li>
+      <li><a href="../components/icon-button/">Icon Button</a></li>
+      <li><a href="../components/code-block/">Code Block</a></li>
+      <li><a href="../components/link/">Link</a></li>
+      <li><a href="../components/badge/">Badge</a></li>
+      <li><a href="../components/inline-code/">Inline Code</a></li>
+      <li><a href="../components/top-navigation/">Top Navigation</a></li>
+      <li><a href="../components/bottom-navigation/">Bottom Navigation</a></li>
+      <li><a href="../components/menu-stack/">MenuStack</a></li>
+    </ul></details>
+  </li>
+</ul></nav></nw-menu-stack></div>
+</div>
 </body>
 </html>

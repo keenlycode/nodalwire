@@ -1,14 +1,16 @@
-{% extends "_layouts/base.html" %}
-{% block title %}Button + Card · Component reference{% endblock %}
-{% block assets %}<link rel="stylesheet" href="{{ url('assets/_ui/components/style.css') }}"><link rel="stylesheet" href="{{ url('assets/design/components/style.css') }}"><script type="module" src="{{ url('assets/design/components/index.js') }}"></script>{% endblock %}
+{% extends "design/_include/layout.html" %}
+{% set design_page = 'components' %}
+{% block sidebar %}{% endblock %}
+{% block title %}Component reference · NodalWire{% endblock %}
+{% block assets %}{{ super() }}<link rel="stylesheet" href="{{ url('assets/design/components/style.css') }}"><script type="module" src="{{ url('assets/design/components/index.js') }}"></script>{% endblock %}
 {% block content %}
-<p class="eyebrow">Button + Card · Approved primitives</p>
-<h1>Button + Card</h1><p class="lead">Two light-DOM web components. Native controls, ordinary content, no shadow DOM.</p>
-<section aria-labelledby="buttons"><h2 id="buttons">Button</h2><p>Blue.5 replaces the reference’s blue.4 fill for stronger text contrast. Tab to inspect the focus ring.</p>
-<div class="specimens"><nw-button id="authored"><button type="button">Server-authored action</button></nw-button><nw-button id="disabled"><button type="button" disabled>Disabled action</button></nw-button><div id="factory"></div></div>
-<output id="action-result" aria-live="polite">No actions yet.</output>
-<div class="specimens"><nw-button><button type="button">A longer label that can wrap on narrow screens without losing its content</button></nw-button></div>
-</section>
-<section aria-labelledby="cards"><h2 id="cards">Card</h2><div class="card-grid"><nw-card id="authored-card"><h3>Server-authored content</h3><p>Text and controls remain in the document. This card has a border, but no lift or interaction of its own.</p><nw-button><button id="card-action" type="button">Action inside Card</button></nw-button></nw-card><div id="factory-card"></div></div></section>
-<section aria-labelledby="forms"><h2 id="forms">Native form behavior</h2><form id="native-form"><label for="example-name">Example name</label><input id="example-name" name="example" value="Draft"><div class="specimens"><nw-button><button type="submit" name="intent" value="review">Submit locally</button></nw-button><nw-button><button type="reset">Reset draft</button></nw-button></div><output id="form-result" aria-live="polite">No submission. Nothing is sent over the network.</output></form></section>
+<section aria-label="Reference pages"><h2>Components reference pages</h2><p>Choose a focused reference page, or review the combined specimens below.</p><ul><li><a href="{{ url('design/components/badge/') }}">Badge</a></li><li><a href="{{ url('design/components/bottom-navigation/') }}">Bottom Navigation</a></li><li><a href="{{ url('design/components/button/') }}">Button</a></li><li><a href="{{ url('design/components/button-pin/') }}">Button Pin</a></li><li><a href="{{ url('design/components/card/') }}">Card</a></li><li><a href="{{ url('design/components/code-block/') }}">Code Block</a></li><li><a href="{{ url('design/components/icon-button/') }}">Icon Button</a></li><li><a href="{{ url('design/components/inline-code/') }}">Inline Code</a></li><li><a href="{{ url('design/components/link/') }}">Link</a></li><li><a href="{{ url('design/components/menu-stack/') }}">Menu Stack</a></li><li><a href="{{ url('design/components/top-navigation/') }}">Top Navigation</a></li></ul></section>
+<p class="eyebrow">Design system · Component reference</p>
+<h1>Components</h1><p class="lead">Light-DOM web components. Native controls, ordinary content, no shadow DOM.</p>
+{% include "design/_include/components-buttons.html" %}
+{% include "design/_include/components-cards.html" %}
+{% include "design/_include/components-text-primitives.html" %}
+{% include "design/_include/components-code-blocks.html" %}
+{% include "design/_include/components-icon-buttons.html" %}
+{% include "design/_include/components-forms.html" %}
 {% endblock %}

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lift · NodalWire design</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../../../assets/design/_include/style.css">
+
+<link rel="stylesheet" href="../../../assets/design/tokens/style.css">
+<script type="module" src="../../../assets/design/tokens/index.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="layout">
+    <main id="main"><p class="eyebrow">Design / tokens</p>
+<h1>Lift</h1><p class="lead">Six unchanged palette-derived painted-silhouette filters, with native preview controls.</p>
+<section id="lift">
+  <div class="section-heading">
+    <h2>05 / Lift</h2><small>Adaptive · painted-silhouette depth</small>
+  </div>
+  <p>Compare the same surface at six lift levels. Only the filter changes: size,
+    color, border, and content stay the same. Lift is not a z-index scale.</p>
+  <div class="lift-grid" aria-label="Lift levels zero through five">
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="0"
+        data-lift-filter="none" style="filter:none">
+        <span class="lift-label">LIFT 0</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 0</strong></p>
+      <code class="lift-recipe">none</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="1"
+        data-lift-filter="drop-shadow(0 1px 2px #241f3133)" style="filter:drop-shadow(0 1px 2px #241f3133)">
+        <span class="lift-label">LIFT 1</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 1</strong></p>
+      <code class="lift-recipe">drop-shadow(0 1px 2px #241f3133)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="2"
+        data-lift-filter="drop-shadow(0 2px 4px #241f313d)" style="filter:drop-shadow(0 2px 4px #241f313d)">
+        <span class="lift-label">LIFT 2</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 2</strong></p>
+      <code class="lift-recipe">drop-shadow(0 2px 4px #241f313d)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="3"
+        data-lift-filter="drop-shadow(0 4px 7px #241f313d)" style="filter:drop-shadow(0 4px 7px #241f313d)">
+        <span class="lift-label">LIFT 3</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 3</strong></p>
+      <code class="lift-recipe">drop-shadow(0 4px 7px #241f313d)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="4"
+        data-lift-filter="drop-shadow(0 8px 12px #241f313d)" style="filter:drop-shadow(0 8px 12px #241f313d)">
+        <span class="lift-label">LIFT 4</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 4</strong></p>
+      <code class="lift-recipe">drop-shadow(0 8px 12px #241f313d)</code>
+    </div>
+    <div class="lift-specimen">
+      <article class="lift-surface" data-lift-level="5"
+        data-lift-filter="drop-shadow(0 12px 18px #241f313d)" style="filter:drop-shadow(0 12px 18px #241f313d)">
+        <span class="lift-label">LIFT 5</span>
+        <div><h3>One consistent surface.</h3><p>Same content. Same geometry.</p></div>
+      </article>
+      <p class="lift-caption"><strong>Level 5</strong></p>
+      <code class="lift-recipe">drop-shadow(0 12px 18px #241f313d)</code>
+    </div>
+  </div>
+  <div class="lift-playground">
+    <div class="lift-controls">
+      <h3>Try a surface</h3>
+      <label for="lift-level">Lift level <output id="lift-value" for="lift-level">2</output></label>
+      <input id="lift-level" type="range" min="0" max="5" step="1" value="2">
+      <label class="lift-check"><input id="lift-borders" type="checkbox" checked> Show surface borders</label>
+      <p class="fine">Controls are temporary review settings; they do not change token files.</p>
+      <code id="lift-active-recipe" class="lift-recipe">filter: drop-shadow(0 2px 4px #241f313d);</code>
+      <p id="lift-status" class="fine" aria-live="polite"></p>
+    </div>
+    <div class="lift-stage">
+      <article id="lift-live-surface" class="lift-surface" style="filter:drop-shadow(0 2px 4px #241f313d)">
+        <span class="lift-label">Surface / card specimen</span>
+        <h3>Keep the content grounded.</h3>
+        <p>Background, padding, corners and optional lift. No click behavior is implied.</p>
+      </article>
+      <div class="lift-silhouette">
+        <div id="lift-shape" style="filter:drop-shadow(0 2px 4px #241f313d)" aria-label="Transparent group with two painted shapes">
+          <span class="lift-circle"></span><span class="lift-square"></span>
+        </div>
+        <p class="fine">Transparent group · painted silhouette</p>
+      </div>
+    </div>
+  </div>
+  <div class="review-note">
+    <strong>Filter, not box-shadow</strong>
+    <p><code>filter: drop-shadow(…)</code> follows painted content. An opaque card
+      looks like a lifted box; a transparent group lifts its painted children.
+      Nonzero filters create a stacking context. Compose other filters deliberately.</p>
+    <p>Shadow ink references <code>palette.dark.4</code>: 20% alpha at level 1,
+      approximately 24% at levels 2–5. These are the original Adaptive recipes.</p>
+  </div>
+</section></main>
+  </div>
+<div class="design-navigation" data-design-navigation>
+  <nw-button-pin hidden><button type="button" aria-label="Open design navigation" aria-controls="design-menu-panel" aria-expanded="false"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m2 13h12m-12-5h12m-12-5h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button></nw-button-pin>
+  <div id="design-menu-panel" class="design-menu-panel"><h2 class="design-menu-heading">Design</h2><nw-menu-stack class="design-menu-scroll"><nav aria-label="Design"><ul>
+  <li class="design-group" data-current-parent="tokens">
+    <a href="../">Tokens</a>
+    <details open><summary aria-label="Tokens pages"><span class="design-group-chevron"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m6 13 5.006-5-5.006-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span></summary><ul>
+      <li><a href="../color/">Color</a></li>
+      <li><a href="../typography/">Typography</a></li>
+      <li><a href="../spacing/">Spacing</a></li>
+      <li><a href="../radius/">Radius</a></li>
+      <li><a href="../layout/">Layout</a></li>
+      <li><a href="./" aria-current="page">Lift</a></li>
+    </ul></details>
+  </li>
+  <li class="design-group">
+    <a href="../../components/">Components</a>
+    <details open><summary aria-label="Components pages"><span class="design-group-chevron"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m6 13 5.006-5-5.006-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span></summary><ul>
+      <li><a href="../../components/button/">Button</a></li>
+      <li><a href="../../components/button-pin/">ButtonPin</a></li>
+      <li><a href="../../components/card/">Card</a></li>
+      <li><a href="../../components/icon-button/">Icon Button</a></li>
+      <li><a href="../../components/code-block/">Code Block</a></li>
+      <li><a href="../../components/link/">Link</a></li>
+      <li><a href="../../components/badge/">Badge</a></li>
+      <li><a href="../../components/inline-code/">Inline Code</a></li>
+      <li><a href="../../components/top-navigation/">Top Navigation</a></li>
+      <li><a href="../../components/bottom-navigation/">Bottom Navigation</a></li>
+      <li><a href="../../components/menu-stack/">MenuStack</a></li>
+    </ul></details>
+  </li>
+</ul></nav></nw-menu-stack></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<section id="geometry">
+<div class="section-heading">
+<h2>04 / Space & shape</h2><small>Density without crowding</small>
+</div>
+<div class="geometry">
+<div class="panel">
+<h3>Spacing scale</h3>
+<p class="fine">sm / md / lg follow Adaptive. xs / xl / section extend the same rhythm for documentation.</p>{% for name,value in tokens.spacing.items() %}<div class="space-row"><code>{{name}} · {{value}}</code>
+<div class="bar" style="width:{{value}}">
+</div>
+</div>{% endfor %}</div>
+<div class="panel">
+<h3>Corner vocabulary</h3>
+<p class="fine">Adaptive radii. Use modest corners for controls; larger ones only for grouped surfaces.</p>
+<div class="corners">{% for name,value in tokens.radius.items() %}<div>
+<div class="corner" style="border-radius:{{value}}">{{name}}</div>
+<p class="fine mono">{{value}}</p>
+</div>{% endfor %}</div>
+<p class="fine">Article measure: <code>{{tokens.layout.reading}}</code><br>Review sidebar: <code>{{tokens.layout.sidebar}}</code></p>
+</div>
+</div>
+</section>

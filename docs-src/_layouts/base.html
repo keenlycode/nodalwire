@@ -10,17 +10,20 @@
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
+{% block header %}
   <header>
     <div class="header-inner">
       <div class="brand"><span>◈</span> nodalwire <span style="font-weight:400;color:var(--muted)">/ design</span></div>
       <span class="badge">TOKEN REVIEW · DRAFT 01</span>
     </div>
   </header>
+{% endblock %}
   <div class="layout">
     {% block sidebar %}
     <nav aria-label="Documentation"><a href="{{ url('design/tokens/') }}">Design tokens</a></nav>
     {% endblock %}
     <main id="main">{% block content %}{% endblock %}</main>
   </div>
+  {% block bottom_navigation %}{% endblock %}
 </body>
 </html>
