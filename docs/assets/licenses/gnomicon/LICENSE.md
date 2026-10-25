@@ -20,7 +20,7 @@ Gnomicon changes include resolving Grappa's initial state, normalizing colors,
 removing GTK-only metadata, optimizing SVG, and generating JS/TS wrappers.
 Source revisions and per-icon origins are recorded in the distributed manifests.
 The documentation UI runtime has separate provenance in
-`docs-src/vendor/README.md`; it is not part of the npm or JSR icon modules.
+`src/tools/docs/README.md`; it is not part of the npm or JSR icon modules.
 
 ## Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 

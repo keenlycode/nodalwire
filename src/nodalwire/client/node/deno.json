@@ -3,9 +3,13 @@
   "tasks": {
     "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "check": "deno check --sloppy-imports src/index.ts",
-    "lint": "deno lint src tests",
-    "fmt": "deno fmt src tests deno.json tsconfig.json package.json",
-    "test": "deno task build && node --test tests/*.test.mjs && python tests/interop.py"
+    "lint": "deno lint src ../../../../tests/unit/nodalwire/client/node/src ../../../../tests/integration/nodalwire/client/node ../../../../tests/helpers/nodalwire/client/node",
+    "fmt": "deno fmt src ../../../../tests/unit/nodalwire/client/node/src ../../../../tests/integration/nodalwire/client/node ../../../../tests/helpers/nodalwire/client/node deno.json tsconfig.json package.json",
+    "test:unit": "deno task build && deno task test:native",
+    "test:native": "node --test '../../../../tests/unit/nodalwire/client/node/src/*.test.mjs' '../../../../tests/integration/nodalwire/client/node/*.test.mjs'",
+    "test:interop": "python ../../../../tests/integration/nodalwire/client/node/interop.py",
+    "test:artifact": "python ../../../../tests/integration/nodalwire/client/node/package_smoke.py",
+    "test": "deno task build && deno task test:native && deno task test:interop"
   },
   "fmt": { "lineWidth": 88 }
 }
