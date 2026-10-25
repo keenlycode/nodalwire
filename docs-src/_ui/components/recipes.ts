@@ -11,11 +11,17 @@ export function componentRecipes(t: Tokens) {
       & > button:disabled { background:${t.palette["light.3"]}; border-color:${t.palette["light.4"]}; color:${t.palette["dark.2"]}; cursor:not-allowed; }`,
     buttonPin: `& > button { width:2.75rem; height:2.75rem; min-height:2.75rem; padding:0; border-radius:50%; font-size:.75rem; }`,
     iconButton: `& > button { width:2.25rem; height:2.25rem; padding:${t.spacing.sm}; flex-shrink:0; } & > button > svg { display:block; width:1rem; height:1rem; }`,
-    codeBlock: `display:grid; grid-template-columns:1fr auto; gap:${t.spacing.sm}; min-width:0; padding:${t.spacing.md}; border:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md}; background:${t.palette["light.2"]};
-      & > pre { grid-column:1 / -1; margin:0; min-width:0; max-width:100%; overflow:auto; padding:${t.spacing.sm}; font-size:.875rem; line-height:1.6; tab-size:2; }
-      & > pre > code { font-family:ui-monospace,monospace; white-space:pre; }
-      & > nw-icon-button { grid-column:2; grid-row:2; }
-      & > output { grid-column:1; grid-row:2; align-self:center; font-size:.875rem; overflow-wrap:anywhere; }`,
+    codeBlock: `display:block; min-width:0; border:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md}; background:${t.palette["light.2"]};
+      & > .code-block-header { display:flex; align-items:center; justify-content:space-between; gap:${t.spacing.md}; min-width:0; padding:${t.spacing.sm} ${t.spacing.md}; border-bottom:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md} ${t.radius.md} 0 0; background:${t.palette["light.1"]}; }
+      & .code-block-labels { display:flex; flex:1; align-items:baseline; flex-wrap:wrap; gap:${t.spacing.sm}; min-width:0; font-size:.8125rem; }
+      & .code-block-filename { min-width:0; font-family:${t.typography.mono}; overflow-wrap:anywhere; }
+      & .code-block-language { color:${t.palette["dark.2"]}; }
+      & .code-block-header > nw-icon-button { flex:none; }
+      & > pre { margin:0; min-width:0; max-width:100%; overflow:auto; padding:${t.spacing.md}; font-size:.875rem; line-height:1.5; tab-size:2; }
+      & > pre:focus-visible { outline:2px solid ${t.palette["blue.5"]}; outline-offset:-3px; }
+      & > pre > code { font-family:${t.typography.mono}; white-space:pre; }
+      & > output { display:block; padding:0 ${t.spacing.md} ${t.spacing.md}; font-size:.8125rem; overflow-wrap:anywhere; }
+      & > output:empty { display:none; }`,
     topNavigation: `display:block; position:static; background:${t.palette["light.1"]}; border-bottom:1px solid ${t.palette["light.4"]}; padding:${t.spacing.lg};
       & > .navigation-inner { max-width:80rem; margin:auto; }
       & .navigation-brand { display:block; font-weight:700; margin-bottom:${t.spacing.md}; }

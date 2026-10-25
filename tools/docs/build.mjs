@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
-import { mkdir, readdir, rm, writeFile, lstat } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile, lstat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -76,6 +76,10 @@ export async function buildSite() {
       outdir: path.join(stage, "assets"),
       bundle: true,
       format: "esm",
+      splitting: true,
+      minify: true,
+      keepNames: true, // Preserve Adapter/custom-element class identities and diagnostics.
+      chunkNames: "chunks/[name]-[hash]",
       platform: "browser",
       nodePaths: [path.join(toolRoot, "node_modules")],
       define: { __NW_COMPONENT_STYLES__: JSON.stringify(data.componentStyles) },
@@ -88,6 +92,28 @@ export async function buildSite() {
       throw new Error("Color.js leaked into a browser bundle");
     }
     await writeFile(path.join(work, "browser-metafile.json"), JSON.stringify(result.metafile, null, 2) + "\n");
+    // Distribute the installed upstream license/notice files for shipped runtime packages.
+    const packages = new Map();
+    for (const input of Object.keys(result.metafile.inputs).filter(name => name.includes("node_modules/"))) {
+      let directory = path.dirname(path.resolve(root, input));
+      while (directory !== root) {
+        const manifest = await readFile(path.join(directory, "package.json"), "utf8").catch(() => null);
+        if (manifest) {
+          const info = JSON.parse(manifest);
+          if (info.name && info.version) { packages.set(`${info.name}@${info.version}`, directory); break; }
+        }
+        directory = path.dirname(directory);
+      }
+    }
+    const notices = ["Third-party runtime licenses (generated from the locked installed packages)."];
+    for (const [name, directory] of [...packages].sort(([a], [b]) => a.localeCompare(b, "en"))) {
+      const licenses = (await readdir(directory)).filter(name => /^(licen[sc]e|notices?)([.\-_]|$)/i.test(name)).sort();
+      if (!licenses.length) throw new Error(`Missing runtime license for ${name}`);
+      for (const license of licenses) notices.push(`\n## ${name} / ${license}\n\n${await readFile(path.join(directory, license), "utf8")}`);
+    }
+    const licenses = path.join(stage, "assets/licenses/runtime");
+    await mkdir(licenses, { recursive: true });
+    await writeFile(path.join(licenses, "NOTICE.txt"), notices.join("\n") + "\n");
   }
   const dataFile = path.join(work, "render-data.json");
   await writeFile(dataFile, JSON.stringify({ tokens: data.tokens, families: data.families, pairs: data.pairs }));

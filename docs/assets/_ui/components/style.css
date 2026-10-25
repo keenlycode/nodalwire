@@ -25,11 +25,17 @@ nw-icon-button { box-sizing:border-box; font-family:system-ui, sans-serif; line-
       & > button:hover:not(:disabled) { background:#241f31; border-color:#241f31; }
       & > button:focus-visible { outline:2px solid #1a5fb4; outline-offset:3px; }
       & > button:disabled { background:#deddda; border-color:#c0bfbc; color:#5e5c64; cursor:not-allowed; } & > button { width:2.25rem; height:2.25rem; padding:0.5rem; flex-shrink:0; } & > button > svg { display:block; width:1rem; height:1rem; } }
-nw-code-block { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:grid; grid-template-columns:1fr auto; gap:0.5rem; min-width:0; padding:1rem; border:1px solid #c0bfbc; border-radius:0.75rem; background:#f6f5f4;
-      & > pre { grid-column:1 / -1; margin:0; min-width:0; max-width:100%; overflow:auto; padding:0.5rem; font-size:.875rem; line-height:1.6; tab-size:2; }
-      & > pre > code { font-family:ui-monospace,monospace; white-space:pre; }
-      & > nw-icon-button { grid-column:2; grid-row:2; }
-      & > output { grid-column:1; grid-row:2; align-self:center; font-size:.875rem; overflow-wrap:anywhere; } }
+nw-code-block { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:block; min-width:0; border:1px solid #c0bfbc; border-radius:0.75rem; background:#f6f5f4;
+      & > .code-block-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; min-width:0; padding:0.5rem 1rem; border-bottom:1px solid #c0bfbc; border-radius:0.75rem 0.75rem 0 0; background:#ffffff; }
+      & .code-block-labels { display:flex; flex:1; align-items:baseline; flex-wrap:wrap; gap:0.5rem; min-width:0; font-size:.8125rem; }
+      & .code-block-filename { min-width:0; font-family:ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap:anywhere; }
+      & .code-block-language { color:#5e5c64; }
+      & .code-block-header > nw-icon-button { flex:none; }
+      & > pre { margin:0; min-width:0; max-width:100%; overflow:auto; padding:1rem; font-size:.875rem; line-height:1.5; tab-size:2; }
+      & > pre:focus-visible { outline:2px solid #1a5fb4; outline-offset:-3px; }
+      & > pre > code { font-family:ui-monospace, SFMono-Regular, Consolas, monospace; white-space:pre; }
+      & > output { display:block; padding:0 1rem 1rem; font-size:.8125rem; overflow-wrap:anywhere; }
+      & > output:empty { display:none; } }
 nw-top-navigation { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:block; position:static; background:#ffffff; border-bottom:1px solid #c0bfbc; padding:1.5rem;
       & > .navigation-inner { max-width:80rem; margin:auto; }
       & .navigation-brand { display:block; font-weight:700; margin-bottom:1rem; }

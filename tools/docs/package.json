@@ -16,6 +16,7 @@
     "@devcapsule/adapter": "https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz",
     "colorjs.io": "0.7.1",
     "esbuild": "0.28.2",
+    "shiki": "4.5.0",
     "typescript": "7.0.2"
   }
 }

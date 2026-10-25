@@ -30,9 +30,39 @@
 <h3>Link</h3><p><nw-link id="authored-link"><a href="../tokens/">Explore design tokens</a></nw-link> uses a native anchor, including its URL and keyboard behavior.</p><p id="factory-link"></p>
 <h3>Badge</h3><p>A noninteractive label: <nw-badge id="authored-badge"><span>Preview</span></nw-badge> <span id="factory-badge"></span></p>
 <h3>Inline Code</h3><p>Literal code inside prose: <nw-inline-code id="authored-inline-code"><code>&lt;message&gt; &amp; response</code></nw-inline-code>. Whitespace stays literal, and long text wraps within the available line.</p><p id="factory-inline-code"></p>
-</section><section aria-labelledby="code-blocks"><h2 id="code-blocks">Code Block</h2><p>Plain text, preserved whitespace, horizontal scrolling for long lines. Copy feedback remains until the next attempt.</p><nw-code-block id="code-example"><pre tabindex="0" aria-label="Code example"><code>const message = "&lt;hello&gt; &amp; goodbye";
-  console.log(message);
-// Long lines scroll inside the code block instead of widening the page: abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789</code></pre></nw-code-block></section><section aria-labelledby="icon-buttons"><h2 id="icon-buttons">Icon Button</h2><p>The native button has an accessible name; the decorative glyph is hidden from assistive technology.</p><div id="icon-examples" class="specimens"></div><output id="icon-result" aria-live="polite">No icon actions yet.</output><p>Copy icon: GNOME Project, Gnomicon 51.0.0. <a href="../../assets/licenses/gnomicon/NOTICE.md">Sources and licenses</a>.</p></section><section aria-labelledby="forms"><h2 id="forms">Native form behavior</h2><form id="native-form"><label for="example-name">Example name</label><input id="example-name" name="example" value="Draft"><div class="specimens"><nw-button><button type="submit" name="intent" value="review">Submit locally</button></nw-button><nw-button><button type="reset">Reset draft</button></nw-button></div><output id="form-result" aria-live="polite">No submission. Nothing is sent over the network.</output></form></section></nw-container>
+</section><section aria-labelledby="code-blocks">
+<h2 id="code-blocks">Code Block</h2>
+<p>Filename and language share a header with the copy action. Python and JavaScript are highlighted in the browser; code stays readable without JavaScript or when highlighting is unavailable.</p>
+<div class="code-block-examples">
+<nw-code-block id="code-example" filename="relay.py" language="python">
+  <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">relay.py</span><span class="code-block-language">Python</span></span></div>
+<pre tabindex="0" aria-label="Python code example"><code>import json
+
+
+def encode_message(text: str) -&gt; bytes:
+    # Keep the message boundary explicit.
+    message = {"type": "message", "text": text, "version": 1}
+    return json.dumps(message).encode("utf-8")
+
+
+payload = encode_message("Hello, NodalWire 👋")
+print(payload)
+</code></pre></nw-code-block>
+<nw-code-block id="javascript-code-example" filename="message.js" language="javascript">
+  <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">message.js</span><span class="code-block-language">JavaScript</span></span></div>
+<pre tabindex="0" aria-label="JavaScript code example"><code>function encodeMessage(text) {
+  // Preserve literal text, including &lt;tags&gt; &amp; whitespace.
+  const message = { type: "message", text, version: 1 };
+  return new TextEncoder().encode(JSON.stringify(message));
+}
+
+const payload = encodeMessage("Hello, NodalWire 👋");
+console.log(payload);
+// Long lines scroll inside the code block: abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+</code></pre></nw-code-block>
+</div>
+<p class="fine">Copy preserves the exact code, including indentation and final newlines. Other languages remain plain text. Highlighting loads one shared engine and only the requested Python or JavaScript grammar. <a href="../../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a>.</p>
+</section><section aria-labelledby="icon-buttons"><h2 id="icon-buttons">Icon Button</h2><p>The native button has an accessible name; the decorative glyph is hidden from assistive technology.</p><div id="icon-examples" class="specimens"></div><output id="icon-result" aria-live="polite">No icon actions yet.</output><p>Copy icon: GNOME Project, Gnomicon 51.0.0. <a href="../../assets/licenses/gnomicon/NOTICE.md">Sources and licenses</a>.</p></section><section aria-labelledby="forms"><h2 id="forms">Native form behavior</h2><form id="native-form"><label for="example-name">Example name</label><input id="example-name" name="example" value="Draft"><div class="specimens"><nw-button><button type="submit" name="intent" value="review">Submit locally</button></nw-button><nw-button><button type="reset">Reset draft</button></nw-button></div><output id="form-result" aria-live="polite">No submission. Nothing is sent over the network.</output></form></section></nw-container>
 </main>
 <div class="design-navigation" data-design-navigation>
   <nw-button-pin hidden><button type="button" aria-label="Open design navigation" aria-controls="design-menu-panel" aria-expanded="false"><svg aria-hidden="true" focusable="false" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="m2 13h12m-12-5h12m-12-5h12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button></nw-button-pin>
