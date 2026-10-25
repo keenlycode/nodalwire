@@ -45,9 +45,12 @@ pnpm --dir src/tools/docs verify
 These commands account for separate locked environments without adding docs
 packages to NodalWire's runtime dependencies. Root pytest explicitly discovers
 core module units, top-level core integration suites and usage tests (272 cases).
-Docs Python's six renderer units and three site integration cases always run via
-the docs `verify` command in the Engrave/Jinja environment, alongside its Node
-suites. This explicit collection boundary keeps default root pytest usable; it
+Docs renderer units and site navigation integration cases run via the docs
+`verify` command in the Engrave/Jinja environment, alongside its Node suites.
+Executable documentation examples run through the same command in the separate
+locked core Python environment, where NodalWire and pytest are available.
+Verification explicitly builds the development playground for existing design
+checks, then finishes with a clean public build excluding `/design/`. This explicit collection boundary keeps default root pytest usable; it
 does not skip docs tests within their configured runner. Run all environment
 commands above rather than treating missing dependencies or browser skips as passes. Docs verification without
 explicit owned-browser environment values reports browser suites as skipped;

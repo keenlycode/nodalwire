@@ -67,7 +67,30 @@ def validate_links(directory: Path) -> None:
                     raise ValueError(f"Missing anchor in {destination.name}: {reference}")
 
 
-def render_site(source: Path, stage: Path, data: dict) -> None:
+# These raw SVGs are embedded only by design templates, despite living under
+# the shared icon directory. Keep shared copy-icon attribution/licenses intact.
+DEVELOPMENT_ONLY_ASSETS = frozenset({
+    "icons/gnomicon/open-menu.svg",
+    "icons/gnomicon/pan-end.svg",
+})
+
+
+NAVIGATION = [
+    {"label": "", "items": [{"label": "Home", "path": ""},
+                              {"label": "Getting Started", "path": "getting-started/"}]},
+    {"label": "Guides", "items": [
+        {"label": "Networks", "path": "guides/networks/"},
+        {"label": "Request/reply", "path": "guides/request-reply/"},
+        {"label": "Security", "path": "guides/security/"}]},
+    {"label": "Reference", "items": [
+        {"label": "Python & Node API", "path": "reference/api/"},
+        {"label": "CLI", "path": "reference/cli/"},
+        {"label": "Configuration", "path": "reference/config/"},
+        {"label": "Administration", "path": "reference/admin/"}]},
+]
+
+
+def render_site(source: Path, stage: Path, data: dict, *, development: bool = False) -> None:
     load = get_template(
         dir_src=source,
         autoescape=jinja2.select_autoescape(["html"]),
@@ -79,11 +102,14 @@ def render_site(source: Path, stage: Path, data: dict) -> None:
         relative = page.relative_to(source)
         if any(part.startswith("_") for part in relative.parts):
             continue
+        if not development and relative.parts[0] == "design":
+            continue
         destination = stage / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         page_path = PurePosixPath(relative.as_posix())
         rendered = load(relative.as_posix()).render(
-            **data, url=lambda target, current=page_path: page_url(current, target)
+            **data, development=development, navigation=NAVIGATION,
+            url=lambda target, current=page_path: page_url(current, target)
         )
         destination.write_text(rendered + "\n", encoding="utf-8")
     assets = source / "assets"
@@ -92,6 +118,12 @@ def render_site(source: Path, stage: Path, data: dict) -> None:
             if asset.is_symlink():
                 raise ValueError("Static assets may not be symlinks")
             if asset.is_file():
+                relative_asset = asset.relative_to(assets)
+                if not development and (
+                    relative_asset.parts[0] == "design"
+                    or relative_asset.as_posix() in DEVELOPMENT_ONLY_ASSETS
+                ):
+                    continue
                 destination = stage / "assets" / asset.relative_to(assets)
                 if destination.exists():
                     raise ValueError(f"Static asset collides with a generated file: {destination}")
@@ -125,9 +157,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("source", "stage", "output", "data"):
         parser.add_argument(f"--{name}", required=True, type=Path)
+    parser.add_argument("--dev", action="store_true", help="Include the local design playground")
     args = parser.parse_args()
     data = json.loads(args.data.read_text(encoding="utf-8"))
-    render_site(args.source, args.stage, data)
+    render_site(args.source, args.stage, data, development=args.dev)
     publish(args.stage, args.source, args.output)
 
 

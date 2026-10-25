@@ -1,0 +1,5 @@
+<nw-page-path><nav aria-label="Page Path"><ol>
+{% if page_path %}<li><a href="{{ url('') }}">NodalWire</a></li>{% endif %}
+{% for ancestor in page_ancestors | default([]) %}<li><span aria-hidden="true">›</span><a href="{{ url(ancestor.path) }}">{{ ancestor.label }}</a></li>{% endfor %}
+<li>{% if page_path %}<span aria-hidden="true">›</span>{% endif %}<a href="{{ url(page_path) }}" aria-current="page">{{ page_title }}</a></li>
+</ol></nav></nw-page-path>

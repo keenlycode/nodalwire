@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}NodalWire · Design foundations{% endblock %}</title>
+  <title>{% block title %}NodalWire documentation{% endblock %}</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="{{ url('assets/_layouts/style.css') }}">
   {% block assets %}{% endblock %}
 </head>
-<body>
+<body{% block body_attributes %}{% endblock %}>
   <a class="skip" href="#main">Skip to content</a>
 {% block header %}
   <header>

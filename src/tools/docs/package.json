@@ -8,9 +8,10 @@
   },
   "scripts": {
     "build": "node build.mjs",
+    "build:dev": "node build.mjs --dev",
     "check": "tsc --project tsconfig.json",
-    "test": "node --test --test-concurrency=1 '../../../tests/unit/docs-src/**/*.test.mjs' '../../../tests/unit/tools/docs/**/*.test.mjs' '../../../tests/integration/docs/*.test.mjs' && uv run --locked python -m unittest discover -s ../../../tests/unit/tools/docs -p '*_test.py' && uv run --locked python -m unittest discover -s ../../../tests/integration/docs -p '*_test.py'",
-    "verify": "pnpm check && pnpm build && pnpm test"
+    "test": "pnpm build:dev && node --test --test-concurrency=1 '../../../tests/unit/docs-src/**/*.test.mjs' '../../../tests/unit/tools/docs/**/*.test.mjs' '../../../tests/integration/docs/*.test.mjs' && uv run --locked python -m unittest discover -s ../../../tests/unit/tools/docs -p '*_test.py' && uv run --locked python -m unittest discover -s ../../../tests/integration/docs -p 'navigation_test.py' && uv run --project ../../.. --locked --no-sync pytest ../../../tests/integration/docs/examples_test.py ../../../tests/integration/docs/guides_examples_test.py -q",
+    "verify": "pnpm check && pnpm test && pnpm build"
   },
   "devDependencies": {
     "@devcapsule/adapter": "https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz",

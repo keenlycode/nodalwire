@@ -21,9 +21,9 @@ async function files(directory) {
 }
 
 /** A fresh checkout needs only the pinned tools, not the prototype kernel. */
-export async function buildSite() {
+export async function buildSite({ dev = false } = {}) {
   await mkdir(work, { recursive: true });
-  const inputs = await files(source);
+  const inputs = (await files(source)).filter(name => dev || path.relative(source, name).split(path.sep)[0] !== "design");
   const styles = inputs.filter((name) => path.basename(name) === "style.ts");
   const resolveFile = path.join(work, "resolve.mjs");
   const imports = styles.map((name, index) => `import style${index} from ${JSON.stringify(name)};`);
@@ -120,11 +120,14 @@ export async function buildSite() {
   execFileSync("uv", [
     "run", "--locked", "--project", toolRoot, "python", path.join(toolRoot, "render.py"),
     "--source", source, "--stage", stage, "--output", path.join(root, "docs"), "--data", dataFile,
+    ...(dev ? ["--dev"] : []),
   ], { cwd: root, stdio: "inherit" });
   return { data, stage };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await buildSite();
-  console.log("Built src/docs-src/ → docs/ (Engrave + TypeScript/esbuild; Color.js build-time only)");
+  const args = process.argv.slice(2);
+  if (args.some(arg => arg !== "--dev")) throw new Error("Usage: node build.mjs [--dev]");
+  await buildSite({ dev: args.includes("--dev") });
+  console.log(`Built src/docs-src/ → docs/ (${args.includes("--dev") ? "development with design" : "public, no design"}; Engrave + TypeScript/esbuild)`);
 }

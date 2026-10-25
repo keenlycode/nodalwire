@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client API reference · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../../assets/style.css">
+<script type="module" src="../../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../../" aria-label="NodalWire home">◈ NodalWire</a><span>Local byte relay · 0.2.0</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<div class="navigation-group">
+<a href="../../">Home</a><a href="../../getting-started/">Getting Started</a></div>
+<div class="navigation-group">
+<h2>Guides</h2><a href="../../guides/networks/">Networks</a><a href="../../guides/request-reply/">Request/reply</a><a href="../../guides/security/">Security</a></div>
+<div class="navigation-group">
+<h2>Reference</h2><a href="./" aria-current="page">Python &amp; Node API</a><a href="../cli/">CLI</a><a href="../config/">Configuration</a><a href="../admin/">Administration</a></div>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Client API reference</a></li>
+</ol></nav></nw-page-path><h1>Client API reference</h1>
+<p class="lead">Focused Python and Node.js interfaces for the matching 0.2.0 relay.</p>
+</header>
+<div class="product-content"><section aria-labelledby="shared"><h2 id="shared">Shared contracts</h2>
+<p>Names and networks match ASCII <code>[A-Za-z0-9][A-Za-z0-9_.-]{0,127}</code>. Endpoints are loopback-only TCP; the client default is <code>tcp://127.0.0.1:5555</code>. Registration admits a live name, not an authenticated identity. Open default autojoins; protected default starts with zero memberships. Nondefault networks always require explicit joins.</p>
+<p>Every send selects one network; omitted means <code>default</code>, never fallback. Both peers must be members and directional route policy must permit the send. Credentials authorize joining, not peer identity.</p></section>
+<section aria-labelledby="python"><h2 id="python">Python</h2>
+<p>Import <code>Node</code>, <code>Message</code>, <code>MembershipReceipt</code>, <code>RelayError</code>, and <code>ReceiptTimeout</code> from <code>nodalwire</code>. Use the asynchronous factory rather than constructing a node without registration.</p>
+<nw-code-block filename="client.py" language="python">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">client.py</span><span class="code-block-language">python</span></span></div><pre tabindex="0" aria-label="python code example"><code>import asyncio
+from nodalwire import Node
+
+async def main():
+    async with await Node.connect("alice") as alice:
+        await alice.send("bob", b"hello", network="default")
+        message = await asyncio.wait_for(alice.receive(), timeout=5)
+        print(message.sender, message.network, message.payload)
+
+asyncio.run(main())
+</code></pre></nw-code-block>
+<p>This lifecycle fragment requires a connected Bob that replies; use <a href="../../getting-started/">Getting Started</a> for a complete two-peer exchange.</p>
+<dl>
+<dt><code>await Node.connect(name, endpoint="tcp://127.0.0.1:5555", **options)</code></dt><dd>Waits for registration and starts owned reader/heartbeat tasks. Options: <code>timeout=5.0</code> seconds, <code>send_hwm=64</code>, <code>receive_hwm=64</code>, <code>inbox_size=64</code>, <code>max_pending=128</code>. Queue limits are positive native integers; timeouts are finite and positive.</dd>
+<dt><code>await node.join(network, credential=None, *, timeout=None)</code></dt><dd>Returns frozen <code>MembershipReceipt(network, joined=True, changed=...)</code>. Open networks need no credential. Protected networks require their join credential; repeated joins recheck policy.</dd>
+<dt><code>await node.leave(network, *, timeout=None)</code></dt><dd>Returns a receipt with <code>joined=False</code>. Other memberships remain. Repeated absence gives <code>changed=False</code>.</dd>
+<dt><code>await node.send(destination, payload, *, network="default", timeout=None)</code></dt><dd>Payload must be <code>bytes</code>, within the negotiated cap. Returns <code>None</code> on destination native queue acceptance only.</dd>
+<dt><code>await node.receive()</code></dt><dd>Returns frozen <code>Message(sender, payload, network="default")</code>; payload stays opaque bytes. Bound a wait using <code>asyncio.wait_for</code> or <code>asyncio.timeout</code>.</dd>
+<dt><code>node.receive_nowait()</code></dt><dd>Removes one ordinary queued message, or returns <code>None</code>. It does not read native data or consume an active correlated reply.</dd>
+<dt><code>await node.request(destination, payload, *, network="default", timeout=None)</code></dt><dd>Returns a <code>Message</code> containing the decoded matching reply payload. One deadline covers send and reply waiting.</dd>
+<dt><code>await node.reply(incoming, payload, *, timeout=None)</code></dt><dd>Requires a <code>Message</code> containing a valid request envelope; replies to its sender on its network. No network override.</dd>
+<dt><code>await node.close(*, timeout=None)</code></dt><dd>Attempts release and always cleans up the owned socket/context/tasks. Failed release remains uncertain; the name may stay leased until expiry. Concurrent/repeated close waits for shared cleanup. Async context exit calls close.</dd>
+</dl>
+<p>Per-operation <code>timeout=None</code> uses the connection timeout. Invalid argument types/values raise <code>TypeError</code>/<code>ValueError</code>; relay/local protocol failures use <code>RelayError.code</code>. Cancellation uses Python's asyncio cancellation semantics and can follow an effect.</p></section>
+<section aria-labelledby="node"><h2 id="node">Node.js</h2>
+<p>The ESM package identity is <code>@devcapsule/nodalwire-client</code>, matching version <code>0.2.0</code>, for Node.js 24. Deno runs development tasks, not the client runtime. Published-package availability is not assumed here. After the <a href="../../getting-started/">source-checkout setup</a>, save this fragment as <code>client.mjs</code> in the repository root and run <code>node client.mjs</code> there while a matching relay and responding Bob are connected. Its relative import resolves the checkout's built SDK without installing the npm package; adjust that path if saving elsewhere.</p>
+<nw-code-block filename="client.mjs" language="javascript">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">client.mjs</span><span class="code-block-language">javascript</span></span></div><pre tabindex="0" aria-label="javascript code example"><code>import { Node } from "./src/nodalwire/client/node/dist/index.js";
+
+const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
+const alice = await Node.connect("alice", endpoint);
+try {
+  await alice.send("bob", Uint8Array.of(0, 255));
+  const message = await alice.receive({ signal: AbortSignal.timeout(5000) });
+  console.log(message.sender, message.network, message.payload);
+} finally {
+  await alice.close();
+}
+</code></pre></nw-code-block>
+<p>This fragment likewise requires a responding Bob. <code>Node.connect(name, endpoint?, options?)</code> waits for registration. Options use camelCase: <code>timeout=5</code> seconds, <code>sendHwm=64</code>, <code>receiveHwm=64</code>, <code>inboxSize=64</code>, <code>maxPending=128</code>, optional <code>signal</code>. Timeouts must also fit a native timer.</p>
+<dl>
+<dt><code>await node.join(network, credential?, options?)</code> / <code>await node.leave(network, options?)</code></dt><dd>Return readonly <code>{ network, joined, changed }</code>. Options support <code>timeout</code> and <code>signal</code>.</dd>
+<dt><code>await node.send(destination, payload, { network?, timeout?, signal? }?)</code></dt><dd>Accepts <code>Uint8Array</code>, including <code>Buffer</code>. Snapshots bytes synchronously, preserving subarray bounds; returns no value on native queue acceptance.</dd>
+<dt><code>await node.receive({ signal? }?)</code> / <code>node.receiveNowait()</code></dt><dd>Return readonly metadata <code>{ sender, network, payload }</code>; payload is caller-owned mutable bytes. Empty nonblocking receive returns <code>undefined</code>. Receive has no separate timeout option: use an abort signal.</dd>
+<dt><code>await node.request(destination, payload, { network?, timeout?, signal? }?)</code></dt><dd>Returns decoded reply payload in a <code>Message</code>. Sender, network, reply kind, and ID must match the pending request.</dd>
+<dt><code>await node.reply(incoming, payload, { timeout?, signal? }?)</code></dt><dd>Validates the request envelope and captures incoming metadata/ID and outgoing bytes before awaiting. Always uses the incoming network.</dd>
+<dt><code>await node.close({ timeout?, signal? }?)</code></dt><dd>Attempts release, then joins native reader/writer cleanup even on timeout/cancellation. Only the first close caller controls the release deadline/cancellation.</dd>
+</dl>
+<p><code>timeout</code> is seconds; <code>AbortSignal.timeout</code> takes milliseconds. Cancellation rejects with the signal's reason. Invalid encode/input arguments generally use <code>TypeError</code>; relay/local failures use <code>RelayError.code</code>. There is no Node administration API.</p></section>
+<section aria-labelledby="envelopes"><h2 id="envelopes">Envelope helpers</h2>
+<p>Python exports <code>Envelope(kind, id, payload)</code>, <code>encode_envelope(envelope, *, max_bytes=1048576)</code>, and <code>decode_envelope(bytes, *, max_bytes=1048576)</code>. Node exports <code>encodeEnvelope(envelope, maxBytes=1048576)</code> and <code>decodeEnvelope(bytes, maxBytes=1048576)</code>. Node's envelope shape is <code>{ kind, id, payload }</code>.</p>
+<p>Kind is <code>request</code> or <code>reply</code>; ID is 32 lowercase hexadecimal characters. The format is <code>NWR1\n</code> followed by strict UTF-8 JSON with exactly <code>v:1</code>, kind, ID, and canonical padded base64 payload. Malformed/unsupported/oversize data decodes to <code>None</code>/<code>undefined</code>. The complete encoded envelope, not only its inner bytes, must fit the cap. The relay never parses it. Normal request/reply methods use negotiated limits.</p></section>
+<section aria-labelledby="errors"><h2 id="errors">Errors, pressure, and lifecycle</h2>
+<p>Representative safe codes: <code>admission_denied</code>, <code>duplicate_name</code>, <code>join_denied</code>, <code>network_not_found</code>, <code>not_member</code>, <code>destination_not_member</code>, <code>route_denied</code>, <code>destination_unavailable</code>, <code>destination_full</code>, <code>payload_too_large</code>, <code>pending_full</code>, <code>local_queue_full</code>, <code>closed</code>, and <code>connection_failed</code>. Errors do not expose credential values.</p>
+<p><code>ReceiptTimeout</code> means effect uncertain. Send success is not receipt, execution, or durability. A matching application reply can win before a routing receipt; earlier failure/cancellation/deadline instead ends matching and leaves later data ordinary. No automatic retry, reconnect, or replay is supplied.</p>
+<p>Drain ordinary messages concurrently with requests: a full inbox pauses the sole native reader and therefore reply/control progress. Receipt entries and reply waiters each have the pending cap. Node has no outbound backlog; a second in-flight native write can reject <code>local_queue_full</code>. HWM bounds message counts, not all memory.</p>
+<p>Queued data survives close and remains readable; an empty closed receive fails with <code>closed</code>. Already accepted data may outlive leave/removal. Membership receipts are snapshots, not an authoritative local membership cache. For executable round trips and uncertainty rules see <a href="../../guides/request-reply/">request/reply</a>; for Python relay/admin APIs see <a href="../config/">configuration</a> and <a href="../admin/">administration</a>.</p></section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>

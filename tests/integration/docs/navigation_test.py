@@ -55,6 +55,44 @@ class PageStructure(HTMLParser):
             if self.stack[i][0] == tag:
                 del self.stack[i:]; break
 
+PUBLIC_ROUTES = ['', 'getting-started/', 'guides/networks/', 'guides/request-reply/',
+                 'guides/security/', 'reference/api/', 'reference/cli/',
+                 'reference/config/', 'reference/admin/']
+
+class ProductNavigationTests(unittest.TestCase):
+    def test_product_routes_share_semantic_structure_and_native_current_navigation(self):
+        class Product(HTMLParser):
+            def __init__(self):
+                super().__init__(); self.in_nav = False; self.links = []; self.headings = []
+            def handle_starttag(self, tag, attrs):
+                a = dict(attrs)
+                if tag == 'nav' and a.get('aria-label') == 'Documentation': self.in_nav = True
+                if self.in_nav and tag == 'a': self.links.append((a['href'], a.get('aria-current')))
+            def handle_endtag(self, tag):
+                if tag == 'nav': self.in_nav = False
+        for route in PUBLIC_ROUTES:
+            page = ROOT/'docs'/route/'index.html'
+            with self.subTest(route=route):
+                html = page.read_text()
+                structure = PageStructure(); structure.feed(html)
+                self.assertTrue(structure.valid)
+                self.assertEqual((structure.mains, structure.containers, structure.headers,
+                                  structure.titles, structure.paths), (1, 1, 1, 1, 1))
+                menu = Product(); menu.feed(html)
+                targets = []
+                for href, current in menu.links:
+                    for prefix in ['/', '/nodalwire/']:
+                        resolved = urlsplit(urljoin('https://example.test'+prefix+route, href)).path
+                        self.assertTrue(resolved.startswith(prefix))
+                    target = (page.parent/unquote(urlsplit(href).path)).resolve()
+                    if target.is_dir(): target /= 'index.html'
+                    self.assertTrue(target.is_file())
+                    targets.append(target)
+                    if current == 'page': self.assertEqual(target, page.resolve())
+                self.assertTrue({(ROOT/'docs'/r/'index.html').resolve() for r in PUBLIC_ROUTES}.issubset(targets))
+                self.assertEqual(sum(current == 'page' for _, current in menu.links), 1)
+
+
 class DesignNavigationTests(unittest.TestCase):
     def test_every_actual_design_page_has_identical_native_navigation(self):
         sources = [p.relative_to(ROOT/'src/docs-src') for p in (ROOT/'src/docs-src/design').rglob('*.html')

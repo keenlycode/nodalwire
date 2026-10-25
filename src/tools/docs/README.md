@@ -16,7 +16,15 @@ uv sync --project src/tools/docs --locked
 pnpm --dir src/tools/docs verify
 ```
 
-After setup, `pnpm --dir src/tools/docs build` rebuilds the site. A global Engrave
+After setup, `pnpm --dir src/tools/docs build` rebuilds the **public product site**.
+The default excludes `/design/`, its navigation and showcase bundles/styles.
+`pnpm --dir src/tools/docs build:dev` explicitly includes the local design playground,
+including all six detailed token pages. Both modes use the same templates,
+components, tokens and pipeline; each replaces the marked generated `docs/`
+directory, so a public rebuild also removes stale development output.
+`verify` runs the design-dependent suites against an explicit development build,
+then rebuilds public output after successful checks. A failed verification can leave
+development output; run `build` before any public handoff. A global Engrave
 installation is optional; the build uses the exact version in this tooling
 project's `uv.lock`. These dependencies do not enter NodalWire's runtime project.
 The local pnpm policy explicitly denies esbuild's lifecycle script; the optional
@@ -29,7 +37,8 @@ uv run --project src/tools/docs --locked python -m http.server 8765 \
   --bind 127.0.0.1 --directory docs
 ```
 
-Open `http://127.0.0.1:8765/design/`. Stop the server with Ctrl-C.
+Open `http://127.0.0.1:8765/`. For the explicitly enabled development build,
+`http://127.0.0.1:8765/design/` opens the playground. Stop the server with Ctrl-C.
 Do not serve the repository root, tooling directories, or kernel task storage.
 
 ## Source ownership
@@ -114,11 +123,27 @@ All source-relative paths below are under `src/docs-src/` unless stated otherwis
   `tests/unit/docs-src/` and `tests/unit/tools/docs/`, plus cross-component/site
   flows in `tests/integration/docs/`. Shared test helpers live in `tests/helpers/`.
 
+Product pages extend `_layouts/product.html`, setting `page_path`, `page_title`,
+`page_intro` and optional `page_ancestors` (linked `{label, path}` entries).
+The layout owns the main/Container/page-header/Page Path and single h1; leaf pages
+supply only the `content` block. `_partials/code-block.html` exports
+`code_block(text, filename='', language='')`, also available through the product
+layout. Pass exact text, including a final newline when intended; the macro escapes
+HTML and preserves carriage returns through character references. Shared native
+navigation is supplied by the renderer, with no fake guide/reference index routes.
+
 Public HTML directories directly reflect URL paths. Shared underscore-prefixed
 HTML files are not pages. `style.ts` files export a default function receiving
 resolved tokens and returning CSS. The build discovers these files and emits
 matching paths under `docs/assets/`. Public `index.ts` files are bundled likewise.
-No page routing manifest is needed.
+The examples in `tests/integration/docs/examples_test.py` and
+`guides_examples_test.py` run in the existing root locked Python environment via
+pytest; the docs venv intentionally does not absorb NodalWire/pytest runtime
+packages. Renderer/navigation unittest checks remain in the docs environment.
+
+No page routing manifest is needed for rendering. The renderer's small navigation
+inventory names the nine public destinations; development-only design pages remain
+automatically discovered.
 
 ## Build pipeline
 
