@@ -4,9 +4,11 @@
 {% block title %}Component reference · NodalWire{% endblock %}
 {% block assets %}{{ super() }}<link rel="stylesheet" href="{{ url('assets/design/components/style.css') }}"><script type="module" src="{{ url('assets/design/components/index.js') }}"></script>{% endblock %}
 {% block content %}
-<section aria-label="Reference pages"><h2>Components reference pages</h2><p>Choose a focused reference page, or review the combined specimens below.</p><ul><li><a href="{{ url('design/components/badge/') }}">Badge</a></li><li><a href="{{ url('design/components/bottom-navigation/') }}">Bottom Navigation</a></li><li><a href="{{ url('design/components/button/') }}">Button</a></li><li><a href="{{ url('design/components/button-pin/') }}">Button Pin</a></li><li><a href="{{ url('design/components/card/') }}">Card</a></li><li><a href="{{ url('design/components/code-block/') }}">Code Block</a></li><li><a href="{{ url('design/components/icon-button/') }}">Icon Button</a></li><li><a href="{{ url('design/components/inline-code/') }}">Inline Code</a></li><li><a href="{{ url('design/components/link/') }}">Link</a></li><li><a href="{{ url('design/components/menu-stack/') }}">Menu Stack</a></li><li><a href="{{ url('design/components/top-navigation/') }}">Top Navigation</a></li></ul></section>
-<p class="eyebrow">Design system · Component reference</p>
+<header class="page-header">
+{% include "design/_include/page-path.html" %}
 <h1>Components</h1><p class="lead">Light-DOM web components. Native controls, ordinary content, no shadow DOM.</p>
+</header>
+<section aria-label="Reference pages"><h2>Components reference pages</h2><p>Choose a focused reference page, or review the combined specimens below.</p><ul><li><a href="{{ url('design/components/badge/') }}">Badge</a></li><li><a href="{{ url('design/components/bottom-navigation/') }}">Bottom Navigation</a></li><li><a href="{{ url('design/components/button/') }}">Button</a></li><li><a href="{{ url('design/components/button-pin/') }}">Button Pin</a></li><li><a href="{{ url('design/components/card/') }}">Card</a></li><li><a href="{{ url('design/components/code-block/') }}">Code Block</a></li><li><a href="{{ url('design/components/icon-button/') }}">Icon Button</a></li><li><a href="{{ url('design/components/inline-code/') }}">Inline Code</a></li><li><a href="{{ url('design/components/link/') }}">Link</a></li><li><a href="{{ url('design/components/menu-stack/') }}">Menu Stack</a></li><li><a href="{{ url('design/components/top-navigation/') }}">Top Navigation</a></li></ul></section>
 {% include "design/_include/components-buttons.html" %}
 {% include "design/_include/components-cards.html" %}
 {% include "design/_include/components-text-primitives.html" %}

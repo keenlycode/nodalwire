@@ -2,7 +2,10 @@ import type { Tokens } from "../../_ui/tokens";
 /** Only the enhanced design composition floats; SSR navigation stays reachable. */
 export default (t: Tokens) => `
 body { padding-bottom:calc(5rem + env(safe-area-inset-bottom,0px)); }
-.layout:has(> main:only-child) { display:block; max-width:80rem; }
+.design-page-main { padding-block:${t.spacing.xl} ${t.spacing.section}; }
+.page-header { position:static; top:auto; z-index:auto; background:transparent; border:0; }
+.page-toc nav { position:static; display:flex; flex-wrap:wrap; gap:${t.spacing.sm}; margin-block:${t.spacing.md}; }
+.page-toc .eyebrow { flex-basis:100%; }
 .design-navigation > nw-button-pin[hidden] { display:none; }
 .design-menu-panel { display:flex; flex-direction:column; box-sizing:border-box; padding:${t.spacing.sm}; overflow:hidden; border:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.lg}; background:${t.palette["light.1"]}; }
 .design-menu-panel[hidden] { display:none; }

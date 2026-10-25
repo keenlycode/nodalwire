@@ -6,6 +6,11 @@
 <link rel="stylesheet" href="{{ url('assets/design/_include/style.css') }}">
 {% endblock %}
 {% block header %}{% endblock %}
+{% block page_layout %}
+<main id="main" class="design-page-main">
+  <nw-container>{{ self.content() }}</nw-container>
+</main>
+{% endblock %}
 {% block bottom_navigation %}
 <div class="design-navigation" data-design-navigation>
   <nw-button-pin hidden><button type="button" aria-label="Open design navigation" aria-controls="design-menu-panel" aria-expanded="false">{{ navigation_icon('open-menu') }}</button></nw-button-pin>

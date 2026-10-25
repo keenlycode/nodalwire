@@ -2,6 +2,28 @@ import type { Tokens } from "../../_ui/tokens";
 
 export default function styles(t: Tokens): string {
   return `
+.token-topics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:${t.spacing.lg}; margin-top:${t.spacing.xl}; }
+.token-topic { display:block; min-width:0; color:inherit; text-decoration:none; border-radius:${t.radius.md}; }
+.token-topic > nw-card { height:100%; grid-template-rows:auto auto 1fr; gap:${t.spacing.md}; }
+.token-topic h2 { margin:0; font-size:1.125rem; color:${t.palette["blue.5"]}; }
+.token-topic p { margin:0; color:${t.colors.muted.value}; font-size:.875rem; }
+.token-topic:hover h2 { text-decoration:underline; text-underline-offset:.2em; }
+.token-topic:focus-visible { outline:3px solid ${t.palette["blue.5"]}; outline-offset:3px; }
+.token-topic-preview { min-width:0; height:6rem; display:flex; align-items:center; justify-content:center; gap:${t.spacing.sm}; padding:${t.spacing.sm} ${t.spacing.md}; background:${t.colors.note.value}; border-radius:${t.radius.sm}; }
+.token-preview-color > span { width:1.75rem; height:1.75rem; flex:0 1 1.75rem; border-radius:${t.radius.full}; }
+.token-preview-type { flex-direction:column; gap:${t.spacing.xs}; }
+.token-preview-type > span { font-family:${t.typography.family}; font-size:${t.typography.h1}; font-weight:700; line-height:${t.typography.headingLineHeight}; }
+.token-preview-type > code { font-family:${t.typography.mono}; font-size:.75rem; }
+.token-preview-spacing { flex-direction:column; align-items:flex-start; padding-inline:${t.spacing.xl}; gap:${t.spacing.xs}; }
+.token-preview-spacing > span { display:block; max-width:100%; height:.375rem; flex-shrink:0; background:${t.palette["blue.5"]}; border-radius:${t.radius.full}; }
+.token-preview-radius > span { width:2.5rem; height:2.5rem; flex:0 1 2.5rem; background:${t.colors.surface.value}; border:1px solid ${t.palette["blue.5"]}; }
+.token-preview-layout { width:10rem; max-width:min(100%,${t.layout.reading}); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:${t.spacing.sm}; }
+.token-preview-layout > span { min-height:2.5rem; background:${t.palette["blue.1"]}; border-radius:${t.radius.sm}; }
+.token-preview-layout > span:first-child { grid-column:1/-1; min-height:.75rem; background:${t.palette["blue.5"]}; }
+.token-preview-lift > span { display:block; width:5rem; height:3rem; border:1px solid ${t.colors.border.value}; border-radius:${t.radius.md}; background:${t.colors.surface.value}; }
+.token-overview-download { margin-top:${t.spacing.xl}; font-size:.875rem; }
+@media(max-width:850px) { .token-topics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:560px) { .token-topics { grid-template-columns:minmax(0,1fr); } .token-topic-preview { height:5.5rem; } }
 .swatches {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

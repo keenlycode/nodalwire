@@ -26,6 +26,35 @@ class Navigation(HTMLParser):
     def handle_endtag(self, tag):
         if tag == 'nav': self.nav = None
 
+class PageStructure(HTMLParser):
+    VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
+    def __init__(self):
+        super().__init__(); self.stack = []; self.mains = 0; self.containers = 0; self.headers = 0; self.titles = 0; self.valid = True; self.paths = 0; self.path_lists = 0; self.path_links = []
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == 'main':
+            self.mains += 1; self.valid &= a.get('id') == 'main'
+        if tag == 'nw-container':
+            self.containers += 1; self.valid &= bool(self.stack) and self.stack[-1][0] == 'main'
+        if 'page-header' in a.get('class', '').split():
+            self.headers += 1; self.valid &= tag == 'header' and bool(self.stack) and self.stack[-1][0] == 'nw-container'
+        if tag == 'nw-page-path':
+            self.paths += 1; self.valid &= bool(self.stack) and 'page-header' in self.stack[-1][1].get('class', '').split()
+        if any(t == 'nw-page-path' for t, _ in self.stack):
+            if tag == 'ol': self.path_lists += 1
+            if tag == 'a': self.path_links.append((a['href'], a.get('aria-current')))
+            if tag == 'nav': self.valid &= bool(a.get('aria-label', '').strip())
+            if tag == 'svg': self.valid &= a.get('aria-hidden') == 'true'
+        if tag == 'h1':
+            self.titles += 1; self.valid &= any('page-header' in p.get('class', '').split() for _, p in self.stack)
+        if 'data-design-navigation' in a:
+            self.valid &= not any(t == 'nw-container' for t, _ in self.stack)
+        if tag not in self.VOID: self.stack.append((tag, a))
+    def handle_endtag(self, tag):
+        for i in range(len(self.stack)-1, -1, -1):
+            if self.stack[i][0] == tag:
+                del self.stack[i:]; break
+
 class DesignNavigationTests(unittest.TestCase):
     def test_every_actual_design_page_has_identical_native_navigation(self):
         sources = [p.relative_to(ROOT/'docs-src') for p in (ROOT/'docs-src/design').rglob('*.html')
@@ -62,6 +91,26 @@ class DesignNavigationTests(unittest.TestCase):
                     if current == 'page': self.assertEqual(target, page.resolve())
                 self.assertTrue(navigable_pages.issubset(targets))
                 self.assertEqual(sum(current == 'page' for _, current in top), 0 if is_landing else 1)
+
+    def test_every_design_page_has_one_main_container_and_semantic_header(self):
+        for page in (ROOT/'docs/design').rglob('index.html'):
+            with self.subTest(page=str(page.relative_to(ROOT/'docs'))):
+                parser = PageStructure(); parser.feed(page.read_text())
+                self.assertTrue(parser.valid)
+                self.assertEqual((parser.mains, parser.containers, parser.headers, parser.titles, parser.paths, parser.path_lists), (1, 1, 1, 1, 1, 1))
+                relative = page.relative_to(ROOT/'docs')
+                expected = [(ROOT/'docs'/Path(*relative.parts[:i])/'index.html').resolve() for i in range(1, len(relative.parts))]
+                actual = []
+                for href, current in parser.path_links:
+                    target = (page.parent/unquote(urlsplit(href).path)).resolve()
+                    if target.is_dir(): target /= 'index.html'
+                    actual.append(target)
+                    self.assertTrue(target.is_file())
+                    for prefix in ['/', '/nodalwire/']:
+                        resolved = urlsplit(urljoin('https://example.test'+prefix+relative.as_posix(), href)).path
+                        self.assertEqual(resolved, prefix+target.parent.relative_to(ROOT/'docs').as_posix()+'/')
+                self.assertEqual(actual, expected)
+                self.assertEqual([current for _, current in parser.path_links], [None]*(len(expected)-1)+['page'])
 
     def test_private_includes_not_published_as_pages(self):
         self.assertFalse((ROOT/'docs/design/_include/navigation.html').exists())

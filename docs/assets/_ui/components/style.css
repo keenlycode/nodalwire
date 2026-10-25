@@ -1,3 +1,13 @@
+nw-page-path { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:block;
+      & nav { position:static; top:auto; display:block; margin:0; }
+      & ol { display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem; list-style:none; margin:0; padding:0; }
+      & li { display:flex; align-items:center; gap:0.5rem; min-width:0; max-width:100%; }
+      & a { display:inline-block; max-width:100%; padding:0.25rem 0; border:0; border-radius:0.25rem; color:#5e5c64; font-size:.8125rem; text-decoration:none; overflow-wrap:anywhere; }
+      & a:hover { color:#1a5fb4; background:transparent; text-decoration:underline; text-underline-offset:.2em; }
+      & a[aria-current=page] { color:#241f31; font-weight:600; }
+      & a:focus-visible { outline:2px solid #1a5fb4; outline-offset:2px; }
+      & li > svg { width:.75rem; height:.75rem; flex:none; color:#5e5c64; } }
+nw-container { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:block; box-sizing:border-box; width:100%; max-width:1000px; min-width:0; margin-inline:auto; padding-inline:clamp(1rem, 3vw, 2rem); }
 nw-button { box-sizing:border-box; font-family:system-ui, sans-serif; line-height:1.5; color:#241f31; display:inline-flex; vertical-align:middle; max-width:100%;
       & > button { box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center; min-height:2.25rem; max-width:100%; margin:0; border:1px solid #1a5fb4; border-radius:0.75rem; padding:0.5rem 1rem; background:#1a5fb4; color:#ffffff; font:inherit; font-size:.875rem; font-weight:500; line-height:1.25; text-align:center; overflow-wrap:anywhere; cursor:pointer; }
       & > button:hover:not(:disabled) { background:#241f31; border-color:#241f31; }

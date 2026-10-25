@@ -1,36 +1,73 @@
 {% extends "design/_include/layout.html" %}
 {% set design_page = 'tokens' %}
-{% block title %}NodalWire · Design token review{% endblock %}
+{% block title %}Design tokens · NodalWire{% endblock %}
 {% block assets %}
 {{ super() }}
 <link rel="stylesheet" href="{{ url('assets/design/tokens/style.css') }}">
 <script type="module" src="{{ url('assets/design/tokens/index.js') }}"></script>
 {% endblock %}
-{% block sidebar %}{% include "_partials/navigation.html" %}{% endblock %}
 {% block content %}
-<section aria-label="Reference pages"><h2>Tokens reference pages</h2><p>Choose a focused reference page, or review the combined specimens below.</p><ul><li><a href="{{ url('design/tokens/color/') }}">Color</a></li><li><a href="{{ url('design/tokens/layout/') }}">Layout</a></li><li><a href="{{ url('design/tokens/lift/') }}">Lift</a></li><li><a href="{{ url('design/tokens/radius/') }}">Radius</a></li><li><a href="{{ url('design/tokens/spacing/') }}">Spacing</a></li><li><a href="{{ url('design/tokens/typography/') }}">Typography</a></li></ul></section>
-<p class="eyebrow">NodalWire documentation / design foundations</p>
-<h1>A shared language,<br>before the pages.</h1>
-<p class="lead">A working review of color, type, spacing, and interaction. Judge the system both as individual tokens and inside a real documentation surface.</p>
-<div class="summary">
-<div><strong>Adaptive UI</strong><span>Foundation reference</span>
-</div>
-<div><strong>Light theme</strong><span>First review scope</span>
-</div>
-<div><strong>Draft 01</strong><span>Not approved or shipped</span>
-</div>
-</div>
-<div class="review-note"><strong>What we are deciding</strong>
-<p>Reading comfort, navigation density, color roles, and how much visual emphasis code and warnings need. Names and values below are proposals—not a finished design system.</p>
-</div><a class="button" href="{{ url('assets/tokens.json') }}" download="nodalwire-tokens-draft.json">Download token values ↓</a>
-
-{% include "design/_include/tokens-palette.html" %}
-
-{% include "design/_include/tokens-colors.html" %}
-{% include "design/_include/tokens-typography.html" %}
-{% include "design/_include/tokens-geometry.html" %}
-{% include "design/_include/tokens-lift.html" %}
-{% include "design/_include/tokens-context.html" %}
-{% include "design/_include/tokens-states.html" %}
-<footer class="footer">Maintained design foundations · Edit docs-src/; docs/ is generated.<br>Foundations adapted from <a href="https://github.com/keenlycode/automata-adaptive-ui">Adaptive UI</a>. Rendered with Engrave; assets authored in TypeScript and bundled with esbuild. No external fonts or analytics.</footer>
+<header class="page-header">
+{% include "design/_include/page-path.html" %}
+<h1>Tokens</h1>
+<p class="lead">The shared foundations of the interface. Choose a topic to explore its values, recipes and interactive examples.</p>
+</header>
+<section class="token-topics" aria-label="Token topics">
+  <a class="token-topic" href="{{ url('design/tokens/color/') }}">
+    <nw-card>
+      <div class="token-topic-preview token-preview-color" aria-hidden="true">
+        {% for key in ['blue.3', 'green.3', 'yellow.3', 'orange.3', 'purple.3'] %}
+        <span style="background:{{ tokens.palette[key] }}"></span>
+        {% endfor %}
+      </div>
+      <h2>Color</h2>
+      <p>A consistent palette and semantic roles for surfaces, text and actions.</p>
+    </nw-card>
+  </a>
+  <a class="token-topic" href="{{ url('design/tokens/typography/') }}">
+    <nw-card>
+      <div class="token-topic-preview token-preview-type" aria-hidden="true"><span>Aa</span><code>Text / Code</code></div>
+      <h2>Typography</h2>
+      <p>Readable type scales, line heights and system fonts for prose and code.</p>
+    </nw-card>
+  </a>
+  <a class="token-topic" href="{{ url('design/tokens/spacing/') }}">
+    <nw-card>
+      <div class="token-topic-preview token-preview-spacing" aria-hidden="true">
+        {% for key in ['sm', 'md', 'lg', 'xl', 'section'] %}
+        <span style="width:calc(2 * {{ tokens.spacing[key] }})"></span>
+        {% endfor %}
+      </div>
+      <h2>Spacing</h2>
+      <p>A shared rhythm for controls, groups and page sections.</p>
+    </nw-card>
+  </a>
+  <a class="token-topic" href="{{ url('design/tokens/radius/') }}">
+    <nw-card>
+      <div class="token-topic-preview token-preview-radius" aria-hidden="true">
+        {% for key in ['sm', 'md', 'full'] %}
+        <span style="border-radius:{{ tokens.radius[key] }}"></span>
+        {% endfor %}
+      </div>
+      <h2>Radius</h2>
+      <p>Corner shapes from subtle rounding to fully circular controls.</p>
+    </nw-card>
+  </a>
+  <a class="token-topic" href="{{ url('design/tokens/layout/') }}">
+    <nw-card>
+      <div class="token-topic-preview" aria-hidden="true"><div class="token-preview-layout"><span></span><span></span><span></span></div></div>
+      <h2>Layout</h2>
+      <p>Reading widths and composition that keep content organized.</p>
+    </nw-card>
+  </a>
+  <a class="token-topic" href="{{ url('design/tokens/lift/') }}">
+    <nw-card>
+      <div class="token-topic-preview token-preview-lift" aria-hidden="true"><span style="filter:{{ tokens.lift['3'] }}"></span></div>
+      <h2>Lift</h2>
+      <p>Palette-derived depth that follows the painted shape of a surface.</p>
+    </nw-card>
+  </a>
+</section>
+<p class="token-overview-download"><a href="{{ url('assets/tokens.json') }}" download="nodalwire-tokens.json">Download token values</a></p>
+<footer class="page-footer footer">Foundations adapted from <a href="https://github.com/keenlycode/automata-adaptive-ui">Adaptive UI</a>. The linked reference pages contain the complete scales, recipes and examples.</footer>
 {% endblock %}

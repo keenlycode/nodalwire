@@ -18,12 +18,14 @@
     </div>
   </header>
 {% endblock %}
+  {% block page_layout %}
   <div class="layout">
     {% block sidebar %}
     <nav aria-label="Documentation"><a href="{{ url('design/tokens/') }}">Design tokens</a></nav>
     {% endblock %}
     <main id="main">{% block content %}{% endblock %}</main>
   </div>
+  {% endblock %}
   {% block bottom_navigation %}{% endblock %}
 </body>
 </html>

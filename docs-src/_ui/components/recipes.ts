@@ -33,6 +33,16 @@ export function componentRecipes(t: Tokens) {
       & a { display:block; padding:${t.spacing.md}; border:0; border-radius:${t.radius.sm}; color:${t.palette["dark.4"]}; text-decoration:none; }
       & a:hover, & a[aria-current=page] { background:${t.palette["light.2"]}; color:${t.palette["blue.5"]}; }
       & a:focus-visible { outline:2px solid ${t.palette["blue.5"]}; outline-offset:-2px; }`,
+    pagePath: `display:block;
+      & nav { position:static; top:auto; display:block; margin:0; }
+      & ol { display:flex; flex-wrap:wrap; align-items:center; gap:${t.spacing.sm}; list-style:none; margin:0; padding:0; }
+      & li { display:flex; align-items:center; gap:${t.spacing.sm}; min-width:0; max-width:100%; }
+      & a { display:inline-block; max-width:100%; padding:${t.spacing.xs} 0; border:0; border-radius:${t.radius.sm}; color:${t.colors.muted.value}; font-size:.8125rem; text-decoration:none; overflow-wrap:anywhere; }
+      & a:hover { color:${t.palette["blue.5"]}; background:transparent; text-decoration:underline; text-underline-offset:.2em; }
+      & a[aria-current=page] { color:${t.colors.ink.value}; font-weight:600; }
+      & a:focus-visible { outline:2px solid ${t.palette["blue.5"]}; outline-offset:2px; }
+      & li > svg { width:.75rem; height:.75rem; flex:none; color:${t.colors.muted.value}; }`,
+    container: `display:block; box-sizing:border-box; width:100%; max-width:1000px; min-width:0; margin-inline:auto; padding-inline:clamp(${t.spacing.md}, 3vw, ${t.spacing.xl});`,
     menuStack: `display:block; height:var(--nw-menu-stack-height,100vh); height:var(--nw-menu-stack-height,100dvh); min-width:0; max-width:100%; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; background:${t.palette["light.1"]};
       &[hidden] { display:none !important; }
       & nav { position:static; display:block; margin:0; }

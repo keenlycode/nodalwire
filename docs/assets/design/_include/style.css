@@ -1,5 +1,8 @@
 body { padding-bottom:calc(5rem + env(safe-area-inset-bottom,0px)); }
-.layout:has(> main:only-child) { display:block; max-width:80rem; }
+.design-page-main { padding-block:2rem 3rem; }
+.page-header { position:static; top:auto; z-index:auto; background:transparent; border:0; }
+.page-toc nav { position:static; display:flex; flex-wrap:wrap; gap:0.5rem; margin-block:1rem; }
+.page-toc .eyebrow { flex-basis:100%; }
 .design-navigation > nw-button-pin[hidden] { display:none; }
 .design-menu-panel { display:flex; flex-direction:column; box-sizing:border-box; padding:0.5rem; overflow:hidden; border:1px solid #c0bfbc; border-radius:1.5rem; background:#ffffff; }
 .design-menu-panel[hidden] { display:none; }
