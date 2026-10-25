@@ -3,7 +3,10 @@ body { padding-bottom:calc(5rem + env(safe-area-inset-bottom,0px)); }
 .design-navigation > nw-button-pin[hidden] { display:none; }
 .design-menu-panel { display:flex; flex-direction:column; box-sizing:border-box; padding:0.5rem; overflow:hidden; border:1px solid #c0bfbc; border-radius:1.5rem; background:#ffffff; }
 .design-menu-panel[hidden] { display:none; }
-.design-menu-heading { flex:none; margin:0; padding:0.5rem calc(2 * 1rem - 0.5rem); border-bottom:1px solid #deddda; font-size:1rem; font-weight:700; line-height:1.4; }
+.design-menu-heading { flex:none; margin:calc(-1 * 0.5rem) calc(-1 * 0.5rem) 0; padding:calc(2 * 0.5rem) calc(2 * 1rem) 0.5rem; border-bottom:1px solid #deddda; background:#eff5fe; color:#1a5fb4; font-size:1rem; font-weight:700; line-height:1.4; }
+.design-menu-heading a { display:inline-block; color:inherit; text-decoration:none; border-radius:0.25rem; }
+.design-menu-heading a:hover { color:#1a5fb4; text-decoration:underline; text-underline-offset:.2em; }
+.design-menu-heading a:focus-visible { outline:2px solid #1a5fb4; outline-offset:2px; }
 .design-menu-scroll { --nw-menu-stack-height:auto; min-height:0; padding:calc(1rem - 0.5rem); overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#9a9996 transparent; }
 .design-menu-panel nav > ul > li + li { margin-top:1rem; padding-top:1rem; border-top:1px solid #deddda; }
 .design-menu-panel .design-group { position:relative; }
