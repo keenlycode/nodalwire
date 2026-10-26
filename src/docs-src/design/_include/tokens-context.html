@@ -1,0 +1,30 @@
+<section id="context">
+<div class="section-heading">
+<h2>06 / In context</h2><small>Documentation specimen · not API instructions</small>
+</div>
+<div class="panel specimen">
+<aside aria-label="Noninteractive navigation specimen">
+<p class="eyebrow">Documentation</p><span>Overview</span><span class="active">Working with messages</span><span>Administration</span><span>Reference</span>
+</aside>
+<article class="article">
+<p class="eyebrow">Core concepts / payloads</p>
+<h2>Working with messages</h2>
+<p>NodalWire transports bytes. Encode text explicitly, keep payloads bounded, and decide what your application considers a successful exchange.</p>
+<h3>Prepare a payload</h3>
+<p>This standalone JavaScript fragment illustrates the presentation of a small example. It does not connect to a relay.</p>
+<div class="code-box">
+<div class="code-head"><span>JavaScript · payload preparation</span><button id="copy-code" type="button" aria-label="Copy payload example">Copy</button>
+</div>
+<pre><code id="payload-code">const network = "studio";
+const payload = new TextEncoder().encode(
+  "Hello, NodalWire"
+);</code></pre>
+</div>
+<p id="copy-status" class="fine" aria-live="polite"></p>
+<div class="warning"><strong>Design specimen: a warning needs context.</strong>
+<p>Do not communicate risk through color alone. Keep a readable title, a short explanation, and a concrete next step.</p>
+</div>
+<p class="fine">Review prompt: does the code attract enough attention without overpowering the explanation?</p>
+</article>
+</div>
+</section>

@@ -42,5 +42,7 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# Core environment only; docs Python's six unit + three integration cases run
+# in its separate locked environment via pnpm --dir src/tools/docs verify.
+testpaths = ["tests/unit/nodalwire", "tests/integration/*_test.py", "tests/usage"]
 addopts = ["--import-mode=importlib"]

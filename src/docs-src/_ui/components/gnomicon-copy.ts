@@ -1,0 +1,2 @@
+/** Official Gnomicon 51.0.0 edit-copy SVG; see assets/licenses/gnomicon/NOTICE.md. */
+export const copySVG = "<svg width=\"16\" height=\"16\" fill=\"currentColor\" viewBox=\"0 0 16 16\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"m3 10c-1.1046 0-2-0.89543-2-2v-5c0-1.1046 0.89543-2 2-2h5c1.1046 0 2 0.89543 2 2m-4 5v5c0 1.1046 0.89543 2 2 2h5c1.1046 0 2-0.89543 2-2v-5c0-1.1046-0.89543-2-2-2h-5c-1.1046 0-2 0.89543-2 2z\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"/></svg>";

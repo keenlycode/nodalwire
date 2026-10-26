@@ -1,0 +1,158 @@
+"""Install actual local tarball; verify exports/types/native transport and real wire.
+
+--skip-interop explicitly limits evidence to the installed Node artifact. Full
+acceptance requires the default run against matching reviewed AR2 Python source.
+NODALWIRE_PYTHON_SOURCE selects that tree's src/, NODALWIRE_ARTIFACT_DIR optionally
+retains the checked tarball, NODALWIRE_EVIDENCE_DIR selects scratch placement.
+"""
+
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[5]
+PACKAGE = ROOT / "src" / "nodalwire" / "client" / "node"
+STORE = Path(os.environ.get(
+    "NODALWIRE_PNPM_STORE", str(PACKAGE / "node_modules/.pnpm-store"),
+)).resolve()
+
+
+def run(args, cwd=PACKAGE, env=None):
+    subprocess.run(args, cwd=cwd, env=env, check=True, timeout=90)
+
+
+def stage_native_fixtures(fixture_root, installed_root):
+    """Mirror only public SDK test fixtures; every SDK import uses the artifact."""
+    sdk = fixture_root / "src/nodalwire/client/node"
+    sdk.parent.mkdir(parents=True)
+    sdk.symlink_to(installed_root.resolve(), target_is_directory=True)
+    copied = []
+    for relative, pattern in (
+        ("tests/unit/nodalwire/client/node/src", "*.test.mjs"),
+        ("tests/integration/nodalwire/client/node", "*.test.mjs"),
+        ("tests/helpers/nodalwire/client/node", "*.mjs"),
+    ):
+        destination = fixture_root / relative
+        destination.mkdir(parents=True)
+        for source in sorted((ROOT / relative).glob(pattern)):
+            target = destination / source.name
+            shutil.copyfile(source, target)
+            copied.append(target)
+    native_tests = sorted(path for path in copied if path.name.endswith(".test.mjs"))
+    assert len(native_tests) == 10, "Expected all ten split SDK native suite files"
+    artifact = installed_root.resolve()
+    assert artifact != PACKAGE.resolve(), "Fixtures must not target the source SDK"
+    assert sdk.resolve() == artifact
+    for module in copied:
+        artifact_imports = 0
+        for specifier in re.findall(r'from\s+["\']([^"\']+)["\']', module.read_text()):
+            if "/src/nodalwire/client/node/dist/" in specifier:
+                target = (module.parent / specifier).resolve(strict=True)
+                assert target.is_relative_to(artifact), f"Non-artifact SDK import: {target}"
+                artifact_imports += 1
+        if module in native_tests:
+            assert artifact_imports, f"Suite does not import the installed artifact: {module}"
+    # deps.mjs anchors createRequire here, so native zeromq also uses the install.
+    assert (sdk / "package.json").resolve(strict=True).is_relative_to(artifact)
+    return native_tests
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--skip-interop", action="store_true")
+    args = parser.parse_args()
+    scratch = os.environ.get("NODALWIRE_EVIDENCE_DIR")
+    if scratch:
+        Path(scratch).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="node-package-smoke-", dir=scratch) as temporary:
+        work = Path(temporary)
+        run(["deno", "task", "build"])
+        run(["pnpm", "pack", "--pack-destination", str(work)])
+        tarball, = work.glob("*.tgz")
+        consumer = work / "consumer"
+        consumer.mkdir()
+        (consumer / "package.json").write_text(json.dumps({
+            "private": True, "type": "module", "dependencies": {
+                "@devcapsule/nodalwire-client": f"file:{tarball}",
+            },
+        }))
+        (consumer / "pnpm-workspace.yaml").write_text("allowBuilds:\n  zeromq: true\n")
+        run(["pnpm", "install", "--offline", "--store-dir", str(STORE)], cwd=consumer)
+        run(["node", "--input-type=module", "-e",
+             'import { Node, RelayError, ReceiptTimeout, encodeEnvelope, decodeEnvelope } '
+             'from "@devcapsule/nodalwire-client"; '
+             'if (!Node || !RelayError || !ReceiptTimeout || !encodeEnvelope || !decodeEnvelope) '
+             'throw Error("exports"); console.log("PASS installed ESM exports/native import");'],
+            cwd=consumer)
+        (consumer / "consumer.ts").write_text('''import {
+  Node, encodeEnvelope, decodeEnvelope, type Envelope,
+  type Message, type MembershipReceipt, type SendOptions,
+} from "@devcapsule/nodalwire-client";
+async function application() {
+  const node = await Node.connect("typed", undefined, { inboxSize: 2 });
+  const receipt: MembershipReceipt = await node.join("team", "fixture-token");
+  const options: SendOptions = { network: receipt.network, timeout: 1 };
+  await node.send("peer", Uint8Array.of(0, 255), options);
+  const message: Message = await node.receive({ signal: AbortSignal.timeout(100) });
+  const bytes: Uint8Array = message.payload;
+  const queued: Message | undefined = node.receiveNowait();
+  const response: Message = await node.request("peer", bytes, options);
+  await node.reply(message, response.payload, { timeout: 1 });
+  const envelope: Envelope = { kind: "request", id: "a".repeat(32), payload: bytes };
+  const decoded: Envelope | undefined = decodeEnvelope(encodeEnvelope(envelope));
+  console.log(message.sender, message.network, queued, decoded);
+  // @ts-expect-error string is not a byte payload
+  await node.send("peer", "not bytes");
+  // @ts-expect-error callers cannot bypass admission
+  new Node();
+  // @ts-expect-error membership receipt is readonly
+  receipt.changed = true;
+  // @ts-expect-error reply cannot override the incoming network
+  await node.reply(message, bytes, { network: "other" });
+  await node.leave("team");
+  await node.close();
+}
+void application;
+''')
+        run(["node", str(PACKAGE / "node_modules/typescript/bin/tsc"),
+             "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2022",
+             "consumer.ts"], cwd=consumer)
+        print("PASS installed declarations: bytes/network/membership/request/codec contracts", flush=True)
+        installed_root = consumer / "node_modules/@devcapsule/nodalwire-client"
+        installed = installed_root / "dist/index.js"
+        # Preserve root-relative fixture imports without changing any test body.
+        # The scratch src SDK link targets the consumer install, never project dist.
+        native_tests = stage_native_fixtures(work / "fixture-root", installed_root)
+        native = subprocess.run(
+            ["node", "--test", "--test-reporter=tap", *map(str, native_tests)],
+            cwd=consumer, capture_output=True, text=True, timeout=90,
+        )
+        print(native.stdout, end="", flush=True)
+        print(native.stderr, end="", file=sys.stderr, flush=True)
+        native.check_returncode()
+        assert re.search(r"^# tests 27$", native.stdout, re.MULTILINE), "Expected all 27 native cases"
+        assert re.search(r"^# pass 27$", native.stdout, re.MULTILINE), "All 27 artifact cases must pass"
+        assert re.search(r"^# skipped 0$", native.stdout, re.MULTILINE), "Artifact cases must not skip"
+        if args.skip_interop:
+            print("SKIP real Python wire: artifact-only run, NOT full interop acceptance", flush=True)
+        else:
+            run([sys.executable, str(Path(__file__).with_name("interop.py"))], env={
+                **os.environ, "NODALWIRE_CLIENT_MODULE": installed.as_uri(),
+            })
+        artifact_dir = os.environ.get("NODALWIRE_ARTIFACT_DIR")
+        if artifact_dir:
+            artifacts = Path(artifact_dir)
+            artifacts.mkdir(parents=True, exist_ok=True)
+            target = artifacts / tarball.name
+            shutil.copyfile(tarball, target)
+            print(f"PASS checked tarball retained: {target}", flush=True)
+
+
+if __name__ == "__main__":
+    main()

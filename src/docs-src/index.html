@@ -1,0 +1,18 @@
+{% extends "_layouts/product.html" %}
+{% set page_path = '' %}
+{% set page_title = 'A byte relay for local applications' %}
+{% set page_intro = 'Connect trusted local Python and Node.js applications through a bounded, loopback-only relay with explicit network membership and separate administration.' %}
+{% block content %}
+<p>NodalWire moves opaque bytes between named connections. Use it for local agent tools, small services and cooperating processes that need an explicit routing boundary without an application-specific message format.</p>
+<p><nw-link><a href="{{ url('getting-started/') }}">Get started: install, start and exchange bytes →</a></nw-link></p>
+<div class="home-cards">
+<nw-card><h2>Choose a network</h2><p>Open default membership is automatic; other networks require an explicit join. Protect a network with its own join credential.</p><a href="{{ url('guides/networks/') }}">Understand networks and membership</a></nw-card>
+<nw-card><h2>Ask and reply</h2><p>Use client-layer request correlation while keeping ordinary messages opaque. Understand timeouts and bounded queues before retrying an operation.</p><a href="{{ url('guides/request-reply/') }}">Build request/reply flows</a></nw-card>
+<nw-card><h2>Know the boundary</h2><p>Credentials grant permission, not identity. Loopback bearer authentication is not encryption or protection from the same user or root.</p><a href="{{ url('guides/security/') }}">Read the security model</a></nw-card>
+<nw-card><h2>Operate explicitly</h2><p>Supply an administrator token before starting the relay. Keep configuration policy separate from live connections and membership.</p><a href="{{ url('reference/admin/') }}">Administration reference</a></nw-card>
+</div>
+<section aria-labelledby="scope"><h2 id="scope">What it does—and does not promise</h2>
+<ul><li>Python and Node.js clients exchange binary payloads through a matching 0.2.0 relay.</li><li>Declared networks are open unless protected; a protected default needs an explicit join.</li><li>A send receipt means native destination-queue acceptance, not application receipt, execution or durable storage.</li><li>Timeouts can occur after an effect. There is no automatic retry, reconnect, replay or remote-host transport.</li></ul>
+<p>Start with the <a href="{{ url('getting-started/') }}">source-checkout walkthrough</a>, then consult the <a href="{{ url('reference/api/') }}">Python and Node API</a>, <a href="{{ url('reference/cli/') }}">CLI</a> and <a href="{{ url('reference/config/') }}">configuration reference</a>.</p>
+</section>
+{% endblock %}

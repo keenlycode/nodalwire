@@ -1,0 +1,45 @@
+{
+  "version": "51.0.0",
+  "icon": {
+    "name": "edit-copy",
+    "source": "icon-dev-kit",
+    "sourcePath": "icons/edit-copy.svg",
+    "svg": "svg/edit-copy.svg",
+    "exportName": "editCopy",
+    "importPath": "icons/edit-copy"
+  },
+  "source": {
+    "id": "icon-dev-kit",
+    "repository": "https://gitlab.gnome.org/Teams/Design/icon-development-kit.git",
+    "revision": "e5857f6d796a96571a61030db40f35bfb8815a94",
+    "path": "icons",
+    "extensions": [
+      ".svg",
+      ".gpa"
+    ],
+    "license": "CC0-1.0",
+    "licenseFiles": [
+      "COPYING.md"
+    ]
+  },
+  "navigationIcons": {
+    "open-menu": {
+      "url": "https://keenlycode.github.io/gnomicon/lib/gnomicon/svg/open-menu.svg",
+      "sha256": "649d9e1749f2f4ee80da7f9415377763fdaa24fdc07665bcc0f42315e2178209",
+      "upstreamPath": "icons/open-menu.svg",
+      "sourceRevision": "e5857f6d796a96571a61030db40f35bfb8815a94",
+      "license": "CC0-1.0",
+      "creator": "Jakub Steiner",
+      "upstreamURL": "https://gitlab.gnome.org/Teams/Design/icon-development-kit/-/raw/e5857f6d796a96571a61030db40f35bfb8815a94/icons/open-menu.svg"
+    },
+    "pan-end": {
+      "url": "https://keenlycode.github.io/gnomicon/lib/gnomicon/svg/pan-end.svg",
+      "sha256": "6f7458693958e68c1b91d4d4264919ceef1b3378c717b4a9d304dd8b607c5d4b",
+      "upstreamPath": "icons/pan-end.svg",
+      "sourceRevision": "e5857f6d796a96571a61030db40f35bfb8815a94",
+      "license": "CC0-1.0",
+      "creator": "Jakub Steiner",
+      "upstreamURL": "https://gitlab.gnome.org/Teams/Design/icon-development-kit/-/raw/e5857f6d796a96571a61030db40f35bfb8815a94/icons/pan-end.svg"
+    }
+  }
+}

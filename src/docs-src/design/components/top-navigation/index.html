@@ -1,0 +1,8 @@
+{% extends "design/_include/specimen-page.html" %}
+{% set design_page = 'components/top-navigation' %}
+{% set specimen_group = 'components' %}
+{% set specimen_title = 'Top Navigation' %}
+{% set specimen_description = 'Reusable normal-flow navigation; the design shell now uses a floating ButtonPin and MenuStack.' %}
+{% block specimens %}
+<section id="top-navigation-reference"><h2>Normal document flow</h2><p><code>TopNavigation</code> / <code>nw-top-navigation</code> remains a reusable Adapter → Base component for authored native navigation in normal document flow. It does not stick to the viewport or generate essential links with JavaScript.</p><p>Compose native <code>nav</code> and links inside the host. When embedding MenuStack, set <code>--nw-menu-stack-height:auto</code> so it does not reserve a standalone viewport. The design shell intentionally does not instantiate this bar: its single shared hierarchy is available from the floating Menu button.</p></section>
+{% endblock %}

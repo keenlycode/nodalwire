@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "paths": {
+      "colorjs.io": ["./node_modules/colorjs.io/types/index.d.ts"],
+      "shiki/core": ["./node_modules/shiki/dist/core.d.mts"],
+      "shiki/engine/javascript": ["./node_modules/shiki/dist/engine-javascript.d.mts"],
+      "shiki/langs/*": ["./node_modules/shiki/dist/langs/*"],
+      "@devcapsule/adapter": ["./node_modules/@devcapsule/adapter/src/mod.ts"]
+    },
+    "lib": ["ES2022", "ESNext.Disposable", "DOM", "DOM.Iterable"]
+  },
+  "include": ["../../docs-src/**/*.ts", "./*.ts"]
+}

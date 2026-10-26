@@ -166,15 +166,21 @@ Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching A
 server/Python source. From this directory:
 
 ```sh
-deno fmt --check src tests deno.json tsconfig.json package.json
+deno task fmt --check
 deno task lint
 deno task check
-deno task build
-node --test tests/*.test.mjs   # independent fake-router/lifecycle/codec checks
-python tests/interop.py       # real Python relay/client interoperability
-deno task test               # build + both check sets above
-python tests/package_smoke.py # pack/install consumer, types + real interop
+deno task test:unit     # build + root codec/inbox/protocol and fake-router checks
+deno task test:interop  # real Python relay/client interoperability
+deno task test         # build + native checks + Python interoperability
+deno task test:artifact # pack/install consumer, types + real interop
 ```
+
+All maintained tests live under repository-root `tests/`, not this package.
+Atomic module suites mirror `src/nodalwire/client/node/src/` under
+`tests/unit/nodalwire/client/node/src/`. Transport/relay and interoperability
+suites live in `tests/integration/nodalwire/client/node/`; the fake relay helper
+lives in `tests/helpers/nodalwire/client/node/`. Tasks resolve these locations
+relative to this package and use its pinned dependencies.
 
 Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
 run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
@@ -185,5 +191,5 @@ source without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
 scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 `NODALWIRE_PNPM_STORE` overrides the package-local dependency store. For an
 explicit artifact-only check while Python is unavailable, run
-`python tests/package_smoke.py --skip-interop`; its output labels real wire tests
+`deno task test:artifact --skip-interop`; its output labels real wire tests
 as skipped, not passed.

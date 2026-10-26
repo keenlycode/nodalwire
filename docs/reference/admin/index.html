@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administration reference · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../../assets/style.css">
+<script type="module" src="../../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../../" aria-label="NodalWire home">◈ NodalWire</a><span>Local byte relay · 0.2.0</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<div class="navigation-group">
+<a href="../../">Home</a><a href="../../getting-started/">Getting Started</a></div>
+<div class="navigation-group">
+<h2>Guides</h2><a href="../../guides/networks/">Networks</a><a href="../../guides/request-reply/">Request/reply</a><a href="../../guides/security/">Security</a></div>
+<div class="navigation-group">
+<h2>Reference</h2><a href="../api/">Python &amp; Node API</a><a href="../cli/">CLI</a><a href="../config/">Configuration</a><a href="./" aria-current="page">Administration</a></div>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Administration reference</a></li>
+</ol></nav></nw-page-path><h1>Administration reference</h1>
+<p class="lead">Separate local bearer authority, explicit revisions, and no automatic mutation replay.</p>
+</header>
+<div class="product-content"><section aria-labelledby="authority"><h2 id="authority">Start with explicit authority</h2>
+<p>Relay startup requires an explicitly supplied <code>NODALWIRE_ADMIN_TOKEN</code> or configured <code>admin_verifier</code>. No token is automatically generated. An environment token overrides the verifier and makes administrator rotation environment-managed. Use a different credential for protected network joins.</p>
+<p>Administration uses its own loopback endpoint, default <code>tcp://127.0.0.1:5556</code>; peer data defaults to port 5555. Bearer authentication is not encryption or peer identity. The Python <code>AdminClient</code> does not register a peer; connecting only opens transport, while each call authenticates separately. There is no Node admin client.</p></section>
+<section aria-labelledby="python"><h2 id="python">Read, then mutate with the observed revision</h2>
+<p>This function accepts the actual administration endpoint and explicit startup credential. On a fresh relay without a <code>team</code> network it creates an open network. The caller supplies the credential from its protected environment, not a source-code literal.</p>
+<nw-code-block filename="admin.py" language="python">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">admin.py</span><span class="code-block-language">python</span></span></div><pre tabindex="0" aria-label="python code example"><code>from nodalwire import AdminClient
+
+async def create_team(admin_endpoint, admin_token):
+    async with await AdminClient.connect(admin_endpoint, token=admin_token) as admin:
+        current = await admin.call("config.get")
+        created = await admin.call(
+            "network.create", {"network": "team"},
+            expected_revision=current.revision,
+        )
+        assert created.revision == current.revision + 1
+        assert created.result == {"network": "team", "protected": False}
+        return created
+</code></pre></nw-code-block>
+<p><code>AdminClient.connect(endpoint=..., *, token, timeout=5.0)</code> returns an owned client. <code>call(op, args=None, *, expected_revision=None, timeout=None)</code> returns <code>AdminReceipt(revision, result)</code>. Timeouts are finite positive seconds, defaulting to the client setting. One call at a time is allowed; overlapping calls reject <code>pending_full</code>. Context exit/close cleans up its socket and context.</p>
+<p>Every mutation requires a nonnegative integer expected revision through <code>2**53 - 1</code>. Reads reject an expected revision. A stale mutation fails <code>revision_conflict</code>; do not automatically read/retry, because the new state may change what you intended.</p></section>
+<section aria-labelledby="operations"><h2 id="operations">Operations and argument objects</h2>
+<dl>
+<dt><code>config.get {}</code></dt><dd>Returns redacted startup/configuration fields, network protection flags, <code>admin_source</code>, and <code>admin_configured</code>. No bearer values or verifiers.</dd>
+<dt><code>network.list {}</code></dt><dd>Returns a sorted <code>networks</code> array of <code>{ network, protected }</code>.</dd>
+<dt><code>network.get {network}</code></dt><dd>Returns that network's name and protection flag.</dd>
+<dt><code>member.list {network}</code></dt><dd>Returns the network and sorted live member names. These are routing labels, not authenticated identities.</dd>
+<dt><code>network.create {network, credential?}</code></dt><dd>Creates an open network when credential is omitted; otherwise creates it protected with a verifier of that join credential. Existing network rejects <code>network_exists</code>.</dd>
+<dt><code>network.update {network, protected, credential?}</code></dt><dd>Requires an explicit boolean policy. Making an open network protected requires a credential; an already protected network can retain its verifier when no new credential is supplied. Making it open forbids a credential.</dd>
+<dt><code>network.rotate {network, credential}</code></dt><dd>Replaces the join verifier of an already protected network. An open network rejects <code>invalid_policy</code>.</dd>
+<dt><code>network.delete {network}</code></dt><dd>Deletes a nondefault network and removes its memberships. Deleting reserved <code>default</code> rejects <code>reserved_network</code>. Recreating a name does not restore memberships.</dd>
+<dt><code>member.remove {network, name}</code></dt><dd>Removes a current membership; returns <code>changed</code> and <code>ephemeral: true</code>. Requires the current expected revision, but does not increment it or write a configuration commit.</dd>
+<dt><code>admin.rotate {credential}</code></dt><dd>Changes a configuration-managed administrator verifier. Environment-managed authority rejects <code>environment_managed</code>. Use the new credential for subsequent calls.</dd>
+</dl>
+<p>All operations except the four reads above are mutations. Argument keys are exact; unexpected fields are rejected. Configuration commits increment revision even when the resulting policy is equivalent. Protection changes and join-token rotation govern future joins, not existing members or already accepted data.</p></section>
+<section aria-labelledby="cli"><h2 id="cli">CLI control</h2>
+<p>The default token variable is <code>NODALWIRE_ADMIN_TOKEN</code>. Read first, then substitute the observed integer for <code>REVISION</code>. A changed revision is a reason to reconsider the operation, not a cue for a blind loop.</p>
+<nw-code-block filename="terminal" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>uv run --locked python -m nodalwire admin config.get
+uv run --locked python -m nodalwire admin network.list
+export TEAM_JOIN_TOKEN="$(uv run --locked python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+uv run --locked python -m nodalwire admin network.create \
+  --network team --credential-env TEAM_JOIN_TOKEN --expected-revision REVISION
+uv run --locked python -m nodalwire admin member.list --network team
+</code></pre></nw-code-block>
+<p><code>--token-env VARIABLE</code> selects the current administrator credential; <code>--credential-env VARIABLE</code> selects a new join/admin credential. Both name variables, not bearer values. <code>network.update</code> requires <code>--protected</code> or <code>--no-protected</code>. <code>member.remove</code> maps <code>--member NAME</code> to the <code>name</code> argument. <code>--endpoint</code> selects the separate administration endpoint. See <a href="../cli/">CLI output and exit status</a>.</p></section>
+<section aria-labelledby="outcomes"><h2 id="outcomes">Errors and persistence outcomes</h2>
+<p><code>AdminError</code> subclasses <code>RelayError</code> and exposes safe <code>code</code>, <code>outcome</code>, and <code>revision</code>. Rejections include <code>unauthorized</code>, <code>invalid_request</code>, <code>revision_conflict</code>, <code>network_not_found</code>, <code>network_exists</code>, <code>reserved_network</code>, <code>invalid_policy</code>, <code>credential_required</code>, <code>environment_managed</code>, <code>persistence_failed</code>, and <code>response_too_large</code>, normally with <code>outcome="no_effect"</code>.</p>
+<p><code>persistence_indeterminate</code> instead has <code>outcome="indeterminate"</code>: replacement may have happened but durability could not be established. Timeouts/cancellation can also follow an accepted mutation; a <code>ReceiptTimeout</code> does not prove no effect. A response-size rejection cannot be used to recall a previously selected effect. Read and reconcile state deliberately rather than replaying a mutation.</p>
+<p>Without a config path, changes are memory-only. With <code>serve --config</code>, commits rewrite the same regular file; comments/formatting are not retained, and external edits can cause conflicts. See <a href="../config/">configuration and persistence</a> for startup-only fields and file boundaries. Credential rotation never encrypts transport or recalls accepted data.</p></section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>
