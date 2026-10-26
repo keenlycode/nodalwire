@@ -55,7 +55,7 @@ def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch):
         try:
             assert python.stdout is not None
             ready = await asyncio.wait_for(python.stdout.readline(), timeout=5)
-            assert ready == b"Python echo ready\n"
+            assert ready == b"Python is ready\n"
 
             node = await asyncio.create_subprocess_exec(
                 "node",
@@ -72,7 +72,7 @@ def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch):
                     node.communicate(), timeout=10,
                 )
                 assert node.returncode == 0, node_stderr.decode(errors="replace")
-                assert b"Node received the Python reply including byte 0xff" in node_stdout
+                assert node_stdout == b"hello from Python\n"
             finally:
                 if node.returncode is None:
                     node.kill()
@@ -82,7 +82,7 @@ def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch):
                 python.communicate(), timeout=5,
             )
             assert python.returncode == 0, python_stderr.decode(errors="replace")
-            assert b"Python received the Node message and replied" in python_stdout
+            assert python_stdout == b"hello from Node\n"
         finally:
             if python.returncode is None:
                 python.kill()

@@ -1,71 +1,47 @@
 {% extends "_layouts/product.html" %}
 {% set page_path = 'getting-started/' %}
 {% set page_title = 'Getting Started' %}
-{% set page_intro = 'Start a local NodalWire relay and exchange bytes between Python and Node.js.' %}
+{% set page_intro = 'Send a message from Node.js to Python and get a reply.' %}
 {% set page_ancestors = [] %}
 {% block content %}
-<section aria-labelledby="requirements">
-  <h2 id="requirements">What you need</h2>
+<section aria-labelledby="setup">
+  <h2 id="setup">1. Set up</h2>
   <p>
-    NodalWire is a loopback-only byte relay for local applications. This walkthrough
-    uses matching NodalWire Python and Node.js clients at version 0.2.0. Use Python
-    3.12 or newer and Node.js 24; the Node SDK uses Deno as a development task
-    runner, not as its runtime. You will also need <code>uv</code>, <code>pnpm</code>,
-    and <code>Deno</code> for the source-checkout setup below.
-  </p>
-</section>
-
-<section aria-labelledby="checkout">
-  <h2 id="checkout">Set up the source checkout</h2>
-  <p>
-    The repository contains the matching Python relay and Node SDK. From its root,
-    sync the Python environment, then build the Node SDK from its own directory:
+    You need Python 3.12+, Node.js 24, <code>uv</code> and <code>pnpm</code>.
+    Open a terminal at the root of a NodalWire 0.2.0 source checkout and run:
   </p>
   {% set setup_example %}uv sync --locked
-cd src/nodalwire/client/node
-pnpm install --frozen-lockfile --store-dir ./node_modules/.pnpm-store
-deno task build
-cd ../../../..
+pnpm -C src/nodalwire/client/node install --frozen-lockfile
+pnpm -C src/nodalwire/client/node exec tsc
 {% endset %}{{ code_block(setup_example, 'terminal', 'shell') }}
-  <p>
-    The Node build creates <code>src/nodalwire/client/node/dist/index.js</code>;
-    the example below imports that checkout-local build. The SDK's native
-    <code>zeromq</code> install script is required; if your pnpm policy requires
-    script approval, allow only <code>zeromq</code>. A published npm package is not
-    required for this source-checkout path.
-  </p>
+  <p>Run all commands below from this same repository root.</p>
+  <details>
+    <summary>About the Node.js setup</summary>
+    <p>
+      These commands build the matching SDK in this checkout; no published npm
+      package or Deno installation is needed. The Node.js example imports that
+      local build. If pnpm asks for install-script approval, allow only
+      <code>zeromq</code>, which needs its native binding.
+    </p>
+  </details>
 </section>
 
 <section aria-labelledby="start-relay">
-  <h2 id="start-relay">Start the local relay</h2>
+  <h2 id="start-relay">2. Start the relay — Terminal 1</h2>
+  <p>Create a private administrator token, then start the relay. Leave it running.</p>
+  {% set relay_example %}export NODALWIRE_ADMIN_TOKEN="$(uv run python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+uv run nodalwire serve
+{% endset %}{{ code_block(relay_example, 'terminal 1', 'shell') }}
   <p>
-    In a terminal at the repository root, generate and export an administrator
-    token yourself, then start the relay. Keep this terminal running. The default
-    data and administration endpoints are <code>127.0.0.1:5555</code> and
-    <code>127.0.0.1:5556</code>; this example uses the default data endpoint.
-    Configuration is memory-only when no config file is supplied. To choose other
-    endpoints, configure them in a TOML file and pass it with
-    <code>--config</code>; <code>serve</code> has no endpoint command-line option.
-  </p>
-  {% set relay_example %}export NODALWIRE_ADMIN_TOKEN="$(uv run --locked python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-uv run --locked python -m nodalwire serve
-{% endset %}{{ code_block(relay_example, 'terminal', 'shell') }}
-  <p>
-    The token is required at startup; the relay does not generate one for you.
-    Keep it private and do not reuse a demo value as a production secret. The
-    administrator token grants local administrative authority, not client identity.
+    The token is required to start the relay, but these clients do not need it.
+    This example uses the default local endpoint and an open <code>default</code>
+    network. Do not start a second relay if one is already using these ports.
   </p>
 </section>
 
-<section aria-labelledby="exchange">
-  <h2 id="exchange">Exchange bytes between Python and Node.js</h2>
-  <p>
-    Save the following Python example as <code>python-echo.py</code> in the
-    repository root. In a second terminal, run
-    <code>uv run --locked python python-echo.py</code>. It connects to the running
-    relay, prints a readiness line, receives one message, and replies to the
-    sender reported by the relay.
-  </p>
+<section aria-labelledby="python">
+  <h2 id="python">3. Run Python — Terminal 2</h2>
+  <p>Save this as <code>python-echo.py</code> in the repository root.</p>
   {% set python_example %}import asyncio
 import os
 
@@ -73,63 +49,68 @@ from nodalwire import Node
 
 
 async def main():
-    endpoint = os.environ.get("NODALWIRE_ENDPOINT", "tcp://127.0.0.1:5555")
+    endpoint = os.getenv("NODALWIRE_ENDPOINT", "tcp://127.0.0.1:5555")
     async with await Node.connect("python-echo", endpoint) as echo:
-        print("Python echo ready", flush=True)
-        message = await asyncio.wait_for(echo.receive(), timeout=15)
-        assert message.sender == "node-client"
-        assert message.network == "default"
-        assert message.payload == b"hello from Node\x00"
-        await echo.send(
-            message.sender,
-            b"reply from Python\xff",
-            network=message.network,
-        )
-        print("Python received the Node message and replied", flush=True)
+        print("Python is ready", flush=True)
+        message = await asyncio.wait_for(echo.receive(), timeout=120)
+        print(message.payload.decode())
+        await echo.send(message.sender, b"hello from Python")
 
 
 asyncio.run(main())
 {% endset %}{{ code_block(python_example, 'python-echo.py', 'python') }}
-  <p>
-    Save this Node.js example as <code>node-exchange.mjs</code> in the repository
-    root. In a third terminal, run <code>node node-exchange.mjs</code> after the
-    Python echo prints its readiness line. The import uses the built SDK in this
-    checkout; use the same client version as the relay.
-  </p>
-  {% set javascript_example %}import assert from "node:assert/strict";
-import { Node } from "./src/nodalwire/client/node/dist/index.js";
+  <p>Open a second terminal and run:</p>
+  {% set python_command %}uv run python python-echo.py
+{% endset %}{{ code_block(python_command, 'terminal 2', 'shell') }}
+  <p>Wait for <code>Python is ready</code>, then run Node.js in the next step.</p>
+</section>
+
+<section aria-labelledby="node">
+  <h2 id="node">4. Run Node.js — Terminal 3</h2>
+  <p>Save this as <code>node-exchange.mjs</code> in the repository root.</p>
+  {% set javascript_example %}import { Node } from "./src/nodalwire/client/node/dist/index.js";
 
 const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
 const client = await Node.connect("node-client", endpoint);
 try {
-  await client.send("python-echo", new TextEncoder().encode("hello from Node\0"));
+  await client.send("python-echo", new TextEncoder().encode("hello from Node"));
   const reply = await client.receive({ signal: AbortSignal.timeout(5000) });
-  assert.equal(reply.sender, "python-echo");
-  assert.equal(reply.network, "default");
-  const expected = new Uint8Array([...new TextEncoder().encode("reply from Python"), 0xff]);
-  assert.deepEqual(reply.payload, expected);
-  console.log("Node received the Python reply including byte 0xff");
+  console.log(new TextDecoder().decode(reply.payload));
 } finally {
   await client.close();
 }
 {% endset %}{{ code_block(javascript_example, 'node-exchange.mjs', 'javascript') }}
+  <p>Open a third terminal and run:</p>
+  {% set node_command %}node node-exchange.mjs
+{% endset %}{{ code_block(node_command, 'terminal 3', 'shell') }}
   <p>
-    Expected output includes <code>Python echo ready</code>, followed by the
-    Python receipt/reply line and a Node line confirming the reply. Both peers
-    use the open <code>default</code> network here. A protected default network
-    admits a client with no memberships; each client must explicitly join it
-    using its join credential before sending or receiving there. A network join credential does not grant administration, and the administrator
-    token is not a join credential. Neither proves peer identity. Bearer
-    authentication is not encryption.
+    Python prints <code>hello from Node</code> and Node.js prints
+    <code>hello from Python</code>. Both clients then exit; the relay stays running.
+    Press Ctrl-C in Terminal 1 when you are finished with your relay.
   </p>
+  <details>
+    <summary>If the exchange does not finish</summary>
+    <p>
+      Python waits up to two minutes for the message; Node.js waits up to five
+      seconds for the reply. If either times out, check the relay, restart Python,
+      wait for its readiness line, then run Node.js again. These examples use
+      <code>127.0.0.1:5555</code> unless <code>NODALWIRE_ENDPOINT</code> is set.
+      An existing protected network needs a join credential; see the
+      <a href="../guides/networks/">networks guide</a>.
+    </p>
+  </details>
+</section>
+
+<section aria-labelledby="next">
+  <h2 id="next">Next steps</h2>
   <p>
-    A successful send means the destination's native queue accepted the bytes;
-    it does not prove that the peer received or processed them. This example
-    checks the actual reply. Continue with the
-    <a href="../guides/networks/">networks guide</a>,
-    <a href="../guides/request-reply/">request/reply guide</a>,
-    <a href="../guides/security/">security guide</a>, and
+    You have exchanged bytes between two local applications. The reply confirms
+    that Python handled the message; sending alone does not confirm processing.
+    Continue with <a href="../guides/networks/">networks</a>,
+    <a href="../guides/request-reply/">request/reply</a>, or the
     <a href="../reference/api/">API reference</a>.
+    Read <a href="../guides/security/">security</a> before sharing credentials:
+    they grant permission, not peer identity or encryption.
   </p>
 </section>
 {% endblock %}

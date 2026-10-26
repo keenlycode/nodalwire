@@ -41,16 +41,23 @@ test("product routes preserve native semantics, responsive geometry, contrast an
       }
       assert.equal(await value(`function rgb(s){return s.match(/[\\d.]+/g).slice(0,3).map(Number)}function lum(c){return c.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)}function background(e){for(;e;e=e.parentElement){const c=getComputedStyle(e).backgroundColor;if(c!=='rgba(0, 0, 0, 0)'&&c!=='transparent')return rgb(c)}return [255,255,255]}return [...document.querySelectorAll('h1,.lead,.product-navigation a,.product-navigation h2,.product-footer')].every(e=>{const a=lum(rgb(getComputedStyle(e).color)),b=lum(background(e));return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)>=4.5});`), true, `contrast ${route}`);
       if (route === "/getting-started/") {
+        for (const preference of ["light", "dark"]) {
+          await page.call("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: preference }] });
+          assert.equal(await value(`function rgb(s){return s.match(/[\\d.]+/g).slice(0,3).map(Number)}function lum(c){return c.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)}function background(e){for(;e;e=e.parentElement){const c=getComputedStyle(e).backgroundColor;if(c!=='rgba(0, 0, 0, 0)'&&c!=='transparent')return rgb(c)}return [255,255,255]}await customElements.whenDefined('nw-code-block');for(const b of document.querySelectorAll('nw-code-block')){await b.highlight();if(JSON.stringify(background(b))===JSON.stringify(background(document.body)))return false;for(const e of b.querySelectorAll('code,code span,.code-block-labels span')){const a=lum(rgb(getComputedStyle(e).color)),c=lum(background(e));if((Math.max(a,c)+.05)/(Math.min(a,c)+.05)<4.5)return false;}}return true;`), true, `distinct code surface and readable text / ${preference} preference`);
+        }
+        await page.call("Emulation.setEmulatedMedia", { features: [] });
         assert.equal(await value(`const source=new DOMParser().parseFromString(await(await fetch(location.href)).text(),'text/html');const originals=[...source.querySelectorAll('nw-code-block code')].map(c=>c.textContent);const blocks=[...document.querySelectorAll('nw-code-block')];await customElements.whenDefined('nw-code-block');for(const b of blocks)await b.highlight();const copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>copied.push(text)}});for(let i=0;i<blocks.length;i++){if(blocks[i].code.textContent!==originals[i])return false;blocks[i].querySelector('button').click();await Promise.resolve();if(copied.at(-1)!==originals[i])return false;}return blocks.length>0;`), true, "exact code / clipboard stub only");
         assert.equal(await value(`const fragment=new DOMParser().parseFromString('<code>café 👋&#13;\\nend\\n</code>','text/html');return fragment.querySelector('code').textContent==='café 👋\\r\\nend\\n';`), true, "SSR carriage-return entities preserve CRLF");
       }
     }
     for (const route of ["/", "/getting-started/", "/reference/api/"]) {
       await navigate(route, true);
-      assert.equal(await value(`return document.querySelector('main h1').getBoundingClientRect().height>0&&document.querySelectorAll('nav[aria-label="Documentation"] a').length>=9&&[...document.querySelectorAll('nw-code-block')].every(b=>!b.querySelector('button')&&b.querySelector('pre').getBoundingClientRect().height>0&&getComputedStyle(b.querySelector('code')).whiteSpace==='pre')&&document.documentElement.scrollWidth<=innerWidth;`), true, `no-JS ${route}`);
+      assert.equal(await value(`return document.querySelector('main h1').getBoundingClientRect().height>0&&document.querySelectorAll('nav[aria-label="Documentation"] a').length>=9&&[...document.querySelectorAll('nw-code-block')].every(b=>!b.querySelector('button')&&b.querySelector('pre').getBoundingClientRect().height>0&&getComputedStyle(b.querySelector('code')).whiteSpace==='pre'&&getComputedStyle(b).backgroundColor!==getComputedStyle(document.body).backgroundColor)&&document.documentElement.scrollWidth<=innerWidth;`), true, `no-JS ${route}`);
     }
     await page.call("Emulation.setScriptExecutionDisabled", { value: false });
     await navigate("/getting-started/");
+    await page.call("Page.bringToFront");
+    await page.call("Emulation.setFocusEmulationEnabled", { enabled: true });
     await value(`document.querySelector('.skip').focus();return true;`);
     await page.call("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
     await page.call("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });

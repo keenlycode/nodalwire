@@ -11,8 +11,8 @@ export function componentRecipes(t: Tokens) {
       & > button:disabled { background:${t.palette["light.3"]}; border-color:${t.palette["light.4"]}; color:${t.palette["dark.2"]}; cursor:not-allowed; }`,
     buttonPin: `& > button { width:2.75rem; height:2.75rem; min-height:2.75rem; padding:0; border-radius:50%; font-size:.75rem; }`,
     iconButton: `& > button { width:2.25rem; height:2.25rem; padding:${t.spacing.sm}; flex-shrink:0; } & > button > svg { display:block; width:1rem; height:1rem; }`,
-    codeBlock: `display:block; min-width:0; border:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md}; background:${t.palette["light.2"]};
-      & > .code-block-header { display:flex; align-items:center; justify-content:space-between; gap:${t.spacing.md}; min-width:0; padding:${t.spacing.sm} ${t.spacing.md}; border-bottom:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md} ${t.radius.md} 0 0; background:${t.palette["light.1"]}; }
+    codeBlock: `display:block; min-width:0; border:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md}; background:${t.colors.surface.value};
+      & > .code-block-header { display:flex; align-items:center; justify-content:space-between; gap:${t.spacing.md}; min-width:0; padding:${t.spacing.sm} ${t.spacing.md}; border-bottom:1px solid ${t.palette["light.4"]}; border-radius:${t.radius.md} ${t.radius.md} 0 0; background:${t.colors.canvas.value}; }
       & .code-block-labels { display:flex; flex:1; align-items:baseline; flex-wrap:wrap; gap:${t.spacing.sm}; min-width:0; font-size:.8125rem; }
       & .code-block-filename { min-width:0; font-family:${t.typography.mono}; overflow-wrap:anywhere; }
       & .code-block-language { color:${t.palette["dark.2"]}; }

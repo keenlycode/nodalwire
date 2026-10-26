@@ -5,7 +5,7 @@ import { palette } from "../tokens/palette";
 /** Loaded only for a supported CodeBlock; no preset themes, other grammars or WASM. */
 export const syntaxTheme = {
   name: "nodalwire", type: "light" as const,
-  colors: { "editor.background": palette["light.2"], "editor.foreground": palette["dark.4"] },
+  colors: { "editor.background": palette["light.1"], "editor.foreground": palette["dark.4"] },
   tokenColors: [
     { scope: ["comment"], settings: { foreground: palette["dark.2"] } },
     { scope: ["keyword", "storage"], settings: { foreground: palette["blue.5"] } },
