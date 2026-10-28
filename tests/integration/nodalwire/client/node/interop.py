@@ -24,6 +24,27 @@ from nodalwire.config import NetworkConfig  # noqa: E402
 from nodalwire.config_store import ConfigStore  # noqa: E402
 from nodalwire.credentials import make_verifier  # noqa: E402
 
+
+def validate_installed_paths(module, prefix, runtime, paths, checkout, cwd):
+    """Allow only the interpreter's own stdlib beneath a task-local checkout."""
+    module, prefix, runtime, checkout, cwd = (
+        Path(value).resolve() for value in (module, prefix, runtime, checkout, cwd)
+    )
+    source = checkout / "src"
+    assert not prefix.is_relative_to(checkout), "Consumer venv is in checkout"
+    assert module.is_relative_to(prefix), f"Not a venv package: {module}"
+    assert not cwd.is_relative_to(checkout), "Consumer is in checkout"
+    assert runtime != checkout and not runtime.is_relative_to(source), "Invalid runtime root"
+    for value in paths:
+        if not value:
+            continue
+        path = Path(value).resolve()
+        assert not path.is_relative_to(source), "Repository source import path leaked"
+        if path.is_relative_to(checkout):
+            assert runtime.is_relative_to(checkout) and path.is_relative_to(runtime), (
+                "Checkout path outside managed interpreter leaked")
+
+
 if INSTALLED:
     from importlib.metadata import distribution
 
@@ -31,12 +52,9 @@ if INSTALLED:
     prefix = Path(sys.prefix).resolve()
     metadata = distribution("nodalwire")
     assert sys.flags.isolated, "Installed acceptance requires Python -I"
-    assert SOURCE.is_relative_to(prefix), f"Not a venv package: {SOURCE}"
     assert Path(metadata.locate_file("")).resolve().is_relative_to(prefix)
     forbidden = Path(os.environ["NODALWIRE_FORBIDDEN_SOURCE"]).resolve()
-    assert not Path.cwd().resolve().is_relative_to(forbidden), "Consumer is in checkout"
-    assert all(not Path(path).resolve().is_relative_to(forbidden)
-               for path in sys.path if path), "Checkout import path leaked"
+    validate_installed_paths(SOURCE, prefix, sys.base_prefix, sys.path, forbidden, Path.cwd())
     assert metadata.version == os.environ["NODALWIRE_EXPECTED_VERSION"]
     print(f"PASS installed Python provenance: version={metadata.version}; "
           f"module={SOURCE}; prefix={prefix}; sys.path={sys.path}", flush=True)
@@ -175,4 +193,5 @@ async def main():
     await scenario(protected_default=True)
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

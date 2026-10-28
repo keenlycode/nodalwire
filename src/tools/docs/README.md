@@ -1,10 +1,12 @@
 # Documentation build
 
-`src/docs-src/` is the maintained source. Root `docs/` is generated static output intended
-for GitHub Pages' **Deploy from a branch → /docs** option. Do not edit generated
-files by hand: rebuilding replaces that directory. Commit source and output
-together when a documentation change is ready. Building does not commit, push,
-configure Pages, or deploy anything.
+`src/docs-src/` is the maintained source. Root `docs/` is ignored, generated local
+preview output, not source-branch content. Do not edit generated files by hand:
+rebuilding replaces that directory. Commit maintained source/tooling/tests on the
+source branch; publish validated static output separately at the dedicated
+`docs` branch root (Pages **Deploy from a branch → docs → /(root)**), only after
+release/publication and deployment approval. Building does not commit, push,
+configure Pages, or deploy anything. No generated site assets belong in `main`.
 
 ## Setup and build
 
@@ -40,6 +42,30 @@ uv run --project src/tools/docs --locked python -m http.server 8765 \
 Open `http://127.0.0.1:8765/`. For the explicitly enabled development build,
 `http://127.0.0.1:8765/design/` opens the playground. Stop the server with Ctrl-C.
 Do not serve the repository root, tooling directories, or kernel task storage.
+
+## Dedicated publishing candidate
+
+Keep the existing `docs` branch history. Fetch/inspect its latest tip, then base a
+new candidate on that tip; do not create an orphan replacement or force-push.
+The existing remote tip may still contain source files, so a reviewed append-only
+conversion commit is required before it can serve only the public site.
+
+Build with `pnpm --dir src/tools/docs build` (not `build:dev`). Copy only its
+validated generated public files, including `.nojekyll`, into an isolated site
+artifact and the candidate's root. Never copy credentials, task state,
+`node_modules`, build tooling or the source checkout. Preserve the candidate's
+`.git` link; never point a destructive build-output replacement at a Git worktree
+root. Review deletions of the old branch tree and compare every copied byte to
+the generated artifact. The normal local `docs/` path remains ignored for existing
+development/test commands.
+
+Publication order is a separate approval gate: verify matching Python/Node
+artifacts, approve and publish both packages, verify registry availability, then
+approve source/tag/docs pushes and Pages configuration/deployment. Do not publish
+a public site that promises package versions before those versions exist.
+Repository visibility and Git identity privacy are separate gates; a private Free
+repository cannot be assumed to have Pages enabled. Prepare locally without
+changing remote state while those decisions wait.
 
 ## Source ownership
 

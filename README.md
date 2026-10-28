@@ -18,11 +18,12 @@ Transport/config version upgrades reject legacy wire/config rather than downgrad
 
 ## Consumers: install into your own application
 
-Source version **0.2.0** requires matching Python and Node artifacts. As checked
-on 2026-10-28, PyPI and npm publish **0.1.0**, not 0.2.0. Do not mix those legacy
-packages with this AR2 relay. This readiness work does not publish a release.
+Version **0.2.0** requires matching Python and Node packages. Do not mix legacy
+0.1 packages with this AR2 relay. Building or checking a source checkout does not
+publish a release or establish registry availability.
 
-Obtain the matching wheel and built Node tarball from your maintainer. In a new
+For prepublication, offline or local-artifact use, obtain the matching wheel and
+built Node tarball from your maintainer. In a new
 application directory, with Python 3.12+, Node.js 24, uv and pnpm 12.5.1:
 
 ```sh
@@ -49,7 +50,7 @@ for the relay and two clients. Supply an administrator token before starting the
 relay. Never start over an existing listener or connect 0.2 clients to a 0.1
 relay; use a private v2 configuration with unused loopback ports when necessary.
 Only after matching 0.2.0 artifacts are actually published would
-`uv pip install nodalwire==0.2.0` and
+`uv pip install --python .venv/bin/python nodalwire==0.2.0` and
 `pnpm add @devcapsule/nodalwire-client@0.2.0` replace local artifact paths.
 
 ## Contributors: build from a checkout
@@ -81,8 +82,11 @@ NODALWIRE_EVIDENCE_DIR=/tmp python tests/integration/nodalwire/client/node/packa
 
 This builds/packs the SDK, installs a fresh external consumer, checks ESM/types
 and native cases, then runs copied interoperability fixtures against an isolated
-installed Python package. Python uses `-I`; imports, versions and checkout
-exclusion are checked. The default smoke run instead uses Python source;
+installed Python package. Python uses `-I`; package/metadata origins, versions
+and source-path exclusion are checked. A task-managed interpreter's own standard
+library may live in ignored task storage; package and consumer paths must remain
+external, and repository source/direct-root import paths are rejected.
+The default smoke run instead uses Python source;
 `--skip-interop` establishes Node-artifact evidence only. Native dependency stores
 must be prepared for its offline pnpm installation. Local passes do not certify
 pristine machines, all supported Python versions/platforms or security. Rebuild
@@ -93,7 +97,12 @@ the final reviewed diff. Publishing, tags and Git operations are separate approv
 
 Maintained site inputs live in [src/docs-src/](src/docs-src/); isolated build
 scripts and locked dependencies live in [src/tools/docs/](src/tools/docs/).
-Root [docs/](docs/) is generated GitHub Pages output, not maintained source.
+Root `docs/` is ignored local preview output, not tracked source-branch content.
+Validated public output is prepared separately for the dedicated `docs` branch
+root; generated site assets do not belong in `main`. The normal stable release
+goal is matching 0.2.0 PyPI/npm packages, followed by approved documentation
+publication. Package uploads, source/tag/docs pushes and Pages deployment require
+separate final approval; local preparation does none of them.
 See the [documentation tooling guide](src/tools/docs/README.md) for setup,
 preview, component ownership, and optional owned-browser verification.
 
