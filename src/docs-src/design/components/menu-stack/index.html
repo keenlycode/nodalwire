@@ -1,8 +1,0 @@
-{% extends "design/_include/specimen-page.html" %}
-{% set design_page = 'components/menu-stack' %}
-{% set specimen_group = 'components' %}
-{% set specimen_title = 'MenuStack' %}
-{% set specimen_description = 'Reusable native navigation, authored on the server; destinations are not hardcoded in the component.' %}
-{% block specimens %}
-<section><h2>Standalone stack</h2><p>This specimen retains the default 100vh fallback / 100dvh height and internal overflow. The floating design menu uses an explicit auto-height embedding override and owns one viewport-bounded scroll area. This separate reference specimen demonstrates the reusable component, not a second copy of the design hierarchy.</p><p><button type="button" id="stack-visibility" aria-controls="standalone-stack" aria-expanded="true">Hide / show specimen</button></p><nw-menu-stack id="standalone-stack"><nav aria-label="Standalone component specimen"><ul><li><a href="{{ url('design/components/') }}">Component examples</a><details open><summary><span>Example group</span><span class="menu-stack-toggle" aria-hidden="true"><span class="when-open">−</span><span class="when-closed">+</span></span></summary><ul><li><a href="{{ url('design/components/button/') }}">Button specimen</a></li><li><a href="{{ url('design/components/card/') }}">Card specimen</a></li></ul></details></li></ul></nav></nw-menu-stack><p>Each group starts open. Overview navigation and group disclosure are separate native controls. The host supports the native hidden attribute.</p></section>
-{% endblock %}

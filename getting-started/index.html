@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getting Started · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/_layouts/style.css">
+<link rel="stylesheet" href="../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="module" src="../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../" aria-label="NodalWire home">◈ NodalWire</a><span>Local byte relay · 0.2.0</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<div class="navigation-group">
+<a href="../">Home</a><a href="./" aria-current="page">Getting Started</a></div>
+<div class="navigation-group">
+<h2>Guides</h2><a href="../guides/networks/">Networks</a><a href="../guides/request-reply/">Request/reply</a><a href="../guides/security/">Security</a></div>
+<div class="navigation-group">
+<h2>Reference</h2><a href="../reference/api/">Python &amp; Node API</a><a href="../reference/cli/">CLI</a><a href="../reference/config/">Configuration</a><a href="../reference/admin/">Administration</a></div>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Getting Started</a></li>
+</ol></nav></nw-page-path><h1>Getting Started</h1>
+<p class="lead">Send a message from Node.js to Python and get a reply.</p>
+</header>
+<div class="product-content"><section aria-labelledby="setup">
+  <h2 id="setup">1. Set up</h2>
+  <p>
+    You need Python 3.12+, Node.js 24, <code>uv</code>, pnpm 12.5.1 and matching
+    <code>0.2.0</code> artifacts from your maintainer for prepublication, offline
+    or local-artifact use. A source checkout does not establish public registry
+    availability. Create your own application; no checkout or SDK compilation is needed:
+  </p>
+<nw-code-block filename="terminal" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>mkdir my-nodalwire-app
+cd my-nodalwire-app
+uv venv .venv
+uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.0-py3-none-any.whl
+printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
+pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
+</code></pre></nw-code-block>
+  <p>Replace the two artifact paths. Run subsequent commands from this application
+    directory, not the NodalWire repository. Do not overwrite an existing app's
+    pnpm script policy. These shell paths are for Linux/macOS; local verification
+    covered Linux only.</p>
+  <p>Only after the matching approved release is published and registry availability
+    is verified, replace the two artifact installation commands with
+    <code>uv pip install --python .venv/bin/python nodalwire==0.2.0</code> and
+    <code>pnpm add @devcapsule/nodalwire-client@0.2.0</code>. Do not substitute old
+    packages while publication is pending.</p>
+  <details>
+    <summary>About the Node.js setup</summary>
+    <p>
+      The tarball includes compiled JavaScript and declarations; consumers need
+      neither Deno nor TypeScript. The native <code>zeromq</code> install script
+      is required and explicitly permitted above. Native prebuild/fallback build
+      availability is platform-dependent; other package managers have different
+      script policies. Contributor builds and maintainer artifact acceptance are
+      separate steps described in the repository README. Do not install public
+      0.1 packages as substitutes for these 0.2 artifacts.
+    </p>
+  </details>
+</section>
+
+<section aria-labelledby="start-relay">
+  <h2 id="start-relay">2. Start the relay — Terminal 1</h2>
+  <p>Create a private administrator token, then start the relay. Leave it running.</p>
+<nw-code-block filename="terminal 1" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 1</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+.venv/bin/nodalwire serve
+</code></pre></nw-code-block>
+  <p>
+    The token is required to start the relay, but these clients do not need it.
+    This example uses the default local endpoint and an open <code>default</code>
+    network. Do not start a second relay if one is already using these ports, or
+    connect these clients to an existing 0.1 relay. For a separate instance, use
+    <code>.venv/bin/nodalwire serve --config relay.toml</code> with unused loopback
+    data/admin ports in a <a href="../reference/config/">v2 configuration</a>.
+    Set <code>NODALWIRE_ENDPOINT</code> to its data endpoint in both client terminals.
+  </p>
+</section>
+
+<section aria-labelledby="python">
+  <h2 id="python">3. Run Python — Terminal 2</h2>
+  <p>Save this as <code>python-echo.py</code> in your application directory.</p>
+<nw-code-block filename="python-echo.py" language="python">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">python-echo.py</span><span class="code-block-language">python</span></span></div><pre tabindex="0" aria-label="python code example"><code>import asyncio
+import os
+
+from nodalwire import Node
+
+
+async def main():
+    endpoint = os.getenv("NODALWIRE_ENDPOINT", "tcp://127.0.0.1:5555")
+    async with await Node.connect("python-echo", endpoint) as echo:
+        print("Python is ready", flush=True)
+        message = await asyncio.wait_for(echo.receive(), timeout=120)
+        print(message.payload.decode())
+        await echo.send(message.sender, b"hello from Python")
+
+
+asyncio.run(main())
+</code></pre></nw-code-block>
+  <p>Open a second terminal and run:</p>
+<nw-code-block filename="terminal 2" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 2</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>.venv/bin/python python-echo.py
+</code></pre></nw-code-block>
+  <p>Wait for <code>Python is ready</code>, then run Node.js in the next step.</p>
+</section>
+
+<section aria-labelledby="node">
+  <h2 id="node">4. Run Node.js — Terminal 3</h2>
+  <p>Save this as <code>node-exchange.mjs</code> in your application directory.</p>
+<nw-code-block filename="node-exchange.mjs" language="javascript">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">node-exchange.mjs</span><span class="code-block-language">javascript</span></span></div><pre tabindex="0" aria-label="javascript code example"><code>import { Node } from "@devcapsule/nodalwire-client";
+
+const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
+const client = await Node.connect("node-client", endpoint);
+try {
+  await client.send("python-echo", new TextEncoder().encode("hello from Node"));
+  const reply = await client.receive({ signal: AbortSignal.timeout(5000) });
+  console.log(new TextDecoder().decode(reply.payload));
+} finally {
+  await client.close();
+}
+</code></pre></nw-code-block>
+  <p>Open a third terminal and run:</p>
+<nw-code-block filename="terminal 3" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 3</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>node node-exchange.mjs
+</code></pre></nw-code-block>
+  <p>
+    Python prints <code>hello from Node</code> and Node.js prints
+    <code>hello from Python</code>. Both clients then exit; the relay stays running.
+    Press Ctrl-C in Terminal 1 when you are finished with your relay.
+  </p>
+  <details>
+    <summary>If the exchange does not finish</summary>
+    <p>
+      Python waits up to two minutes for the message; Node.js waits up to five
+      seconds for the reply. If either times out, check the relay, restart Python,
+      wait for its readiness line, then run Node.js again. These examples use
+      <code>127.0.0.1:5555</code> unless <code>NODALWIRE_ENDPOINT</code> is set.
+      An existing protected network needs a join credential; see the
+      <a href="../guides/networks/">networks guide</a>.
+    </p>
+  </details>
+</section>
+
+<section aria-labelledby="next">
+  <h2 id="next">Next steps</h2>
+  <p>
+    You have exchanged bytes between two local applications. The reply confirms
+    that Python handled the message; sending alone does not confirm processing.
+    Continue with <a href="../guides/networks/">networks</a>,
+    <a href="../guides/request-reply/">request/reply</a>, or the
+    <a href="../reference/api/">API reference</a>.
+    Read <a href="../guides/security/">security</a> before sharing credentials:
+    they grant permission, not peer identity or encryption.
+  </p>
+</section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>

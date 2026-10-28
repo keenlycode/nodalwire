@@ -1,5 +1,0 @@
-{% macro code_block(text, filename='', language='') -%}
-<nw-code-block{% if filename %} filename="{{ filename }}"{% endif %}{% if language %} language="{{ language }}"{% endif %}>
-{% if filename or language %}<div class="code-block-header"><span class="code-block-labels">{% if filename %}<span class="code-block-filename">{{ filename }}</span>{% endif %}{% if language %}<span class="code-block-language">{{ language }}</span>{% endif %}</span></div>{% endif %}
-<pre tabindex="0" aria-label="{{ language or 'Plain text' }} code example"><code>{{ text | e | replace('\r', '&#13;' | safe) }}</code></pre></nw-code-block>
-{%- endmacro %}

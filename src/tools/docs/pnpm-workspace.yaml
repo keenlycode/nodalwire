@@ -1,4 +1,0 @@
-# Use esbuild's platform-specific optional binary; do not run lifecycle scripts.
-# Explicit denial keeps pnpm's unreviewed-build protection enabled.
-allowBuilds:
-  esbuild: false

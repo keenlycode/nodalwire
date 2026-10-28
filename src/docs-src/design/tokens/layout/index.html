@@ -1,8 +1,0 @@
-{% extends "design/_include/specimen-page.html" %}
-{% set design_page = 'tokens/layout' %}
-{% set specimen_group = 'tokens' %}
-{% set specimen_title = 'Layout' %}
-{% set specimen_description = 'Reading measure and sidebar width are layout constraints, not component positioning APIs.' %}
-{% block specimens %}
-<section id="layout"><h2>Canonical measures</h2>{% for name,value in tokens.layout.items() %}<article class="panel" style="max-width:{{ value }}"><h3>{{ name }} · {{ value }}</h3><p>This specimen is constrained to the token width while remaining within its available container. Narrow screens still wrap naturally.</p></article>{% endfor %}</section>
-{% endblock %}

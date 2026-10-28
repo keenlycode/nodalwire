@@ -1,8 +1,0 @@
-{% extends "design/_include/specimen-page.html" %}
-{% set design_page = 'components/bottom-navigation' %}
-{% set specimen_group = 'components' %}
-{% set specimen_title = 'Bottom Navigation' %}
-{% set specimen_description = 'Reusable fixed-bottom navigation; preserved independently of the floating design shell.' %}
-{% block specimens %}
-<section id="bottom-navigation-reference"><h2>Upward native disclosure</h2><p><code>BottomNavigation</code> / <code>nw-bottom-navigation</code> remains a reusable Adapter → Base component for an authored native <code>details</code>, <code>summary</code> and navigation panel. The panel opens upward with bounded scrolling; enhancement synchronizes expanded state and Escape restores summary focus.</p><p>Embedding MenuStack uses auto height and caller-owned scrolling to avoid competing vertical scroll areas. The design shell no longer instantiates this full-width bar: the bottom-left Menu ButtonPin controls its single combined MenuStack instead. Reusable component files and APIs are preserved.</p></section>
-{% endblock %}
