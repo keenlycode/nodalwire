@@ -16,6 +16,79 @@ bearer authentication is not encryption. Startup requires an explicitly supplied
 admin token (`NODALWIRE_ADMIN_TOKEN`) or configuration verifier; none is generated.
 Transport/config version upgrades reject legacy wire/config rather than downgrade.
 
+## Consumers: install into your own application
+
+Source version **0.2.0** requires matching Python and Node artifacts. As checked
+on 2026-10-28, PyPI and npm publish **0.1.0**, not 0.2.0. Do not mix those legacy
+packages with this AR2 relay. This readiness work does not publish a release.
+
+Obtain the matching wheel and built Node tarball from your maintainer. In a new
+application directory, with Python 3.12+, Node.js 24, uv and pnpm 12.5.1:
+
+```sh
+mkdir my-nodalwire-app
+cd my-nodalwire-app
+uv venv .venv
+uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.0-py3-none-any.whl
+printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
+pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
+```
+
+Use `from nodalwire import Node` in Python and
+`import { Node } from "@devcapsule/nodalwire-client"` in an `.mjs` application.
+Run Python with `.venv/bin/python`; the installed relay is
+`.venv/bin/nodalwire`. No checkout, Deno or TypeScript compiler is required by
+these consumers. The Node dependency `zeromq` still requires its native binding
+and lifecycle script; pnpm's explicit `allowBuilds` entry permits only that
+package. Other package managers have their own script policies; platform/prebuilt
+availability and fallback native-build prerequisites remain zeromq's concern.
+These commands use a new directory; do not overwrite an existing app's policy.
+
+Follow the [Getting Started walkthrough](src/docs-src/getting-started/index.html)
+for the relay and two clients. Supply an administrator token before starting the
+relay. Never start over an existing listener or connect 0.2 clients to a 0.1
+relay; use a private v2 configuration with unused loopback ports when necessary.
+Only after matching 0.2.0 artifacts are actually published would
+`uv pip install nodalwire==0.2.0` and
+`pnpm add @devcapsule/nodalwire-client@0.2.0` replace local artifact paths.
+
+## Contributors: build from a checkout
+
+Consumers do not perform these steps. From this repository, prepare locked
+Python and Node development dependencies and build distributable artifacts:
+
+```sh
+uv sync --locked
+pnpm -C src/nodalwire/client/node install --frozen-lockfile
+pnpm -C src/nodalwire/client/node exec tsc -p tsconfig.json
+uv build --out-dir /tmp/nodalwire-artifacts
+pnpm -C src/nodalwire/client/node pack --pack-destination /tmp/nodalwire-artifacts
+```
+
+Install those artifacts into a separate application as above. Do not commit SDK
+`dist/` by default. Deno orchestrates the existing SDK development/test tasks;
+it is not an application runtime requirement.
+
+## Maintainers: readiness is not publication
+
+Inspect wheel/sdist/tarball contents, record versions and SHA256 hashes, and check
+both installed packages outside the checkout. After building the wheel above:
+
+```sh
+NODALWIRE_EVIDENCE_DIR=/tmp python tests/integration/nodalwire/client/node/package_smoke.py \
+  --python-artifact /tmp/nodalwire-artifacts/nodalwire-0.2.0-py3-none-any.whl
+```
+
+This builds/packs the SDK, installs a fresh external consumer, checks ESM/types
+and native cases, then runs copied interoperability fixtures against an isolated
+installed Python package. Python uses `-I`; imports, versions and checkout
+exclusion are checked. The default smoke run instead uses Python source;
+`--skip-interop` establishes Node-artifact evidence only. Native dependency stores
+must be prepared for its offline pnpm installation. Local passes do not certify
+pristine machines, all supported Python versions/platforms or security. Rebuild
+artifacts after README changes; package content and recorded hashes must match
+the final reviewed diff. Publishing, tags and Git operations are separate approvals.
+
 ## Documentation and development checks
 
 Maintained site inputs live in [src/docs-src/](src/docs-src/); isolated build

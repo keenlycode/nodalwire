@@ -34,9 +34,9 @@ async def exchange_open(alice, bob):
 <p>In Node.js the same operations are <code>await alice.join("team")</code> and <code>await alice.send(bob.name, bytes, { network: "team" })</code>. Use <code>Uint8Array</code> or <code>Buffer</code> payloads.</p></section>
 <section aria-labelledby="protected"><h2 id="protected">Protect joins, including the default</h2>
 <p>An administrator can create a protected network or change <code>default</code> to protected using <code>network.update</code>. Generate a separate join credential and pass its environment-variable name, not its value, to the CLI. Read the current revision first; replace <code>REVISION</code> with that returned integer.</p>
-{% set protect_commands %}uv run --locked python -m nodalwire admin config.get
-export TEAM_JOIN_TOKEN="$(uv run --locked python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-uv run --locked python -m nodalwire admin network.update \
+{% set protect_commands %}.venv/bin/nodalwire admin config.get
+export TEAM_JOIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+.venv/bin/nodalwire admin network.update \
   --network default --protected --credential-env TEAM_JOIN_TOKEN \
   --expected-revision REVISION
 {% endset %}{{ code_block(protect_commands, 'terminal', 'shell') }}

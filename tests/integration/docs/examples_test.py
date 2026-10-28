@@ -25,7 +25,7 @@ def _examples() -> tuple[str, str]:
     return examples["python_example"], examples["javascript_example"]
 
 
-def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch):
+def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch, node_application):
     python_example, node_example = _examples()
     admin_token = "getting-started-test-admin-token"
     monkeypatch.setenv("NODALWIRE_ADMIN_TOKEN", admin_token)
@@ -47,7 +47,7 @@ def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch):
             sys.executable,
             "-c",
             python_example,
-            cwd=ROOT,
+            cwd=node_application,
             env=child_env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -62,7 +62,7 @@ def test_getting_started_python_and_node_examples_exchange_bytes(monkeypatch):
                 "--input-type=module",
                 "-e",
                 node_example,
-                cwd=ROOT,
+                cwd=node_application,
                 env=child_env,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

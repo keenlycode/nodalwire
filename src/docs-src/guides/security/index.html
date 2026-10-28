@@ -17,8 +17,8 @@
 </dl>
 <p>Use distinct high-entropy values for these roles. Token syntax is 1–1024 printable ASCII characters without spaces or control characters. Store verifiers rather than raw bearer values in configuration. The current verifier format is salted <code>scrypt-v1</code>; it still does not encrypt transport.</p>
 <p>Generate and explicitly export an administrator credential before starting your own relay:</p>
-{% set startup %}export NODALWIRE_ADMIN_TOKEN="$(uv run --locked python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-uv run --locked python -m nodalwire serve --config local.toml
+{% set startup %}export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+.venv/bin/nodalwire serve --config local.toml
 {% endset %}{{ code_block(startup, 'terminal', 'shell') }}
 <p>Protect the terminal environment and configuration file. Avoid command-line bearer values, shell history containing literal secrets, logs, or copied screenshots. The CLI's <code>--token-env</code>, <code>--join-token-env</code>, and <code>--credential-env</code> flags name environment variables, not token values. Configuration reads redact verifiers; do not interpret redaction as immunity to local inspection.</p></section>
 <section aria-labelledby="policy"><h2 id="policy">Understand policy cutoffs</h2>

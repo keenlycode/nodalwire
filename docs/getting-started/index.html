@@ -31,22 +31,33 @@
 <div class="product-content"><section aria-labelledby="setup">
   <h2 id="setup">1. Set up</h2>
   <p>
-    You need Python 3.12+, Node.js 24, <code>uv</code> and <code>pnpm</code>.
-    Open a terminal at the root of a NodalWire 0.2.0 source checkout and run:
+    You need Python 3.12+, Node.js 24, <code>uv</code>, pnpm 12.5.1 and matching
+    <code>0.2.0</code> artifacts from your maintainer. As checked on 2026-10-28,
+    the public registries publish <code>0.1.0</code>, not <code>0.2.0</code>.
+    Create your own application; no source checkout or SDK compilation is needed:
   </p>
 <nw-code-block filename="terminal" language="shell">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>uv sync --locked
-pnpm -C src/nodalwire/client/node install --frozen-lockfile
-pnpm -C src/nodalwire/client/node exec tsc
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>mkdir my-nodalwire-app
+cd my-nodalwire-app
+uv venv .venv
+uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.0-py3-none-any.whl
+printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
+pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
 </code></pre></nw-code-block>
-  <p>Run all commands below from this same repository root.</p>
+  <p>Replace the two artifact paths. Run subsequent commands from this application
+    directory, not the NodalWire repository. Do not overwrite an existing app's
+    pnpm script policy. These shell paths are for Linux/macOS; local verification
+    covered Linux only.</p>
   <details>
     <summary>About the Node.js setup</summary>
     <p>
-      These commands build the matching SDK in this checkout; no published npm
-      package or Deno installation is needed. The Node.js example imports that
-      local build. If pnpm asks for install-script approval, allow only
-      <code>zeromq</code>, which needs its native binding.
+      The tarball includes compiled JavaScript and declarations; consumers need
+      neither Deno nor TypeScript. The native <code>zeromq</code> install script
+      is required and explicitly permitted above. Native prebuild/fallback build
+      availability is platform-dependent; other package managers have different
+      script policies. Contributor builds and maintainer artifact acceptance are
+      separate steps described in the repository README. Do not install public
+      0.1 packages as substitutes for these 0.2 artifacts.
     </p>
   </details>
 </section>
@@ -55,19 +66,23 @@ pnpm -C src/nodalwire/client/node exec tsc
   <h2 id="start-relay">2. Start the relay — Terminal 1</h2>
   <p>Create a private administrator token, then start the relay. Leave it running.</p>
 <nw-code-block filename="terminal 1" language="shell">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 1</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(uv run python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-uv run nodalwire serve
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 1</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+.venv/bin/nodalwire serve
 </code></pre></nw-code-block>
   <p>
     The token is required to start the relay, but these clients do not need it.
     This example uses the default local endpoint and an open <code>default</code>
-    network. Do not start a second relay if one is already using these ports.
+    network. Do not start a second relay if one is already using these ports, or
+    connect these clients to an existing 0.1 relay. For a separate instance, use
+    <code>.venv/bin/nodalwire serve --config relay.toml</code> with unused loopback
+    data/admin ports in a <a href="../reference/config/">v2 configuration</a>.
+    Set <code>NODALWIRE_ENDPOINT</code> to its data endpoint in both client terminals.
   </p>
 </section>
 
 <section aria-labelledby="python">
   <h2 id="python">3. Run Python — Terminal 2</h2>
-  <p>Save this as <code>python-echo.py</code> in the repository root.</p>
+  <p>Save this as <code>python-echo.py</code> in your application directory.</p>
 <nw-code-block filename="python-echo.py" language="python">
 <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">python-echo.py</span><span class="code-block-language">python</span></span></div><pre tabindex="0" aria-label="python code example"><code>import asyncio
 import os
@@ -88,16 +103,16 @@ asyncio.run(main())
 </code></pre></nw-code-block>
   <p>Open a second terminal and run:</p>
 <nw-code-block filename="terminal 2" language="shell">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 2</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>uv run python python-echo.py
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 2</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>.venv/bin/python python-echo.py
 </code></pre></nw-code-block>
   <p>Wait for <code>Python is ready</code>, then run Node.js in the next step.</p>
 </section>
 
 <section aria-labelledby="node">
   <h2 id="node">4. Run Node.js — Terminal 3</h2>
-  <p>Save this as <code>node-exchange.mjs</code> in the repository root.</p>
+  <p>Save this as <code>node-exchange.mjs</code> in your application directory.</p>
 <nw-code-block filename="node-exchange.mjs" language="javascript">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">node-exchange.mjs</span><span class="code-block-language">javascript</span></span></div><pre tabindex="0" aria-label="javascript code example"><code>import { Node } from "./src/nodalwire/client/node/dist/index.js";
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">node-exchange.mjs</span><span class="code-block-language">javascript</span></span></div><pre tabindex="0" aria-label="javascript code example"><code>import { Node } from "@devcapsule/nodalwire-client";
 
 const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
 const client = await Node.connect("node-client", endpoint);

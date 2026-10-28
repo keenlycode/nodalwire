@@ -59,9 +59,9 @@ async def round_trip(alice, bob):
 </code></pre></nw-code-block>
 <p>Call <code>await round_trip(alice, bob)</code> while both nodes are open. This bounded demonstration expects only one request and reply; a long-running application also needs an ordinary inbox consumer.</p></section>
 <section aria-labelledby="node"><h2 id="node">Node.js round trip</h2>
-<p>After the <a href="../../getting-started/">source-checkout setup</a>, save this ESM helper as <code>request-reply.mjs</code> in the repository root. Its relative import uses that checkout's built matching <code>0.2.0</code> SDK; no npm package installation is needed. In an application at the same root, import <code>roundTrip</code> from <code>./request-reply.mjs</code>, connect both clients as in Getting Started, then call <code>await roundTrip(alice, bob)</code> while both are open. The application owns connection cleanup. If saving elsewhere, adjust the SDK import to the actual built module location.</p>
+<p>After the <a href="../../getting-started/">artifact installation</a>, save this ESM helper as <code>request-reply.mjs</code> in your application. Its package-name import uses the installed matching <code>0.2.0</code> SDK. Import <code>roundTrip</code> from <code>./request-reply.mjs</code>, connect both clients as in Getting Started, then call <code>await roundTrip(alice, bob)</code> while both are open. The application owns connection cleanup.</p>
 <nw-code-block filename="request-reply.mjs" language="javascript">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">request-reply.mjs</span><span class="code-block-language">javascript</span></span></div><pre tabindex="0" aria-label="javascript code example"><code>import { decodeEnvelope } from "./src/nodalwire/client/node/dist/index.js";
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">request-reply.mjs</span><span class="code-block-language">javascript</span></span></div><pre tabindex="0" aria-label="javascript code example"><code>import { decodeEnvelope } from "@devcapsule/nodalwire-client";
 
 export async function roundTrip(alice, bob) {
   const service = (async () => {
