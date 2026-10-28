@@ -34,8 +34,8 @@ asyncio.run(main())
 </dl>
 <p>Per-operation <code>timeout=None</code> uses the connection timeout. Invalid argument types/values raise <code>TypeError</code>/<code>ValueError</code>; relay/local protocol failures use <code>RelayError.code</code>. Cancellation uses Python's asyncio cancellation semantics and can follow an effect.</p></section>
 <section aria-labelledby="node"><h2 id="node">Node.js</h2>
-<p>The ESM package identity is <code>@devcapsule/nodalwire-client</code>, matching version <code>0.2.0</code>, for Node.js 24. Deno runs development tasks, not the client runtime. Published-package availability is not assumed here. After the <a href="{{ url('getting-started/') }}">source-checkout setup</a>, save this fragment as <code>client.mjs</code> in the repository root and run <code>node client.mjs</code> there while a matching relay and responding Bob are connected. Its relative import resolves the checkout's built SDK without installing the npm package; adjust that path if saving elsewhere.</p>
-{% set node_lifecycle %}import { Node } from "./src/nodalwire/client/node/dist/index.js";
+<p>The ESM package identity is <code>@devcapsule/nodalwire-client</code>, matching version <code>0.2.0</code>, for Node.js 24. Deno runs development tasks, not the client runtime. After the <a href="{{ url('getting-started/') }}">artifact installation</a>, save this fragment as <code>client.mjs</code> in your application and run <code>node client.mjs</code> there while a matching relay and responding Bob are connected. The import resolves the installed package, not repository source.</p>
+{% set node_lifecycle %}import { Node } from "@devcapsule/nodalwire-client";
 
 const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
 const alice = await Node.connect("alice", endpoint);

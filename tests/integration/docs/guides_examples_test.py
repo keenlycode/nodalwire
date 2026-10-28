@@ -1,8 +1,9 @@
 """Run authored guide snippets against owned, ephemeral matching relays.
 
 Extraction locates executable CodeBlock inputs, not maintained prose wording.
-Node source is evaluated unchanged from the documented repository-root location;
-imports are not rewritten. No package install, shared build, or coordination relay.
+Node source is evaluated unchanged in a temporary application using package-name
+imports via the built source fixture. This is not installed-artifact acceptance.
+No package install, shared build, or coordination relay.
 """
 
 import asyncio
@@ -114,7 +115,7 @@ def test_authored_python_request_reply(monkeypatch):
     asyncio.run(check())
 
 
-def test_authored_node_request_reply(monkeypatch):
+def test_authored_node_request_reply(monkeypatch, node_application):
     node = shutil.which("node")
     assert node is not None, "Node.js 24 is required; absence is not behavior proof"
     module = ROOT / "src/nodalwire/client/node/dist/index.js"
@@ -123,11 +124,11 @@ def test_authored_node_request_reply(monkeypatch):
 
     async def check():
         async with running_example(monkeypatch) as relay:
-            # -e module resolution uses cwd, matching a helper saved at repo root.
+            # -e module resolution uses the temporary application's package name.
             # Keep the complete authored module unmodified; append only its caller.
             runner = code + '''
 import assert from "node:assert/strict";
-import { Node } from "./src/nodalwire/client/node/dist/index.js";
+import { Node } from "@devcapsule/nodalwire-client";
 const alice = await Node.connect("node-request-alice", process.argv[1]);
 try {
   const bob = await Node.connect("node-request-bob", process.argv[1]);
@@ -141,7 +142,7 @@ try {
 } finally { await alice.close(); }
 '''
             process = await asyncio.create_subprocess_exec(
-                node, "--input-type=module", "-e", runner, relay.endpoint, cwd=ROOT,
+                node, "--input-type=module", "-e", runner, relay.endpoint, cwd=node_application,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
             try:
@@ -156,7 +157,7 @@ try {
     asyncio.run(check())
 
 
-def test_authored_node_api_fragment(monkeypatch):
+def test_authored_node_api_fragment(monkeypatch, node_application):
     node = shutil.which("node")
     assert node is not None, "Node.js 24 is required; absence is not behavior proof"
     code = snippet("reference/api", "node_lifecycle")
@@ -176,7 +177,7 @@ def test_authored_node_api_fragment(monkeypatch):
                 try:
                     # Exact source, import resolution, and endpoint override from the page.
                     process = await asyncio.create_subprocess_exec(
-                        node, "--input-type=module", "-e", code, cwd=ROOT,
+                        node, "--input-type=module", "-e", code, cwd=node_application,
                         env={**os.environ, "NODALWIRE_ENDPOINT": relay.endpoint},
                         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                     )

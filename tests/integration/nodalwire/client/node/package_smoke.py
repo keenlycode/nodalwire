@@ -1,20 +1,22 @@
 """Install actual local tarball; verify exports/types/native transport and real wire.
 
---skip-interop explicitly limits evidence to the installed Node artifact. Full
-acceptance requires the default run against matching reviewed AR2 Python source.
-NODALWIRE_PYTHON_SOURCE selects that tree's src/, NODALWIRE_ARTIFACT_DIR optionally
+--skip-interop explicitly limits evidence to the installed Node artifact.
+Default interop uses matching reviewed AR2 Python source. --python-artifact installs
+matching Python into a fresh external venv and runs copied interop fixtures there
+with isolated imports, proving both installed packages instead of Python source.
+NODALWIRE_PYTHON_SOURCE selects source-mode src/, NODALWIRE_ARTIFACT_DIR optionally
 retains the checked tarball, NODALWIRE_EVIDENCE_DIR selects scratch placement.
 """
 
 import argparse
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[5]
 PACKAGE = ROOT / "src" / "nodalwire" / "client" / "node"
@@ -66,12 +68,22 @@ def stage_native_fixtures(fixture_root, installed_root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-interop", action="store_true")
+    parser.add_argument("--python-artifact", type=Path,
+                        help="Install a matching Python wheel/sdist for isolated interop")
     args = parser.parse_args()
+    if args.python_artifact:
+        if args.skip_interop:
+            parser.error("--python-artifact cannot be combined with --skip-interop")
+        args.python_artifact = args.python_artifact.resolve()
+        if not args.python_artifact.is_file():
+            parser.error("--python-artifact must name an existing wheel/sdist")
     scratch = os.environ.get("NODALWIRE_EVIDENCE_DIR")
     if scratch:
         Path(scratch).mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="node-package-smoke-", dir=scratch) as temporary:
         work = Path(temporary)
+        if args.python_artifact and work.resolve().is_relative_to(ROOT.resolve()):
+            parser.error("Installed-package evidence directory must be outside checkout")
         run(["deno", "task", "build"])
         run(["pnpm", "pack", "--pack-destination", str(work)])
         tarball, = work.glob("*.tgz")
@@ -123,7 +135,8 @@ void application;
         run(["node", str(PACKAGE / "node_modules/typescript/bin/tsc"),
              "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2022",
              "consumer.ts"], cwd=consumer)
-        print("PASS installed declarations: bytes/network/membership/request/codec contracts", flush=True)
+        print("PASS installed declarations: bytes/network/membership/request/codec contracts",
+              flush=True)
         installed_root = consumer / "node_modules/@devcapsule/nodalwire-client"
         installed = installed_root / "dist/index.js"
         # Preserve root-relative fixture imports without changing any test body.
@@ -136,11 +149,35 @@ void application;
         print(native.stdout, end="", flush=True)
         print(native.stderr, end="", file=sys.stderr, flush=True)
         native.check_returncode()
-        assert re.search(r"^# tests 27$", native.stdout, re.MULTILINE), "Expected all 27 native cases"
-        assert re.search(r"^# pass 27$", native.stdout, re.MULTILINE), "All 27 artifact cases must pass"
-        assert re.search(r"^# skipped 0$", native.stdout, re.MULTILINE), "Artifact cases must not skip"
+        assert re.search(r"^# tests 27$", native.stdout, re.MULTILINE), (
+            "Expected all 27 native cases")
+        assert re.search(r"^# pass 27$", native.stdout, re.MULTILINE), (
+            "All 27 artifact cases must pass")
+        assert re.search(r"^# skipped 0$", native.stdout, re.MULTILINE), (
+            "Artifact cases must not skip")
         if args.skip_interop:
-            print("SKIP real Python wire: artifact-only run, NOT full interop acceptance", flush=True)
+            print("SKIP real Python wire: artifact-only run, NOT full interop acceptance",
+                  flush=True)
+        elif args.python_artifact:
+            venv = work / "python-consumer"
+            run(["uv", "venv", "--python", sys.executable, str(venv)], cwd=consumer)
+            python = venv / "bin/python"
+            clean_env = {key: value for key, value in os.environ.items()
+                         if key not in {"PYTHONPATH", "PYTHONHOME", "NODALWIRE_PYTHON_SOURCE"}}
+            run(["uv", "pip", "install", "--python", str(python),
+                 str(args.python_artifact)], cwd=consumer, env=clean_env)
+            fixtures = work / "interop"
+            fixtures.mkdir()
+            for name in ("interop.py", "interop.mjs"):
+                shutil.copyfile(Path(__file__).with_name(name), fixtures / name)
+            run([str(python), "-I", str(fixtures / "interop.py")], cwd=consumer, env={
+                **clean_env,
+                "NODALWIRE_CLIENT_MODULE": installed.as_uri(),
+                "NODALWIRE_PYTHON_INSTALLED": "1",
+                "NODALWIRE_FORBIDDEN_SOURCE": str(ROOT),
+                "NODALWIRE_EXPECTED_VERSION": json.loads(
+                    (PACKAGE / "package.json").read_text())["version"],
+            })
         else:
             run([sys.executable, str(Path(__file__).with_name("interop.py"))], env={
                 **os.environ, "NODALWIRE_CLIENT_MODULE": installed.as_uri(),

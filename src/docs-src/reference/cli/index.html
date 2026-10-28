@@ -4,18 +4,18 @@
 {% set page_title = 'CLI reference' %}
 {% set page_intro = 'A foreground relay and bounded one-shot client/admin commands, with structured output and no retries.' %}
 {% block content %}
-<section aria-labelledby="invoke"><h2 id="invoke">Invoke from a source checkout</h2>
-<p>Use <code>uv run --locked python -m nodalwire</code> (or the installed <code>nodalwire</code> entry point). Append <code>--help</code> to any command for the full generated option list. Follow <a href="{{ url('getting-started/') }}">Getting Started</a> for environment setup; these commands assume matching installed dependencies and your own relay.</p>
-{% set help_commands %}uv run --locked python -m nodalwire --help
-uv run --locked python -m nodalwire serve --help
-uv run --locked python -m nodalwire send --help
+<section aria-labelledby="invoke"><h2 id="invoke">Invoke the installed CLI</h2>
+<p>Use <code>.venv/bin/nodalwire</code> from the application prepared in <a href="{{ url('getting-started/') }}">Getting Started</a>. Append <code>--help</code> to any command for the full generated option list. These commands assume matching installed artifacts and your own relay. Contributors in a locked checkout may instead use <code>uv run --locked python -m nodalwire</code>.</p>
+{% set help_commands %}.venv/bin/nodalwire --help
+.venv/bin/nodalwire serve --help
+.venv/bin/nodalwire send --help
 {% endset %}{{ code_block(help_commands, 'terminal', 'shell') }}
 <p>Each client invocation registers a new connection and explicitly joins the selected network, then disconnects. A later invocation does not inherit membership, pending requests, or an inbox. Use the <a href="{{ url('reference/api/') }}">Python/Node clients</a> for persistent service loops.</p></section>
 <section aria-labelledby="serve"><h2 id="serve">Relay: <code>serve</code></h2>
 <p><code>serve [--config PATH]</code> runs in the foreground. Invoking the root command without a subcommand also starts the relay. Supply <code>NODALWIRE_ADMIN_TOKEN</code> explicitly, or a valid configuration verifier; missing/malformed credentials fail before bind. The service prints its data endpoint after native bind succeeds.</p>
 <p><code>serve</code> has no <code>--endpoint</code> option. Set data/admin endpoints in strict version 2 TOML. Without a file the configuration is memory-only; with <code>--config</code>, administration saves policy changes to that same file. Endpoints and native limits are startup-only.</p>
-{% set serve_commands %}export NODALWIRE_ADMIN_TOKEN="$(uv run --locked python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-uv run --locked python -m nodalwire serve --config local.toml
+{% set serve_commands %}export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+.venv/bin/nodalwire serve --config local.toml
 {% endset %}{{ code_block(serve_commands, 'terminal', 'shell') }}
 <p>See <a href="{{ url('reference/config/') }}">configuration</a> for a safe file and <a href="{{ url('guides/security/') }}">security</a> for credential handling.</p></section>
 <section aria-labelledby="peer"><h2 id="peer">Peer commands</h2>
@@ -30,10 +30,10 @@ uv run --locked python -m nodalwire serve --config local.toml
 <p>Input commands default <code>--max-bytes</code> to 1,048,576. Receive defaults <code>--max-output-bytes</code> to 2,097,152 for message JSON. Request defaults <code>--max-unrelated</code> to 64 and <code>--max-output-bytes</code> to 1,048,576 for unrelated events; its terminal reply has a separate bounded JSON budget. Reaching an output cutoff is an explicit uncertain outcome, not proof of no effect.</p>
 <p>For an open default, run the receiver in one terminal, wait for its ready event, then send from another:</p>
 {% set exchange_commands %}# Terminal A: keep this invocation open until a message arrives.
-uv run --locked python -m nodalwire receive --name bob --timeout 30
+.venv/bin/nodalwire receive --name bob --timeout 30
 
 # Terminal B, after Bob reports ready:
-printf 'hello' | uv run --locked python -m nodalwire send bob --name alice
+printf 'hello' | .venv/bin/nodalwire send bob --name alice
 {% endset %}{{ code_block(exchange_commands, 'two terminals', 'shell') }}
 <p>There must already be a separately running matching relay with its explicit startup administrator credential. A nondefault network must already be declared; select it on both commands and supply join credentials if protected.</p></section>
 <section aria-labelledby="events"><h2 id="events">Output and exit status</h2>

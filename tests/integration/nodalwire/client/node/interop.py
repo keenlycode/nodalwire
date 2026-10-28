@@ -1,24 +1,45 @@
 """Bounded owned AR2 relay/Python clients to built or installed Node client.
 
-NODALWIRE_PYTHON_SOURCE may select an explicitly reviewed source tree's src/;
-otherwise use this checkout. No modification/copy of the selected Python code.
+Default mode uses this checkout, or NODALWIRE_PYTHON_SOURCE selects reviewed src/.
+NODALWIRE_PYTHON_INSTALLED=1 instead requires an isolated external environment;
+package_smoke.py --python-artifact stages these fixtures outside the checkout.
 """
 
 import asyncio
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
-SOURCE = Path(os.environ.get(
-    "NODALWIRE_PYTHON_SOURCE", str(Path(__file__).resolve().parents[5] / "src"),
-)).resolve()
-sys.path.insert(0, str(SOURCE))
+INSTALLED = os.environ.get("NODALWIRE_PYTHON_INSTALLED") == "1"
+if not INSTALLED:
+    SOURCE = Path(os.environ.get(
+        "NODALWIRE_PYTHON_SOURCE", str(Path(__file__).resolve().parents[5] / "src"),
+    )).resolve()
+    sys.path.insert(0, str(SOURCE))
 
+import nodalwire  # noqa: E402
 from nodalwire import AdminClient, Node, Relay, RelayConfig  # noqa: E402
 from nodalwire.client.python import decode_envelope  # noqa: E402
 from nodalwire.config import NetworkConfig  # noqa: E402
-from nodalwire.credentials import make_verifier  # noqa: E402
 from nodalwire.config_store import ConfigStore  # noqa: E402
+from nodalwire.credentials import make_verifier  # noqa: E402
+
+if INSTALLED:
+    from importlib.metadata import distribution
+
+    SOURCE = Path(nodalwire.__file__).resolve().parent
+    prefix = Path(sys.prefix).resolve()
+    metadata = distribution("nodalwire")
+    assert sys.flags.isolated, "Installed acceptance requires Python -I"
+    assert SOURCE.is_relative_to(prefix), f"Not a venv package: {SOURCE}"
+    assert Path(metadata.locate_file("")).resolve().is_relative_to(prefix)
+    forbidden = Path(os.environ["NODALWIRE_FORBIDDEN_SOURCE"]).resolve()
+    assert not Path.cwd().resolve().is_relative_to(forbidden), "Consumer is in checkout"
+    assert all(not Path(path).resolve().is_relative_to(forbidden)
+               for path in sys.path if path), "Checkout import path leaked"
+    assert metadata.version == os.environ["NODALWIRE_EXPECTED_VERSION"]
+    print(f"PASS installed Python provenance: version={metadata.version}; "
+          f"module={SOURCE}; prefix={prefix}; sys.path={sys.path}", flush=True)
 
 
 async def scenario(protected_default=False):
@@ -128,7 +149,8 @@ async def scenario(protected_default=False):
         if not protected_default:
             assert "" in seen and bytes(range(256)).hex() in seen, seen
         print(f"PASS Python↔Node AR2 ({'protected' if protected_default else 'open'} default): "
-              f"{len(seen)} messages; source={SOURCE}")
+              f"{len(seen)} messages; python={SOURCE}; "
+              f"mode={'installed' if INSTALLED else 'source'}")
     finally:
         if child is not None and child.returncode is None:
             child.kill()

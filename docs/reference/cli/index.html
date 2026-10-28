@@ -28,20 +28,20 @@
 </ol></nav></nw-page-path><h1>CLI reference</h1>
 <p class="lead">A foreground relay and bounded one-shot client/admin commands, with structured output and no retries.</p>
 </header>
-<div class="product-content"><section aria-labelledby="invoke"><h2 id="invoke">Invoke from a source checkout</h2>
-<p>Use <code>uv run --locked python -m nodalwire</code> (or the installed <code>nodalwire</code> entry point). Append <code>--help</code> to any command for the full generated option list. Follow <a href="../../getting-started/">Getting Started</a> for environment setup; these commands assume matching installed dependencies and your own relay.</p>
+<div class="product-content"><section aria-labelledby="invoke"><h2 id="invoke">Invoke the installed CLI</h2>
+<p>Use <code>.venv/bin/nodalwire</code> from the application prepared in <a href="../../getting-started/">Getting Started</a>. Append <code>--help</code> to any command for the full generated option list. These commands assume matching installed artifacts and your own relay. Contributors in a locked checkout may instead use <code>uv run --locked python -m nodalwire</code>.</p>
 <nw-code-block filename="terminal" language="shell">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>uv run --locked python -m nodalwire --help
-uv run --locked python -m nodalwire serve --help
-uv run --locked python -m nodalwire send --help
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>.venv/bin/nodalwire --help
+.venv/bin/nodalwire serve --help
+.venv/bin/nodalwire send --help
 </code></pre></nw-code-block>
 <p>Each client invocation registers a new connection and explicitly joins the selected network, then disconnects. A later invocation does not inherit membership, pending requests, or an inbox. Use the <a href="../api/">Python/Node clients</a> for persistent service loops.</p></section>
 <section aria-labelledby="serve"><h2 id="serve">Relay: <code>serve</code></h2>
 <p><code>serve [--config PATH]</code> runs in the foreground. Invoking the root command without a subcommand also starts the relay. Supply <code>NODALWIRE_ADMIN_TOKEN</code> explicitly, or a valid configuration verifier; missing/malformed credentials fail before bind. The service prints its data endpoint after native bind succeeds.</p>
 <p><code>serve</code> has no <code>--endpoint</code> option. Set data/admin endpoints in strict version 2 TOML. Without a file the configuration is memory-only; with <code>--config</code>, administration saves policy changes to that same file. Endpoints and native limits are startup-only.</p>
 <nw-code-block filename="terminal" language="shell">
-<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(uv run --locked python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-uv run --locked python -m nodalwire serve --config local.toml
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+.venv/bin/nodalwire serve --config local.toml
 </code></pre></nw-code-block>
 <p>See <a href="../config/">configuration</a> for a safe file and <a href="../../guides/security/">security</a> for credential handling.</p></section>
 <section aria-labelledby="peer"><h2 id="peer">Peer commands</h2>
@@ -57,10 +57,10 @@ uv run --locked python -m nodalwire serve --config local.toml
 <p>For an open default, run the receiver in one terminal, wait for its ready event, then send from another:</p>
 <nw-code-block filename="two terminals" language="shell">
 <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">two terminals</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code># Terminal A: keep this invocation open until a message arrives.
-uv run --locked python -m nodalwire receive --name bob --timeout 30
+.venv/bin/nodalwire receive --name bob --timeout 30
 
 # Terminal B, after Bob reports ready:
-printf 'hello' | uv run --locked python -m nodalwire send bob --name alice
+printf 'hello' | .venv/bin/nodalwire send bob --name alice
 </code></pre></nw-code-block>
 <p>There must already be a separately running matching relay with its explicit startup administrator credential. A nondefault network must already be declared; select it on both commands and supply join credentials if protected.</p></section>
 <section aria-labelledby="events"><h2 id="events">Output and exit status</h2>
