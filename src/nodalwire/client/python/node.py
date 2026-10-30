@@ -1,7 +1,6 @@
 """Async DEALER node: bounded inbox/control/app waiters and no retry or replay."""
 
 import asyncio
-import json
 import math
 import re
 import secrets
@@ -26,9 +25,9 @@ from ...protocol import (
     ReceiptTimeout,
     RelayError,
     valid_credential,
+    valid_message_id,
     valid_name,
 )
-from .envelope import Envelope, decode_envelope, encode_envelope
 
 _TOKEN = re.compile(rb"[0-9a-f]{32}\Z")
 _DECIMAL = re.compile(rb"[1-9][0-9]*\Z")
@@ -38,6 +37,7 @@ _RELAY_ERRORS = frozenset({
     "invalid_command", "invalid_destination", "invalid_network", "network_not_found",
     "join_denied", "not_member", "destination_not_member", "payload_too_large",
     "route_denied", "destination_unavailable", "destination_full", "unsupported_version",
+    "invalid_id", "invalid_reply_to",
 })
 
 
@@ -56,9 +56,11 @@ def _ascii(frame: bytes) -> str | None:
 
 @dataclass(frozen=True)
 class Message:
+    id: str
     sender: str
+    network: str
     payload: bytes
-    network: str = DEFAULT_NETWORK
+    reply_to: str | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +157,7 @@ class Node:
     async def _request(
         self, command: bytes, *frames: bytes, initial: bool = False,
         timeout: float | None = None, app_identity: str | None = None,
+        request_id: bytes | None = None,
     ) -> tuple[bytes, ...]:
         seconds = _seconds(self.timeout if timeout is None else timeout)
         if self._closed.is_set():
@@ -165,7 +168,7 @@ class Node:
             error = RelayError("pending_full")
             self._app_error(app_identity, error)
             raise error
-        request = secrets.token_hex(16).encode("ascii")
+        request = self._new_id().encode("ascii") if request_id is None else request_id
         token = b"" if initial else self._token
         assert token is not None
         future = asyncio.get_running_loop().create_future()
@@ -214,7 +217,7 @@ class Node:
                     and len(limit) <= 10
                     and int(limit) <= 2**31 - 4096
                     and len(memberships) <= 32
-                    and json.loads(memberships.decode("ascii")) in ([], [DEFAULT_NETWORK])
+                    and memberships in (b"[]", b'["default"]')
                 )
             except (ValueError, UnicodeError, OverflowError):
                 return False
@@ -236,20 +239,25 @@ class Node:
                     continue
                 command, token = frames[1:3]
                 if command == DATA:
-                    if len(frames) != 6 or token != self._token:
+                    if len(frames) != 8 or token != self._token:
                         continue
-                    network, sender = _ascii(frames[3]), _ascii(frames[4])
-                    if (not valid_name(network) or not valid_name(sender)
-                            or len(frames[5]) > self._max_payload):
+                    identity, network, sender, reply_to, payload = frames[3:]
+                    if (not valid_message_id(identity)
+                            or (reply_to and not valid_message_id(reply_to))
+                            or not valid_name(_ascii(network)) or not valid_name(_ascii(sender))
+                            or len(payload) > self._max_payload):
                         continue
-                    message = Message(sender, frames[5], network)
-                    envelope = decode_envelope(message.payload, max_bytes=self._max_payload)
-                    waiter = self._app_pending.get(envelope.id) if envelope is not None else None
-                    if (waiter is not None and envelope.kind == "reply"
-                            and waiter.sender == sender and waiter.network == network):
+                    message = Message(
+                        id=identity.decode("ascii"), sender=sender.decode("ascii"),
+                        network=network.decode("ascii"), payload=payload,
+                        reply_to=reply_to.decode("ascii") if reply_to else None,
+                    )
+                    waiter = self._app_pending.get(message.reply_to)
+                    if (waiter is not None and waiter.sender == message.sender
+                            and waiter.network == message.network):
                         # Ownership is decided in the sole reader before any continuation.
-                        del self._app_pending[envelope.id]
-                        waiter.future.set_result(Message(sender, envelope.payload, network))
+                        del self._app_pending[message.reply_to]
+                        waiter.future.set_result(message)
                     else:
                         await self._inbox.put(message)
                     continue
@@ -343,12 +351,23 @@ class Node:
         _, changed = await self._request(LEAVE, network.encode("ascii"), timeout=timeout)
         return MembershipReceipt(network, False, changed == b"1")
 
-    async def send(
-        self, destination: str, payload: bytes, *, network: str = DEFAULT_NETWORK,
-        timeout: float | None = None,
-    ) -> None:
-        """Native target queue acceptance only. Timeout/cancel may occur after effect."""
+    def _new_id(self, excluded: str | None = None) -> str:
+        while True:
+            identity = secrets.token_hex(16)
+            if (identity != excluded and identity not in self._app_pending
+                    and identity.encode("ascii") not in self._pending):
+                return identity
+
+    @staticmethod
+    def _metadata_id(value: str) -> bool:
+        return (isinstance(value, str) and value.isascii()
+                and valid_message_id(value.encode("ascii")))
+
+    def _validate_send(self, destination: str, payload: bytes, network: str,
+                       reply_to: str | None = None) -> None:
         self._active()
+        if reply_to is not None and not self._metadata_id(reply_to):
+            raise ValueError("invalid reply_to")
         if not valid_name(destination):
             raise ValueError("invalid destination name")
         if not valid_name(network):
@@ -357,9 +376,20 @@ class Node:
             raise TypeError("payload must be bytes")
         if len(payload) > self._max_payload:
             raise RelayError("payload_too_large")
+
+    async def send(
+        self, destination: str, payload: bytes, *, network: str = DEFAULT_NETWORK,
+        reply_to: str | None = None, timeout: float | None = None,
+    ) -> str:
+        """Return a fresh ID after native queue acceptance, not remote execution."""
+        self._validate_send(destination, payload, network, reply_to)
+        identity = self._new_id(reply_to)
         await self._request(
-            SEND, network.encode("ascii"), destination.encode("ascii"), payload, timeout=timeout
+            SEND, network.encode("ascii"), destination.encode("ascii"),
+            b"" if reply_to is None else reply_to.encode("ascii"), payload,
+            timeout=timeout, request_id=identity.encode("ascii"),
         )
+        return identity
 
     def receive_nowait(self) -> Message | None:
         """Pop one queued ordinary message; never read native data or app replies."""
@@ -401,14 +431,10 @@ class Node:
         """
         self._active()
         seconds = _seconds(self.timeout if timeout is None else timeout)
-        if not valid_name(destination) or not valid_name(network):
-            raise ValueError("invalid destination or network name")
+        self._validate_send(destination, payload, network)
         if len(self._app_pending) >= self.max_pending:
             raise RelayError("pending_full")
-        identity = secrets.token_hex(16)
-        encoded = encode_envelope(
-            Envelope("request", identity, payload), max_bytes=self._max_payload
-        )
+        identity = self._new_id()
         loop = asyncio.get_running_loop()
         future = loop.create_future()
         waiter = _AppWaiter(destination, network, future)
@@ -423,8 +449,8 @@ class Node:
             seconds, fail, ReceiptTimeout("application reply timed out; effect uncertain")
         )
         sender = asyncio.create_task(self._request(
-            SEND, network.encode("ascii"), destination.encode("ascii"), encoded,
-            timeout=seconds, app_identity=identity,
+            SEND, network.encode("ascii"), destination.encode("ascii"), b"", payload,
+            timeout=seconds, app_identity=identity, request_id=identity.encode("ascii"),
         ))
 
         def sent(task: asyncio.Task) -> None:
@@ -454,18 +480,18 @@ class Node:
 
     async def reply(
         self, incoming: Message, payload: bytes, *, timeout: float | None = None,
-    ) -> None:
-        """Reply on incoming.network, with the request ID copied before first await."""
+    ) -> str:
+        """Reply to any valid Message, preserving its native correlation metadata."""
         self._active()
         if not isinstance(incoming, Message):
             raise TypeError("expected incoming Message")
-        envelope = decode_envelope(incoming.payload, max_bytes=self._max_payload)
-        if envelope is None or envelope.kind != "request":
-            raise ValueError("incoming message is not a request")
-        encoded = encode_envelope(
-            Envelope("reply", envelope.id, payload), max_bytes=self._max_payload
+        if not self._metadata_id(incoming.id):
+            raise ValueError("invalid incoming id")
+        self._validate_send(incoming.sender, incoming.payload, incoming.network, incoming.reply_to)
+        return await self.send(
+            incoming.sender, payload, network=incoming.network,
+            reply_to=incoming.id, timeout=timeout,
         )
-        await self.send(incoming.sender, encoded, network=incoming.network, timeout=timeout)
 
     async def _cleanup(self) -> None:
         if self._cleanup_task is None:

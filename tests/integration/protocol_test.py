@@ -45,13 +45,14 @@ async def packet(router):
     return await asyncio.wait_for(router.recv_multipart(), 1)
 
 
-async def admit(router, endpoint, *, memberships=b'[]', **options):
-    connect = asyncio.create_task(Node.connect("alpha", endpoint, **options))
+async def admit(router, endpoint, *, memberships=b'[]', name="alpha", token=TOKEN,
+                limit=b"1048576", **options):
+    connect = asyncio.create_task(Node.connect(name, endpoint, **options))
     hello = await packet(router)
     assert hello[1:3] == [VERSION, HELLO]
-    assert hello[4] == b"alpha"
+    assert hello[4] == name.encode("ascii")
     await router.send_multipart([
-        hello[0], VERSION, OK, b"", hello[3], TOKEN, b"10.0", b"1048576", memberships,
+        hello[0], VERSION, OK, b"", hello[3], token, b"10.0", limit, memberships,
     ])
     return await connect, hello[0]
 
@@ -62,9 +63,12 @@ async def dispose(node):
     assert node.socket.closed and node.context.closed
 
 
-async def data(router, address, payload, *, network="default", sender="beta", token=TOKEN):
+async def data(router, address, payload, *, network="default", sender="beta", token=TOKEN,
+               identity="d" * 32, reply_to=None):
     await router.send_multipart([
-        address, VERSION, DATA, token, network.encode("ascii"), sender.encode("ascii"), payload,
+        address, VERSION, DATA, token, identity.encode("ascii"),
+        network.encode("ascii"), sender.encode("ascii"),
+        b"" if reply_to is None else reply_to.encode("ascii"), payload,
     ])
 
 
@@ -90,12 +94,14 @@ def test_zero_memberships_and_exact_network_control_frames():
                 assert await operation == MembershipReceipt("red", False, False)
                 operation = asyncio.create_task(node.send("beta", b"bytes", network="red"))
                 request = await packet(router)
-                assert request[2] == SEND and request[5:] == [b"red", b"beta", b"bytes"]
+                assert request[2] == SEND and request[5:] == [b"red", b"beta", b"", b"bytes"]
                 await receipt(router, request)
-                assert await operation is None
+                assert await operation == request[4].decode("ascii")
                 await data(router, address, bytes(range(256)) * 32, network="red")
                 message = await asyncio.wait_for(node.receive(), 1)
-                assert message == Message("beta", bytes(range(256)) * 32, "red")
+                assert message == Message(
+                    id="d" * 32, sender="beta", network="red", payload=bytes(range(256)) * 32
+                )
                 operation = asyncio.create_task(node.send("beta", b"default"))
                 request = await packet(router)
                 assert request[5] == b"default"  # Not last joined red.
@@ -129,6 +135,7 @@ def test_malformed_matching_membership_success_immediately_rejects(extra):
     (TOKEN, b"1_0", b"1000", b"[]"), (TOKEN, b"+10", b"1000", b"[]"),
     (TOKEN, b"1e1", b"1000", b"[]"), (TOKEN, b"010", b"1000", b"[]"),
     (TOKEN, b" 10", b"1000", b"[]"), (TOKEN, b"10\n", b"1000", b"[]"),
+    (TOKEN, b"10", b"1000", b"[ ]"), (TOKEN, b"10", b"1000", b'[ "default" ]'),
 ])
 def test_invalid_hello_cannot_install_partial_admission(extras):
     async def check():
@@ -148,7 +155,7 @@ def test_stale_incarnation_and_invalid_ascii_data_are_not_admitted():
             try:
                 await data(router, address, b"stale", token=b"b" * 32)
                 await router.send_multipart([
-                    address, VERSION, DATA, TOKEN, b"default", b"\xe1lice", b"bad",
+                    address, VERSION, DATA, TOKEN, b"d" * 32, b"default", b"\xe1lice", b"", b"bad",
                 ])
                 await data(router, address, b"good")
                 assert (await asyncio.wait_for(node.receive(), 1)).payload == b"good"
@@ -167,9 +174,9 @@ def test_unsupported_old_wire_is_never_used_as_fallback():
         async with fake_router() as (router, endpoint):
             connect = asyncio.create_task(Node.connect("alpha", endpoint, timeout=0.05))
             hello = await packet(router)
-            assert hello[1] == b"AR2"
+            assert hello[1] == b"NWM3"
             await router.send_multipart([
-                hello[0], b"AR1", OK, b"", hello[3], TOKEN, b"10", b"1024",
+                hello[0], b"AR2", OK, b"", hello[3], TOKEN, b"10", b"1024",
             ])
             with pytest.raises(ReceiptTimeout):
                 await connect
