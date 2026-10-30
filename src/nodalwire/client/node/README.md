@@ -2,8 +2,8 @@
 
 ESM TypeScript byte client for the loopback-only NodalWire relay. Node.js 24;
 Deno orchestrates development, not runtime execution. Package identity remains
-`@devcapsule/nodalwire-client`; version `0.2.0` requires a matching `0.2.0` relay.
-AR2 is intentionally incompatible with AR1: neither endpoint silently downgrades.
+`@devcapsule/nodalwire-client`; this worktree builds local version `0.3.0-dev.0`
+for a matching NWM3 relay. NWM3 is a breaking protocol change; there is no fallback.
 
 ## Consumers: use the built artifact
 
@@ -81,12 +81,14 @@ inspection; remote-host networking is deliberately unsupported.
   including default. Receipts have readonly `{ network, joined, changed }` fields.
   Repeated joins recheck current policy; already joined/absent returns
   `changed: false`. A receipt describes an instant, not future membership state.
-- `send(destination, payload: Uint8Array, { network?, timeout?, signal? }?) ->
-  Promise<void>` snapshots bytes synchronously, preserving subarray bounds.
+- `send(destination, payload: Uint8Array, { network?, reply_to?, timeout?, signal? }?) ->
+  Promise<string>` snapshots bytes synchronously and returns its generated message ID
+  only after an empty SEND acceptance receipt.
   `Buffer` is supported. Omitted network selects **default only**, never another
   shared network. Both peers must belong to the selected network.
 - `receive({ signal? }?) -> Promise<Message>` returns readonly metadata
-  `{ network, sender, payload }`. Payload is caller-owned mutable bytes.
+  `{ id, sender, network, reply_to, payload }`; `reply_to` is `undefined` when absent.
+  Payload is caller-owned mutable bytes.
 - `receiveNowait() -> Message | undefined` removes one currently queued ordinary
   message. Empty returns `undefined`, even after close. It performs no native
   read and never takes a correlated reply from an active request.
@@ -113,25 +115,17 @@ const response = await alice.request("bob", Uint8Array.of(1, 2), {
 });
 console.log(response.network, response.sender, response.payload);
 
-// Service: ordinary receive gives opaque bytes; reply validates a request envelope.
+// Service: ordinary receive gives a native Message; reply targets its sender/network.
 const incoming = await bob.receive();
-await bob.reply(incoming, Uint8Array.of(3, 4)); // always incoming.network
+const replyId = await bob.reply(incoming, Uint8Array.of(3, 4));
 ```
 
 `request(destination, payload, { network?, timeout?, signal? }?) -> Promise<Message>`
-returns decoded reply payload with original sender/network. `reply(incoming,
-payload, { timeout?, signal? }?) -> Promise<void>` requires a valid request
-message and permits no network override. Incoming metadata/envelope ID and outgoing
-bytes are captured before awaiting. Ordinary `receive` never decodes payloads.
-
-Exported `encodeEnvelope(envelope, maxBytes=1048576) -> Uint8Array` and
-`decodeEnvelope(bytes, maxBytes=1048576) -> Envelope | undefined` use readonly
-`Envelope { kind: "request" | "reply", id: string, payload: Uint8Array }`. Wire
-bytes are `NWR1\n` plus UTF-8 JSON with exactly `v:1`, `kind`, a 32-lowercase-hex
-random ID and canonical padded base64 `payload`. Duplicate keys, invalid UTF-8,
-extra fields and noncanonical base64 are not envelopes. Invalid encode input is
-`TypeError`; encoded size above the cap is `RelayError("payload_too_large")`.
-Decoding invalid/oversize data returns `undefined`; clients use negotiated limits.
+returns the whole native matching reply Message. `reply(incoming, payload,
+{ timeout?, signal? }?) -> Promise<string>` may reply to any valid Message, creates
+a fresh ID and references `incoming.id` in `reply_to`; it permits no network
+override. Payload and metadata are captured before awaiting. All payload bytes,
+including NWR1-looking data, are opaque; no envelope codec is exported.
 
 Request matching is registered before SEND and checks ID, expected sender,
 network and reply kind. It proves no peer identity. One overall deadline includes
@@ -177,7 +171,7 @@ zeromq context. No security audit or production-hardening claim is made.
 
 ## Development checks
 
-Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching AR2
+Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching NWM3
 server/Python source. From this directory:
 
 ```sh
