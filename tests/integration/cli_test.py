@@ -663,10 +663,10 @@ try {
  console.log('READY');
  if(mode==='responder') {
   const incoming=await node.receive({signal:AbortSignal.timeout(3000)});
+  const unrelatedId=await node.send(incoming.sender,Buffer.from('node-unrelated'),{network:incoming.network});
   const replyId=await node.reply(incoming,incoming.payload);
   if(replyId===incoming.id) throw new Error('reply must use a fresh ID');
-  await node.send(incoming.sender,Buffer.from('node-unrelated'),{network:incoming.network});
-  console.log(JSON.stringify({requestId:incoming.id,replyId}));
+  console.log(JSON.stringify({requestId:incoming.id,unrelatedId,replyId}));
  } else {
   const reply=await node.request('cli-answerer',Uint8Array.from([0,255,42]),
     {network:'red',timeout:3});
@@ -712,6 +712,7 @@ try {
                 remaining, err = await asyncio.wait_for(responder.communicate(), 2)
                 assert responder.returncode == 0 and err == b""
                 peer_reply = json.loads(remaining)
+                assert events[0]["id"] == peer_reply["unrelatedId"]
                 assert events[1]["reply_to"] == peer_reply["requestId"]
                 assert events[1]["id"] == peer_reply["replyId"]
             finally:
