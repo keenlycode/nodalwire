@@ -31,16 +31,16 @@
 <div class="product-content"><section aria-labelledby="setup">
   <h2 id="setup">1. Set up</h2>
   <p>
-    You need Python 3.12+, Node.js 24, <code>uv</code>, pnpm 12.5.1 and matching
-    <code>0.2.0</code> artifacts from your maintainer for prepublication, offline
-    or local-artifact use. A source checkout does not establish public registry
+    You need Python 3.12+, Node.js 24, <code>uv</code>, pnpm 12.5.1 and Python
+    <code>0.2.1</code> plus Node <code>0.2.0</code> artifacts from your maintainer
+    for prepublication, offline or local-artifact use. A source checkout does not establish public registry
     availability. Create your own application; no checkout or SDK compilation is needed:
   </p>
 <nw-code-block filename="terminal" language="shell">
 <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>mkdir my-nodalwire-app
 cd my-nodalwire-app
 uv venv .venv
-uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.0-py3-none-any.whl
+uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.1-py3-none-any.whl
 printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
 pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
 </code></pre></nw-code-block>
@@ -50,7 +50,7 @@ pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
     covered Linux only.</p>
   <p>Only after the matching approved release is published and registry availability
     is verified, replace the two artifact installation commands with
-    <code>uv pip install --python .venv/bin/python nodalwire==0.2.0</code> and
+    <code>uv pip install --python .venv/bin/python nodalwire==0.2.1</code> and
     <code>pnpm add @devcapsule/nodalwire-client@0.2.0</code>. Do not substitute old
     packages while publication is pending.</p>
   <details>
