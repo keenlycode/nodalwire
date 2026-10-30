@@ -47,6 +47,21 @@ test(
         unrelated.push(item.name);
       }
       await peer.data(
+        "c".repeat(32),
+        "default",
+        "gamma",
+        requestId,
+        Buffer.from("wrong sender"),
+      );
+      await peer.data(
+        "d".repeat(32),
+        "red",
+        "beta",
+        requestId,
+        Buffer.from("wrong network"),
+      );
+      unrelated.push("wrong sender", "wrong network");
+      await peer.data(
         "2".repeat(32),
         "default",
         "beta",
@@ -72,12 +87,15 @@ test(
         );
       }
       assert.deepEqual(
-        queued.map(({ id: messageId }) => messageId),
-        unrelated.map((name) => {
-          const found = fixture.correlation.cases.find((item) => item.name === name);
-          return Buffer.from(found.data[3].ascii).toString();
-        }),
+        queued.slice(0, 4).map(({ id: messageId }) => messageId),
+        fixture.correlation.cases.filter(({ owner }) => owner === "inbox").map((item) =>
+          Buffer.from(item.data[3].ascii).toString()
+        ),
       );
+      assert.equal(queued[4].sender, "gamma");
+      assert.equal(queued[4].reply_to, reply.reply_to);
+      assert.equal(queued[5].network, "red");
+      assert.equal(queued[5].reply_to, reply.reply_to);
     } finally {
       await node.close();
       await relay.close();
@@ -103,7 +121,10 @@ test(
             requestId,
             Buffer.from("reply"),
           );
-        if (replyFirst) await deliver();
+        if (replyFirst) {
+          await deliver();
+          await deliver(); // Duplicate after reader ownership must enter the inbox.
+        }
         await peer.error("destination_unavailable");
         if (!replyFirst) await deliver();
         return true;
@@ -113,7 +134,12 @@ test(
         const result = node.request("beta", Uint8Array.of(1), { timeout: 0.5 });
         if (replyFirst) {
           assert.equal(Buffer.from((await result).payload).toString(), "reply");
-          assert.equal(node.receiveNowait(), undefined);
+          const duplicate = await node.receive({ signal: AbortSignal.timeout(1000) });
+          assert.equal(duplicate.id, "3".repeat(32));
+          assert.equal(
+            duplicate.reply_to,
+            relay.seen.find((frames) => frames[2].toString() === "SEND")[4].toString(),
+          );
         } else {
           await assert.rejects(result, status("destination_unavailable"));
           assert.equal(
