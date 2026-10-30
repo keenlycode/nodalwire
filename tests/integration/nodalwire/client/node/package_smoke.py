@@ -1,7 +1,7 @@
 """Install actual local tarball; verify exports/types/native transport and real wire.
 
 --skip-interop explicitly limits evidence to the installed Node artifact.
-Default interop uses matching reviewed AR2 Python source. --python-artifact installs
+Default interop uses the explicitly selected matching reviewed NWM3 Python source. --python-artifact installs
 matching Python into a fresh external venv and runs copied interop fixtures there
 with isolated imports, proving both installed packages instead of Python source.
 NODALWIRE_PYTHON_SOURCE selects source-mode src/, NODALWIRE_ARTIFACT_DIR optionally
@@ -34,6 +34,9 @@ def stage_native_fixtures(fixture_root, installed_root):
     sdk = fixture_root / "src/nodalwire/client/node"
     sdk.parent.mkdir(parents=True)
     sdk.symlink_to(installed_root.resolve(), target_is_directory=True)
+    fixture = fixture_root / "tests/fixtures/nwm3/wire.json"
+    fixture.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "tests/fixtures/nwm3/wire.json", fixture)
     copied = []
     for relative, pattern in (
         ("tests/unit/nodalwire/client/node/src", "*.test.mjs"),
@@ -71,6 +74,11 @@ def main():
     parser.add_argument("--python-artifact", type=Path,
                         help="Install a matching Python wheel/sdist for isolated interop")
     args = parser.parse_args()
+    if (
+        not args.skip_interop and not args.python_artifact and
+        not os.environ.get("NODALWIRE_PYTHON_SOURCE")
+    ):
+        parser.error("source interop requires NODALWIRE_PYTHON_SOURCE for the reviewed NWM3 tree")
     if args.python_artifact:
         if args.skip_interop:
             parser.error("--python-artifact cannot be combined with --skip-interop")
@@ -97,28 +105,26 @@ def main():
         (consumer / "pnpm-workspace.yaml").write_text("allowBuilds:\n  zeromq: true\n")
         run(["pnpm", "install", "--offline", "--store-dir", str(STORE)], cwd=consumer)
         run(["node", "--input-type=module", "-e",
-             'import { Node, RelayError, ReceiptTimeout, encodeEnvelope, decodeEnvelope } '
+             'import { Node, RelayError, ReceiptTimeout } '
              'from "@devcapsule/nodalwire-client"; '
-             'if (!Node || !RelayError || !ReceiptTimeout || !encodeEnvelope || !decodeEnvelope) '
+             'if (!Node || !RelayError || !ReceiptTimeout) '
              'throw Error("exports"); console.log("PASS installed ESM exports/native import");'],
             cwd=consumer)
         (consumer / "consumer.ts").write_text('''import {
-  Node, encodeEnvelope, decodeEnvelope, type Envelope,
-  type Message, type MembershipReceipt, type SendOptions,
+  Node, type Message, type MembershipReceipt, type RequestOptions, type SendOptions,
 } from "@devcapsule/nodalwire-client";
 async function application() {
   const node = await Node.connect("typed", undefined, { inboxSize: 2 });
   const receipt: MembershipReceipt = await node.join("team", "fixture-token");
   const options: SendOptions = { network: receipt.network, timeout: 1 };
-  await node.send("peer", Uint8Array.of(0, 255), options);
+  const acceptedId: string = await node.send("peer", Uint8Array.of(0, 255), options);
+  const requestOptions: RequestOptions = { network: receipt.network, timeout: 1 };
   const message: Message = await node.receive({ signal: AbortSignal.timeout(100) });
   const bytes: Uint8Array = message.payload;
   const queued: Message | undefined = node.receiveNowait();
-  const response: Message = await node.request("peer", bytes, options);
-  await node.reply(message, response.payload, { timeout: 1 });
-  const envelope: Envelope = { kind: "request", id: "a".repeat(32), payload: bytes };
-  const decoded: Envelope | undefined = decodeEnvelope(encodeEnvelope(envelope));
-  console.log(message.sender, message.network, queued, decoded);
+  const response: Message = await node.request("peer", bytes, requestOptions);
+  const replyId: string = await node.reply(message, response.payload, { timeout: 1 });
+  console.log(message.id, message.reply_to, message.sender, message.network, queued, acceptedId, replyId);
   // @ts-expect-error string is not a byte payload
   await node.send("peer", "not bytes");
   // @ts-expect-error callers cannot bypass admission
@@ -127,6 +133,10 @@ async function application() {
   receipt.changed = true;
   // @ts-expect-error reply cannot override the incoming network
   await node.reply(message, bytes, { network: "other" });
+  // @ts-expect-error request has no caller-supplied correlation ID
+  await node.request("peer", bytes, { reply_to: "a".repeat(32) });
+  // @ts-expect-error send has no caller-supplied message ID
+  await node.send("peer", bytes, { id: "a".repeat(32) });
   await node.leave("team");
   await node.close();
 }
@@ -135,7 +145,7 @@ void application;
         run(["node", str(PACKAGE / "node_modules/typescript/bin/tsc"),
              "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2022",
              "consumer.ts"], cwd=consumer)
-        print("PASS installed declarations: bytes/network/membership/request/codec contracts",
+        print("PASS installed declarations: bytes/network/membership/request/reply metadata contracts",
               flush=True)
         installed_root = consumer / "node_modules/@devcapsule/nodalwire-client"
         installed = installed_root / "dist/index.js"

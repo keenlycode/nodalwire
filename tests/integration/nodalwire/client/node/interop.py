@@ -1,4 +1,4 @@
-"""Bounded owned AR2 relay/Python clients to built or installed Node client.
+"""Bounded owned NWM3 relay/Python clients to built or installed Node client.
 
 Default mode uses this checkout, or NODALWIRE_PYTHON_SOURCE selects reviewed src/.
 NODALWIRE_PYTHON_INSTALLED=1 instead requires an isolated external environment;
@@ -11,18 +11,21 @@ import sys
 from pathlib import Path
 
 INSTALLED = os.environ.get("NODALWIRE_PYTHON_INSTALLED") == "1"
+SOURCE_SETTING = os.environ.get("NODALWIRE_PYTHON_SOURCE")
 if not INSTALLED:
-    SOURCE = Path(os.environ.get(
-        "NODALWIRE_PYTHON_SOURCE", str(Path(__file__).resolve().parents[5] / "src"),
-    )).resolve()
+    if not SOURCE_SETTING:
+        raise RuntimeError("Set NODALWIRE_PYTHON_SOURCE to the exact reviewed NWM3 source tree")
+    SOURCE = Path(SOURCE_SETTING).resolve()
     sys.path.insert(0, str(SOURCE))
 
 import nodalwire  # noqa: E402
 from nodalwire import AdminClient, Node, Relay, RelayConfig  # noqa: E402
-from nodalwire.client.python import decode_envelope  # noqa: E402
 from nodalwire.config import NetworkConfig  # noqa: E402
 from nodalwire.config_store import ConfigStore  # noqa: E402
 from nodalwire.credentials import make_verifier  # noqa: E402
+from nodalwire.protocol import VERSION as PYTHON_VERSION  # noqa: E402
+
+assert PYTHON_VERSION == b"NWM3", f"Interop requires NWM3 Python source, got {PYTHON_VERSION!r}"
 
 
 def validate_installed_paths(module, prefix, runtime, paths, checkout, cwd):
@@ -105,11 +108,10 @@ async def scenario(protected_default=False):
                 message = await echo.receive()
                 assert message.sender == "js-node", message.sender
                 seen.append(message.payload.hex())
-                envelope = decode_envelope(message.payload, max_bytes=1024)
-                if envelope is not None and envelope.kind == "request":
-                    # Ordinary unrelated DATA must survive request correlation.
+                if message.payload.startswith(b"node-request-fixture:"):
+                    # Request is ordinary raw DATA; its reply uses fresh native IDs.
                     await echo.send(message.sender, b"unrelated", network=message.network)
-                    await echo.reply(message, envelope.payload)
+                    await echo.reply(message, message.payload[len(b"node-request-fixture:"):])
                 elif message.payload == b"rotate-team-fixture":
                     result = await admin.call(
                         "network.rotate", {"network": "team", "credential": "fixture-team-new"},
@@ -166,7 +168,7 @@ async def scenario(protected_default=False):
             await asyncio.gather(exit_wait, return_exceptions=True)
         if not protected_default:
             assert "" in seen and bytes(range(256)).hex() in seen, seen
-        print(f"PASS Python↔Node AR2 ({'protected' if protected_default else 'open'} default): "
+        print(f"PASS Python↔Node NWM3 ({'protected' if protected_default else 'open'} default): "
               f"{len(seen)} messages; python={SOURCE}; "
               f"mode={'installed' if INSTALLED else 'source'}")
     finally:
