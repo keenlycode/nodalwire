@@ -22,6 +22,17 @@ Python **0.2.1** and Node **0.2.0** are compatible; the Python patch changes
 CLI startup behavior only. Do not mix legacy 0.1 packages with this AR2 relay.
 Building or checking a source checkout does not publish a release or establish registry availability.
 
+## Breaking NWM3 candidate migration
+
+Maintained source documentation now describes the coordinated NWM3 messaging
+migration tracked as a 0.3 candidate. This is a breaking wire and API change,
+not a 0.2.x patch. It requires matching NWM3 relays and clients together; remove
+NWR1 envelope helpers, use raw `Message.payload` plus native `id`/`reply_to`,
+and consume IDs returned by successful sends/replies. NA1 administration and
+configuration version 2 remain unchanged. The candidate is not an assertion that
+0.3 artifacts are published or available; continue to use the released 0.2.x
+artifacts described below until a separate release decision.
+
 For prepublication, offline or local-artifact use, obtain the matching wheel and
 built Node tarball from your maintainer. In a new
 application directory, with Python 3.12+, Node.js 24, uv and pnpm 12.5.1:

@@ -32,7 +32,7 @@ writers = ["alice", "bob"]
 <dt><code>admin_endpoint = "tcp://127.0.0.1:5556"</code></dt><dd>Separate local administration bind endpoint with the same loopback validation. Use distinct data/admin addresses.</dd>
 <dt><code>lease_seconds = 10.0</code></dt><dd>Finite number from 0.1 through 3600. Client heartbeats run approximately every lease/3; pressure may delay or skip them.</dd>
 <dt><code>send_hwm = 64</code> / <code>receive_hwm = 64</code></dt><dd>Positive native integers through <code>2**31 - 1</code>. These bound message counts, not total bytes or all operating-system buffering.</dd>
-<dt><code>max_payload_bytes = 1048576</code></dt><dd>Positive integer through <code>2**31 - 4096</code>. Clients enforce the negotiated complete payload cap, including any application envelope.</dd>
+<dt><code>max_payload_bytes = 1048576</code></dt><dd>Positive integer through <code>2**31 - 4096</code>. Clients enforce the negotiated raw payload-byte cap. Native message metadata is outside that payload limit; base64 in CLI JSON is only an I/O representation.</dd>
 <dt><code>allowed_names</code> (omitted)</dt><dd>Omission allows any valid name at registration. An array restricts admission; an empty array admits none. Names are cooperative routing labels, not authenticated identities.</dd>
 <dt><code>deny = []</code></dt><dd>Array of directional source/destination selector pairs. Select exact names, <code>*</code>, or <code>@group</code>; referenced groups must exist.</dd>
 <dt><code>[routing_groups]</code> (empty)</dt><dd>Maps valid static group names to arrays of valid routing names. No membership or identity authority is implied.</dd>
