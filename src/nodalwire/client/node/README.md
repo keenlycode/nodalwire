@@ -7,22 +7,19 @@ for a matching NWM3 relay. NWM3 is a breaking protocol change; there is no fallb
 
 ## Consumers: use the built artifact
 
-For prepublication, offline or local-artifact use, obtain the matching built
-`0.2.0` tarball and Python relay wheel from your maintainer. A source checkout
-does not establish registry availability; do not mix legacy public packages
-with this AR2 client. In a new
-application directory, using pnpm 12.5.1:
+This development worktree is not a released or publishable artifact. Any future
+consumer instructions require a separate release decision and a matching NWM3
+Python relay. Do not install a legacy client or relay with this breaking protocol.
+For a separately approved local artifact, the consumer setup would use pnpm 12.5.1:
 
 ```sh
 printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
-pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.2.0.tgz
+pnpm add /absolute/path/to/approved-nwm3-client.tgz
 ```
 
 Import the installed package by name, as below; applications do not need the
 source checkout, Deno or a TypeScript compiler. The tarball ships compiled ESM
 and declarations. Do not overwrite an existing application's script policy.
-Only after `0.2.0` is actually published could
-`npm install @devcapsule/nodalwire-client@0.2.0` replace the artifact path.
 
 ## Contributors: build the distribution
 
@@ -178,10 +175,10 @@ server/Python source. From this directory:
 deno task fmt --check
 deno task lint
 deno task check
-deno task test:unit     # build + root codec/inbox/protocol and fake-router checks
-deno task test:interop  # real Python relay/client interoperability
-deno task test         # build + native checks + Python interoperability
-deno task test:artifact # pack/install consumer, types + real interop
+deno task test:unit     # build + NWM3 fake-relay/native-client checks
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test:interop
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test:artifact
 ```
 
 All maintained tests live under repository-root `tests/`, not this package.
@@ -193,16 +190,19 @@ relative to this package and use its pinned dependencies.
 
 Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
 run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
-Interoperability/artifact checks depend on matching Python/server implementation;
-focused fake-router tests alone are not cross-language acceptance evidence.
-`NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` can select matching reviewed Python
-source without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
+Source interop requires `NODALWIRE_PYTHON_SOURCE` to name the exact reviewed NWM3
+tree; the repository baseline may be incompatible. Installed Python tests require
+an independent `--python-version` matching that wheel's own metadata (Python and
+Node development version strings intentionally differ). Focused fake-router tests
+alone are not cross-language acceptance evidence.
+`NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` selects the exact matching reviewed
+Python source for source-mode interoperability without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
 scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 `NODALWIRE_PNPM_STORE` overrides the package-local dependency store. For an
 explicit artifact-only check while Python is unavailable, run
 `deno task test:artifact --skip-interop`; its output labels real wire tests
 as skipped, not passed. For both packages installed outside the checkout, run
-`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/nodalwire-0.2.0-py3-none-any.whl`.
+`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl --python-version 0.3.0.dev0`.
 This creates a fresh Python environment, uses `-I`, copies only interoperability
 fixtures outside the repository and asserts installed provenance/version. Default
 source-mode interop alone does not establish installed-Python acceptance. The
