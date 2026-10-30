@@ -6,6 +6,7 @@ import json
 import os
 import signal
 import sys
+from pathlib import Path
 
 import pytest
 import zmq
@@ -19,6 +20,21 @@ from .helpers import TEST_ADMIN_TOKEN, TEST_ADMIN_VERIFIER
 from .process_test import service
 
 JOIN = "cli-fixture-join"
+MESSAGE_KEYS = {"event", "id", "reply_to", "network", "sender", "payload"}
+FIXTURE_PATH = Path(__file__).resolve().parents[1] / "fixtures/nwm3/wire.json"
+FIXTURE = json.loads(FIXTURE_PATH.read_text())
+
+
+def assert_message_event(event, *, kind="message"):
+    assert set(event) == MESSAGE_KEYS
+    assert event["event"] == kind
+    assert isinstance(event["id"], str) and len(event["id"]) == 32
+    assert all(char in "0123456789abcdef" for char in event["id"])
+    assert event["reply_to"] is None or (
+        isinstance(event["reply_to"], str)
+        and len(event["reply_to"]) == 32
+        and all(char in "0123456789abcdef" for char in event["reply_to"])
+    )
 
 
 def config_file(tmp_path):
@@ -90,8 +106,20 @@ def test_send_and_finite_receive_are_new_connections_with_explicit_joins(tmp_pat
                     input=bytes(range(256)),
                 )
                 assert code == 0 and err == b""
-                assert events[0]["meaning"] == "native_queue_acceptance_only"
+                accepted = events[0]
+                assert accepted == {
+                    "event": "accepted",
+                    "id": accepted["id"],
+                    "reply_to": None,
+                    "network": "red",
+                    "recipient": "python-receiver",
+                    "meaning": "native_queue_acceptance_only",
+                }
+                assert len(accepted["id"]) == 32 and all(
+                    char in "0123456789abcdef" for char in accepted["id"]
+                )
                 message = await asyncio.wait_for(receiver.receive(), 1)
+                assert message.id == accepted["id"] and message.reply_to is None
                 assert message.network == "red" and message.payload == bytes(range(256))
                 # Same name is released, but no membership survives its invocation.
                 code, _, err = await invoke(
@@ -121,11 +149,13 @@ def test_send_and_finite_receive_are_new_connections_with_explicit_joins(tmp_pat
                 )
                 try:
                     assert (await status(child))["event"] == "ready"
-                    await receiver.send("once", b"\x00\xff", network="red")
+                    accepted_id = await receiver.send("once", b"\x00\xff", network="red")
                     out, err = await asyncio.wait_for(child.communicate(), 3)
                     assert child.returncode == 0 and err == b""
                     events = list(map(json.loads, out.splitlines()))
-                    assert events[0]["event"] == "message" and events[0]["network"] == "red"
+                    assert_message_event(events[0])
+                    assert events[0]["id"] == accepted_id and events[0]["reply_to"] is None
+                    assert events[0]["network"] == "red"
                     assert base64.b64decode(events[0]["payload"]) == b"\x00\xff"
                     assert events[1] == {"event": "complete", "received": 1}
                 finally:
@@ -157,13 +187,20 @@ def test_cli_request_retains_connection_and_emits_unrelated_and_reply(tmp_path):
             communication = asyncio.create_task(child.communicate(b"request\x00\xff"))
             try:
                 incoming = await asyncio.wait_for(responder.receive(), 2)
+                assert incoming.id and incoming.reply_to is None
                 assert incoming.network == "red" and incoming.sender == "cli-requester"
-                await responder.send(incoming.sender, b"unrelated", network="red")
-                await responder.reply(incoming, b"reply\x00\xff")
+                unrelated_id = await responder.send(incoming.sender, b"unrelated", network="red")
+                reply_id = await responder.reply(incoming, b"reply\x00\xff")
+                assert reply_id != incoming.id
                 out, err = await asyncio.wait_for(communication, 3)
                 assert child.returncode == 0 and err == b""
                 events = list(map(json.loads, out.splitlines()))
                 assert [item["event"] for item in events] == ["message", "reply"]
+                assert_message_event(events[0])
+                assert events[0]["id"] == unrelated_id and events[0]["reply_to"] is None
+                assert_message_event(events[1], kind="reply")
+                assert events[1]["id"] == reply_id and events[1]["reply_to"] == incoming.id
+                assert reply_id != incoming.id
                 assert base64.b64decode(events[0]["payload"]) == b"unrelated"
                 assert base64.b64decode(events[1]["payload"]) == b"reply\x00\xff"
                 async with await AdminClient.connect(
@@ -220,8 +257,18 @@ def test_reply_uses_explicit_received_metadata_new_invocation_and_incoming_netwo
                     request_path,
                     input=b"answer",
                 )
-                assert code == 0 and err == b"" and events[0]["network"] == "red"
-                assert (await waiting).payload == b"answer"
+                assert code == 0 and err == b""
+                accepted = events[0]
+                assert set(accepted) == {
+                    "event", "id", "reply_to", "network", "recipient", "meaning"
+                }
+                assert accepted["event"] == "accepted"
+                assert accepted["network"] == "red" and accepted["recipient"] == "requester"
+                assert accepted["id"] != incoming["id"]
+                assert accepted["reply_to"] == incoming["id"]
+                response = await waiting
+                assert response.id == accepted["id"] and response.reply_to == incoming["id"]
+                assert response.payload == b"answer"
             finally:
                 await close_child(child)
                 if waiting is not None:
@@ -230,6 +277,64 @@ def test_reply_uses_explicit_received_metadata_new_invocation_and_incoming_netwo
                 await requester.close()
 
     asyncio.run(run())
+
+
+def test_reply_file_rejects_noncontract_events_before_connecting(tmp_path):
+    valid = FIXTURE["cli"]["message"]
+    cases = []
+    for label, update in (
+        ("missing-id", {"id": None}),
+        ("missing-reply-to", {"reply_to": None}),
+        ("wrong-id-type", {"id": 1}),
+        ("wrong-network-type", {"network": 1}),
+        ("empty-reply-to", {"reply_to": ""}),
+        ("event-reply", {"event": "reply"}),
+        ("unknown-field", {"extra": 0}),
+        ("wrong-payload-type", {"payload": 7}),
+        ("noncanonical-base64", {"payload": "AB=="}),
+    ):
+        item = dict(valid)
+        for key, value in update.items():
+            if value is None:
+                item.pop(key)
+            else:
+                item[key] = value
+        cases.append((label, json.dumps(item).encode(), 1048576))
+    duplicate = (
+        b'{"event":"message","id":"' + b"1" * 32 + b'","id":"' + b"2" * 32
+        + b'","reply_to":null,"network":"default","sender":"alpha","payload":"AP8="}'
+    )
+    cases.extend(
+        [
+            ("duplicate-key", duplicate, 1048576),
+            ("nonfinite-json", valid_json_with_nonfinite(), 1048576),
+            ("oversized-payload", json.dumps(valid).encode(), 1),
+        ]
+    )
+    for label, data, max_bytes in cases:
+        request_file = tmp_path / f"{label}.json"
+        request_file.write_bytes(data)
+        code, events, err = asyncio.run(
+            invoke(
+                "reply",
+                "--name",
+                "cli-invalid-reply-file",
+                "--endpoint",
+                "tcp://127.0.0.1:1",
+                "--request-file",
+                request_file,
+                "--max-bytes",
+                str(max_bytes),
+                input=b"x" if max_bytes == 1 else b"answer",
+            )
+        )
+        error = json.loads(err)
+        assert code == 2 and events == [] and error["error"] == "invalid_input", label
+        assert error["outcome"] == "no_effect", label
+
+
+def valid_json_with_nonfinite():
+    return json.dumps(FIXTURE["cli"]["message"])[:-1].encode() + b',"extra":NaN}'
 
 
 def test_admin_same_file_rotation_revision_and_restart(tmp_path):
@@ -416,6 +521,7 @@ def test_release_failure_preserves_accepted_result_or_primary_send_rejection(rel
         communication = asyncio.create_task(child.communicate(b"may-execute"))
         token = b"a" * 32
         commands = []
+        accepted_id = None
         try:
             while True:
                 async with asyncio.timeout(2):
@@ -424,7 +530,7 @@ def test_release_failure_preserves_accepted_result_or_primary_send_rejection(rel
                 commands.append(command)
                 if command == b"HELLO":
                     reply = [
-                        b"AR2",
+                        b"NWM3",
                         b"OK",
                         b"",
                         frames[3],
@@ -434,17 +540,18 @@ def test_release_failure_preserves_accepted_result_or_primary_send_rejection(rel
                         b'["default"]',
                     ]
                 elif command == b"JOIN":
-                    reply = [b"AR2", b"OK", token, frames[4], b"default", b"0"]
+                    reply = [b"NWM3", b"OK", token, frames[4], b"default", b"0"]
                 elif command == b"SEND":
+                    accepted_id = frames[4].decode("ascii")
                     reply = (
-                        [b"AR2", b"OK", token, frames[4]]
+                        [b"NWM3", b"OK", token, frames[4]]
                         if accepted
-                        else [b"AR2", b"ERROR", token, frames[4], b"destination_unavailable"]
+                        else [b"NWM3", b"ERROR", token, frames[4], b"destination_unavailable"]
                     )
                 elif command == b"CLOSE":
                     if release == "reject":
                         await router.send_multipart(
-                            [frames[0], b"AR2", b"ERROR", token, frames[4], b"not_registered"]
+                            [frames[0], b"NWM3", b"ERROR", token, frames[4], b"not_registered"]
                         )
                     break
                 else:
@@ -454,7 +561,10 @@ def test_release_failure_preserves_accepted_result_or_primary_send_rejection(rel
             assert child.returncode == 1
             error = json.loads(err)
             if accepted:
-                assert json.loads(out)["event"] == "accepted"
+                accepted_event = json.loads(out)
+                assert accepted_event["event"] == "accepted"
+                assert accepted_event["id"] == accepted_id
+                assert accepted_event["reply_to"] is None
                 assert error["error"] == (
                     "not_registered" if release == "reject" else "release_timeout"
                 )
@@ -545,7 +655,7 @@ def test_real_node_and_cli_request_reply_both_directions(tmp_path):
             "--input-type=module",
             "-e",
             """
-const {Node,decodeEnvelope} = await import(process.env.NODALWIRE_NODE_CLIENT_MODULE);
+const {Node} = await import(process.env.NODALWIRE_NODE_CLIENT_MODULE);
 const mode=process.argv[1], endpoint=process.argv[2];
 const node=await Node.connect(mode==='responder'?'node-responder':'node-requester',endpoint);
 try {
@@ -553,13 +663,15 @@ try {
  console.log('READY');
  if(mode==='responder') {
   const incoming=await node.receive({signal:AbortSignal.timeout(3000)});
-  const envelope=decodeEnvelope(incoming.payload);
+  const replyId=await node.reply(incoming,incoming.payload);
+  if(replyId===incoming.id) throw new Error('reply must use a fresh ID');
   await node.send(incoming.sender,Buffer.from('node-unrelated'),{network:incoming.network});
-  await node.reply(incoming,envelope.payload);
+  console.log(JSON.stringify({requestId:incoming.id,replyId}));
  } else {
   const reply=await node.request('cli-answerer',Uint8Array.from([0,255,42]),
     {network:'red',timeout:3});
-  console.log(JSON.stringify({network:reply.network,sender:reply.sender,
+  console.log(JSON.stringify({id:reply.id,reply_to:reply.reply_to,
+    network:reply.network,sender:reply.sender,
     payload:Buffer.from(reply.payload).toString('base64')}));
  }
 } finally { await node.close(); }
@@ -592,10 +704,16 @@ try {
                 )
                 assert code == 0 and err == b""
                 assert [event["event"] for event in events] == ["message", "reply"]
+                assert_message_event(events[0])
+                assert_message_event(events[1], kind="reply")
+                assert events[0]["reply_to"] is None
                 assert base64.b64decode(events[0]["payload"]) == b"node-unrelated"
                 assert base64.b64decode(events[1]["payload"]) == b"\0\xffnode"
-                _, err = await asyncio.wait_for(responder.communicate(), 2)
+                remaining, err = await asyncio.wait_for(responder.communicate(), 2)
                 assert responder.returncode == 0 and err == b""
+                peer_reply = json.loads(remaining)
+                assert events[1]["reply_to"] == peer_reply["requestId"]
+                assert events[1]["id"] == peer_reply["replyId"]
             finally:
                 await close_child(responder)
             receiver = await spawn(
@@ -619,7 +737,7 @@ try {
                 incoming = json.loads(out.splitlines()[0])
                 request_path = tmp_path / "node-incoming.json"
                 request_path.write_text(json.dumps(incoming))
-                code, _, err = await invoke(
+                code, reply_events, err = await invoke(
                     "reply",
                     "--name",
                     "cli-answerer",
@@ -632,9 +750,15 @@ try {
                     input=b"from-cli",
                 )
                 assert code == 0 and err == b""
+                accepted = reply_events[0]
+                assert accepted["event"] == "accepted"
+                assert accepted["reply_to"] == incoming["id"]
+                assert accepted["id"] != incoming["id"]
                 out, err = await asyncio.wait_for(requester.communicate(), 2)
                 assert requester.returncode == 0 and err == b""
                 reply = json.loads(out)
+                assert reply["id"] == accepted["id"]
+                assert reply["reply_to"] == incoming["id"]
                 assert reply["network"] == "red" and reply["sender"] == "cli-answerer"
                 assert base64.b64decode(reply["payload"]) == b"from-cli"
             finally:
