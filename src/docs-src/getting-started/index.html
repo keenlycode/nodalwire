@@ -8,9 +8,9 @@
   <h2 id="setup">1. Set up</h2>
   <p>
     You need Python 3.12+, Node.js 24, <code>uv</code>, pnpm 12.5.1 and matching
-    <code>0.2.0</code> artifacts from your maintainer. As checked on 2026-10-28,
-    the public registries publish <code>0.1.0</code>, not <code>0.2.0</code>.
-    Create your own application; no source checkout or SDK compilation is needed:
+    <code>0.2.0</code> artifacts from your maintainer for prepublication, offline
+    or local-artifact use. A source checkout does not establish public registry
+    availability. Create your own application; no checkout or SDK compilation is needed:
   </p>
   {% set setup_example %}mkdir my-nodalwire-app
 cd my-nodalwire-app
@@ -23,6 +23,11 @@ pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
     directory, not the NodalWire repository. Do not overwrite an existing app's
     pnpm script policy. These shell paths are for Linux/macOS; local verification
     covered Linux only.</p>
+  <p>Only after the matching approved release is published and registry availability
+    is verified, replace the two artifact installation commands with
+    <code>uv pip install --python .venv/bin/python nodalwire==0.2.0</code> and
+    <code>pnpm add @devcapsule/nodalwire-client@0.2.0</code>. Do not substitute old
+    packages while publication is pending.</p>
   <details>
     <summary>About the Node.js setup</summary>
     <p>

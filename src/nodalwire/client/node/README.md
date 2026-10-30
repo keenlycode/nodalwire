@@ -7,9 +7,10 @@ AR2 is intentionally incompatible with AR1: neither endpoint silently downgrades
 
 ## Consumers: use the built artifact
 
-As checked on 2026-10-28, the public npm registry has `0.1.0`, not `0.2.0`.
-Obtain the matching built `0.2.0` tarball and Python relay wheel from your
-maintainer; do not mix legacy public packages with this AR2 client. In a new
+For prepublication, offline or local-artifact use, obtain the matching built
+`0.2.0` tarball and Python relay wheel from your maintainer. A source checkout
+does not establish registry availability; do not mix legacy public packages
+with this AR2 client. In a new
 application directory, using pnpm 12.5.1:
 
 ```sh
