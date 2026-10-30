@@ -26,7 +26,17 @@ export async function fakeRelay(handler = () => {}, options = {}) {
           error: (code) =>
             send(route, "NWM3", "ERROR", initial ? "" : TOKEN, rid, code),
           data: (id, network, sender, replyTo, payload, token = TOKEN) =>
-            send(route, "NWM3", "DATA", token, id, network, sender, replyTo, payload),
+            send(
+              route,
+              "NWM3",
+              "DATA",
+              token,
+              id,
+              network,
+              sender,
+              replyTo,
+              payload,
+            ),
           raw: (...body) => send(route, ...body),
         };
         seen.push(frames);
@@ -35,7 +45,12 @@ export async function fakeRelay(handler = () => {}, options = {}) {
         if (version.toString() !== "NWM3") continue;
         switch (peer.command) {
           case "HELLO":
-            await peer.ok(TOKEN, "10", "1048576", options.memberships ?? '["default"]');
+            await peer.ok(
+              TOKEN,
+              "10",
+              String(options.maxPayload ?? 1048576),
+              options.memberships ?? '["default"]',
+            );
             break;
           case "JOIN":
           case "LEAVE":

@@ -1,105 +1,175 @@
 import assert from "node:assert/strict";
-import { Buffer } from "node:buffer";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
+import { Buffer } from "node:buffer";
 import {
-  decodeEnvelope,
-  encodeEnvelope,
   Node,
   ReceiptTimeout,
   RelayError,
 } from "../../../../../src/nodalwire/client/node/dist/index.js";
-import { fakeRelay } from "../../../../helpers/nodalwire/client/node/fake-relay.mjs";
+import {
+  fakeRelay,
+  TOKEN,
+} from "../../../../helpers/nodalwire/client/node/fake-relay.mjs";
 
+const fixture = JSON.parse(
+  readFileSync(new URL("../../../../fixtures/nwm3/wire.json", import.meta.url)),
+);
 const status = (code) => (error) => error instanceof RelayError && error.code === code;
-const bounded = () => ({ signal: AbortSignal.timeout(1000) });
-const envelope = (kind, id, payload = Uint8Array.of(255, 0)) =>
-  encodeEnvelope({ kind, id, payload });
+const id = (frame) => frame.toString("ascii");
+const decodeFrame = (frame) =>
+  frame.ascii !== undefined
+    ? Buffer.from(frame.ascii, "ascii")
+    : Buffer.from(frame.hex, "hex");
+
+function withLocalToken(frames) {
+  const packet = frames.map(decodeFrame);
+  packet[2] = Buffer.from(TOKEN);
+  return packet;
+}
 
 test(
-  "request correlates expected network/sender/kind/id without discarding unrelated DATA",
-  { timeout: 3000 },
+  "request matches reply_to, sender, and network while shared correlation fixtures remain inbox data",
+  {
+    timeout: 3000,
+  },
   async () => {
     const unrelated = [];
     const relay = await fakeRelay(async (peer) => {
       if (peer.command !== "SEND") return;
-      const request = decodeEnvelope(peer.frames[7]);
-      const cases = [
-        ["team", "peer", Uint8Array.of(9)],
-        ["wrong", "peer", envelope("reply", request.id)],
-        ["team", "wrong", envelope("reply", request.id)],
-        ["team", "peer", envelope("request", request.id)],
-        ["team", "peer", envelope("reply", "0".repeat(32))],
-        ["team", "peer", Buffer.from('NWR1\n{"malformed":true}')],
-      ];
-      for (const [network, sender, payload] of cases) {
-        unrelated.push({ network, sender, payload: Uint8Array.from(payload) });
-        await peer.data(network, sender, payload);
+      const requestId = id(peer.frames[4]);
+      assert.equal(peer.frames[7].length, 0);
+      const cases = fixture.correlation.cases.filter(({ owner }) => owner === "inbox");
+      for (const item of cases) {
+        const packet = withLocalToken(item.data);
+        await peer.raw(...packet);
+        unrelated.push(item.name);
       }
-      // App reply BEFORE routing receipt; request must not silently lose it.
-      await peer.data("team", "peer", envelope("reply", request.id));
-      await peer.ok();
-      await peer.data("team", "peer", Uint8Array.of(10));
-      return true;
+      await peer.data(
+        "2".repeat(32),
+        "default",
+        "beta",
+        requestId,
+        Buffer.from("native reply"),
+      );
+      return true; // reply, not SEND OK, owns the operation
     });
-    const node = await Node.connect("node", relay.endpoint);
+    const node = await Node.connect("alpha", relay.endpoint);
     try {
-      const waiting = node.receive(bounded());
-      const result = await node.request("peer", Uint8Array.of(1), { network: "team" });
-      assert.deepEqual(result, {
-        network: "team",
-        sender: "peer",
-        payload: Uint8Array.of(255, 0),
+      const reply = await node.request("beta", Uint8Array.of(0, 255), {
+        timeout: 0.5,
       });
-      assert.deepEqual(await waiting, unrelated[0]);
-      for (const expected of unrelated.slice(1)) {
-        assert.deepEqual(
-          await node.receive(bounded()),
-          expected,
+      assert.equal(reply.id, "2".repeat(32));
+      assert.equal(reply.reply_to.length, 32);
+      assert.equal(reply.sender, "beta");
+      assert.equal(reply.network, "default");
+      assert.equal(Buffer.from(reply.payload).toString(), "native reply");
+      const queued = [];
+      for (let i = 0; i < unrelated.length; i++) {
+        queued.push(
+          await node.receive({ signal: AbortSignal.timeout(1000) }),
         );
       }
-      assert.equal((await node.receive(bounded())).payload[0], 10);
-      assert.equal(node.receiveNowait(), undefined);
-    } finally {
-      await node.close();
-      await relay.close();
-    }
-  },
-);
-
-test(
-  "matching reply wins missing/negative SEND receipt; own receipt wait never leaks pending capacity",
-  { timeout: 3000 },
-  async () => {
-    let sequence = 0;
-    const relay = await fakeRelay(async (peer) => {
-      if (peer.command !== "SEND") return;
-      const request = decodeEnvelope(peer.frames[7]);
-      sequence++;
-      await peer.data(
-        "default",
-        "peer",
-        envelope("reply", request.id, request.payload),
+      assert.deepEqual(
+        queued.map(({ id: messageId }) => messageId),
+        unrelated.map((name) => {
+          const found = fixture.correlation.cases.find((item) => item.name === name);
+          return Buffer.from(found.data[3].ascii).toString();
+        }),
       );
-      if (sequence % 2 === 0) await peer.error("destination_unavailable");
-      return true;
-    });
-    const node = await Node.connect("node", relay.endpoint, {
-      maxPending: 1,
-      timeout: 0.04,
-    });
-    try {
-      for (
-        const payload of [
-          new Uint8Array(),
-          Uint8Array.of(1),
-          Uint8Array.of(2),
-          Uint8Array.of(3),
-        ]
-      ) {
-        const result = await node.request("peer", payload);
-        assert.deepEqual(result.payload, payload);
+    } finally {
+      await node.close();
+      await relay.close();
+    }
+  },
+);
+
+test(
+  "both first-terminal orderings are honored; late and duplicate DATA stay in inbox",
+  {
+    timeout: 3000,
+  },
+  async () => {
+    for (const replyFirst of [true, false]) {
+      const relay = await fakeRelay(async (peer) => {
+        if (peer.command !== "SEND") return;
+        const requestId = id(peer.frames[4]);
+        const deliver = () =>
+          peer.data(
+            "3".repeat(32),
+            "default",
+            "beta",
+            requestId,
+            Buffer.from("reply"),
+          );
+        if (replyFirst) await deliver();
+        await peer.error("destination_unavailable");
+        if (!replyFirst) await deliver();
+        return true;
+      });
+      const node = await Node.connect("alpha", relay.endpoint);
+      try {
+        const result = node.request("beta", Uint8Array.of(1), { timeout: 0.5 });
+        if (replyFirst) {
+          assert.equal(Buffer.from((await result).payload).toString(), "reply");
+          assert.equal(node.receiveNowait(), undefined);
+        } else {
+          await assert.rejects(result, status("destination_unavailable"));
+          assert.equal(
+            Buffer.from(
+              (await node.receive({ signal: AbortSignal.timeout(1000) }))
+                .payload,
+            ).toString(),
+            "reply",
+          );
+        }
+      } finally {
+        await node.close();
+        await relay.close();
       }
+    }
+  },
+);
+
+test(
+  "malformed/stale DATA fixture packets are discarded; valid NWR1-looking payload stays opaque",
+  {
+    timeout: 3000,
+  },
+  async () => {
+    const relay = await fakeRelay(undefined, { maxPayload: 256 });
+    const node = await Node.connect("alpha", relay.endpoint);
+    try {
+      const peer = relay.peers.get("alpha");
+      for (const [index, item] of fixture.client_discard.entries()) {
+        const packet = item.name === "stale_incarnation"
+          ? item.data.map(decodeFrame)
+          : withLocalToken(item.data);
+        await peer.raw(...packet);
+        const markerId = (index + 1).toString(16).padStart(32, "0");
+        await peer.data(
+          markerId,
+          "default",
+          "beta",
+          "",
+          Buffer.from(item.name),
+        );
+        const marker = await node.receive({
+          signal: AbortSignal.timeout(1000),
+        });
+        assert.equal(marker.id, markerId, `${item.name} must be discarded`);
+      }
+      const opaque = fixture.routes.find(({ name }) => name === "nwr1_is_opaque");
+      await peer.raw(...withLocalToken(opaque.data));
+      const received = await node.receive({
+        signal: AbortSignal.timeout(1000),
+      });
+      assert.equal(received.id, opaque.message.id);
+      assert.deepEqual(
+        received.payload,
+        Uint8Array.from(Buffer.from(opaque.message.payload_hex, "hex")),
+      );
       assert.equal(node.receiveNowait(), undefined);
     } finally {
       await node.close();
@@ -109,84 +179,69 @@ test(
 );
 
 test(
-  "SEND rejection/timeout/abort unregisters first; subsequent replies are ordinary messages",
-  { timeout: 3000 },
+  "SEND rejection and malformed receipt clean waiters; later DATA is ordinary and no retry occurs",
+  {
+    timeout: 3000,
+  },
   async () => {
     let mode = "reject";
-    const received = [];
+    let sends = 0;
     const relay = await fakeRelay(async (peer) => {
       if (peer.command !== "SEND") return;
-      const request = decodeEnvelope(peer.frames[7]);
-      received.push({ peer, request });
-      if (mode === "reject") await peer.error("destination_unavailable");
-      else if (mode === "accept") await peer.ok();
+      sends++;
+      const requestId = id(peer.frames[4]);
+      if (mode === "reject") {
+        await peer.error("route_denied");
+        await peer.data(
+          "4".repeat(32),
+          "default",
+          "beta",
+          requestId,
+          Buffer.from("late"),
+        );
+      } else if (mode === "malformed") {
+        await peer.ok("extra");
+        await peer.data(
+          "5".repeat(32),
+          "default",
+          "beta",
+          requestId,
+          Buffer.from("after invalid receipt"),
+        );
+      }
       return true;
     });
-    const node = await Node.connect("node", relay.endpoint, { timeout: 0.04 });
+    const node = await Node.connect("alpha", relay.endpoint, { timeout: 0.08 });
     try {
       await assert.rejects(
-        node.request("peer", new Uint8Array()),
-        status("destination_unavailable"),
+        node.request("beta", Uint8Array.of(1)),
+        status("route_denied"),
+      );
+      assert.equal(
+        Buffer.from(
+          (await node.receive({ signal: AbortSignal.timeout(1000) })).payload,
+        )
+          .toString(),
+        "late",
+      );
+      mode = "malformed";
+      await assert.rejects(
+        node.request("beta", Uint8Array.of(2)),
+        status("invalid_receipt"),
+      );
+      assert.equal(
+        Buffer.from(
+          (await node.receive({ signal: AbortSignal.timeout(1000) })).payload,
+        )
+          .toString(),
+        "after invalid receipt",
       );
       mode = "silent";
-      await assert.rejects(node.request("peer", new Uint8Array()), ReceiptTimeout);
-      mode = "accept";
-      await assert.rejects(node.request("peer", new Uint8Array()), ReceiptTimeout);
-      const controller = new AbortController();
-      const canceled = assert.rejects(
-        node.request("peer", new Uint8Array(), { signal: controller.signal }),
-        { name: "AbortError" },
-      );
-      await sleep(10);
-      controller.abort();
-      await canceled;
-      for (const { peer, request } of received) {
-        const late = envelope("reply", request.id);
-        await peer.data("default", "peer", late);
-        assert.deepEqual(
-          (await node.receive(bounded())).payload,
-          Uint8Array.from(late),
-        );
-      }
-      assert.equal(received.length, 4);
-      assert.equal(
-        relay.seen.filter((frames) => frames[2].toString() === "SEND").length,
-        4,
-        "no retry/replay",
-      );
-    } finally {
-      await node.close();
-      await relay.close();
-    }
-  },
-);
-
-test(
-  "one overall request deadline includes receipt wait; reply after deadline remains readable",
-  { timeout: 3000 },
-  async () => {
-    let sent;
-    const relay = await fakeRelay(async (peer) => {
-      if (peer.command !== "SEND") return;
-      sent = { peer, request: decodeEnvelope(peer.frames[7]) };
-      await sleep(55);
-      await peer.ok();
-      return true;
-    });
-    const node = await Node.connect("node", relay.endpoint);
-    try {
-      const start = performance.now();
       await assert.rejects(
-        node.request("peer", new Uint8Array(), { timeout: 0.08 }),
+        node.request("beta", Uint8Array.of(3)),
         ReceiptTimeout,
       );
-      assert.ok(
-        performance.now() - start < 125,
-        "not a new full deadline after SEND receipt",
-      );
-      const late = envelope("reply", sent.request.id);
-      await sent.peer.data("default", "peer", late);
-      assert.deepEqual((await node.receive(bounded())).payload, Uint8Array.from(late));
+      assert.equal(sends, 3, "no retry or replay");
     } finally {
       await node.close();
       await relay.close();
@@ -195,85 +250,55 @@ test(
 );
 
 test(
-  "app waiter cap is independent; canceled/closed waiters release capacity and drain no native DATA",
-  { timeout: 3000 },
+  "request deadline and abort clean up without closing shared reader; late replies remain readable",
+  {
+    timeout: 3000,
+  },
   async () => {
-    const relay = await fakeRelay(async (peer) => {
-      if (peer.command === "SEND") {
-        await peer.ok();
-        await peer.data("default", "other", Uint8Array.of(9));
-        return true;
-      }
+    const sent = [];
+    const relay = await fakeRelay((peer) => {
+      if (peer.command !== "SEND") return;
+      sent.push({ peer, requestId: id(peer.frames[4]) });
+      return true;
     });
-    const node = await Node.connect("node", relay.endpoint, { maxPending: 1 });
+    const node = await Node.connect("alpha", relay.endpoint, { timeout: 0.05 });
     try {
-      const first = assert.rejects(
-        node.request("peer", Uint8Array.of(1)),
-        status("closed"),
-      );
-      // FIFO DATA after OK proves the client reader consumed the receipt.
-      assert.equal((await node.receive(bounded())).payload[0], 9);
       await assert.rejects(
-        node.request("peer", Uint8Array.of(2)),
-        status("pending_full"),
+        node.request("beta", new Uint8Array()),
+        ReceiptTimeout,
       );
-      // A separate receipt remains usable while the app waiter slot is occupied.
-      await node.join("team");
-      await node.close();
-      await first;
-      assert.equal(node.receiveNowait(), undefined);
-      await assert.rejects(node.request("peer", new Uint8Array()), status("closed"));
-    } finally {
-      await node.close();
-      await relay.close();
-    }
-  },
-);
-
-test(
-  "reply requires request envelope and fixes incoming network; snapshots caller bytes",
-  { timeout: 3000 },
-  async () => {
-    const relay = await fakeRelay();
-    const node = await Node.connect("node", relay.endpoint);
-    try {
-      const id = "a".repeat(32);
-      const incoming = {
-        network: "team",
-        sender: "peer",
-        payload: envelope("request", id),
-      };
-      const payload = Uint8Array.of(1, 2);
-      const sent = node.reply(incoming, payload);
-      payload.fill(0);
-      incoming.payload.fill(0);
-      incoming.network = "mutated";
-      await sent;
-      const frames = relay.seen.find((frames) => frames[2].toString() === "SEND");
-      assert.equal(frames[5].toString(), "team");
-      assert.deepEqual(decodeEnvelope(frames[7]), {
-        kind: "reply",
-        id,
-        payload: Uint8Array.of(1, 2),
+      const controller = new AbortController();
+      const aborted = node.request("beta", new Uint8Array(), {
+        signal: controller.signal,
+        timeout: 1,
       });
-      for (const payload of [new Uint8Array(), envelope("reply", id)]) {
-        await assert.rejects(
-          node.reply({ network: "team", sender: "peer", payload }, Uint8Array.of(1)),
-          TypeError,
-        );
-      }
-      await assert.rejects(
-        node.reply(
-          { network: "team", sender: "peer", payload: envelope("request", id) },
-          new Uint8Array(),
-          { network: "wrong" },
-        ),
-        TypeError,
+      await sleep(5);
+      controller.abort(new Error("test abort"));
+      await assert.rejects(aborted, /test abort/);
+      const peer = sent[1].peer;
+      await peer.data(
+        "6".repeat(32),
+        "default",
+        "beta",
+        sent[0].requestId,
+        Buffer.from("timeout late"),
       );
-      await assert.rejects(
-        node.request("peer", new Uint8Array(1048576)),
-        status("payload_too_large"),
+      await peer.data(
+        "7".repeat(32),
+        "default",
+        "beta",
+        sent[1].requestId,
+        Buffer.from("abort late"),
       );
+      const messages = [
+        await node.receive({ signal: AbortSignal.timeout(1000) }),
+        await node.receive({ signal: AbortSignal.timeout(1000) }),
+      ];
+      assert.deepEqual(
+        messages.map((message) => Buffer.from(message.payload).toString()),
+        ["timeout late", "abort late"],
+      );
+      assert.equal(sent.length, 2, "one SEND per request; no retries");
     } finally {
       await node.close();
       await relay.close();
@@ -282,28 +307,60 @@ test(
 );
 
 test(
-  "request full-inbox pressure causes honest timeout without dropping wanted or unrelated replies",
-  { timeout: 3000 },
+  "full ordinary inbox backpressure can time out request without dropping native messages",
+  {
+    timeout: 3000,
+  },
   async () => {
     const relay = await fakeRelay(async (peer) => {
       if (peer.command !== "SEND") return;
-      const request = decodeEnvelope(peer.frames[7]);
-      await peer.data("default", "other", Uint8Array.of(1));
-      await peer.data("default", "other", Uint8Array.of(2));
-      await peer.data("default", "peer", envelope("reply", request.id));
+      const requestId = id(peer.frames[4]);
+      await peer.data(
+        "8".repeat(32),
+        "default",
+        "other",
+        "",
+        Buffer.from("one"),
+      );
+      await peer.data(
+        "9".repeat(32),
+        "default",
+        "other",
+        "",
+        Buffer.from("two"),
+      );
+      await peer.data(
+        "a".repeat(32),
+        "default",
+        "beta",
+        requestId,
+        Buffer.from("reply"),
+      );
       await peer.ok();
       return true;
     });
-    const node = await Node.connect("node", relay.endpoint, {
+    const node = await Node.connect("alpha", relay.endpoint, {
       inboxSize: 1,
       timeout: 0.04,
     });
     try {
-      await assert.rejects(node.request("peer", new Uint8Array()), ReceiptTimeout);
-      assert.equal(node.receiveNowait().payload[0], 1);
-      assert.equal((await node.receive(bounded())).payload[0], 2);
+      await assert.rejects(
+        node.request("beta", new Uint8Array()),
+        ReceiptTimeout,
+      );
+      assert.equal(Buffer.from(node.receiveNowait().payload).toString(), "one");
       assert.equal(
-        decodeEnvelope((await node.receive(bounded())).payload).kind,
+        Buffer.from(
+          (await node.receive({ signal: AbortSignal.timeout(1000) })).payload,
+        )
+          .toString(),
+        "two",
+      );
+      assert.equal(
+        Buffer.from(
+          (await node.receive({ signal: AbortSignal.timeout(1000) })).payload,
+        )
+          .toString(),
         "reply",
       );
     } finally {

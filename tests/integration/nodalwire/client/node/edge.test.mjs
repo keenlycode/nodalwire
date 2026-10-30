@@ -19,14 +19,16 @@ test("HELLO reader fences immediate DATA before connect continuation", {
   const relay = await fakeRelay(async (peer) => {
     if (peer.command !== "HELLO") return;
     await peer.ok(TOKEN, "10", "1024", "[]");
-    await peer.data("team", "peer", Uint8Array.of(42));
+    await peer.data("1".repeat(32), "team", "peer", "", Uint8Array.of(42));
     return true;
   });
   const node = await Node.connect("node", relay.endpoint);
   try {
     assert.deepEqual(await node.receive({ signal: AbortSignal.timeout(1000) }), {
-      network: "team",
+      id: "1".repeat(32),
       sender: "peer",
+      network: "team",
+      reply_to: undefined,
       payload: Uint8Array.of(42),
     });
   } finally {
@@ -124,7 +126,7 @@ test(
       controller.abort();
       await canceled;
       const peer = relay.peers.get("node");
-      await peer.data("team", "peer", Uint8Array.of(99));
+      await peer.data("2".repeat(32), "team", "peer", "", Uint8Array.of(99));
       assert.equal(
         (await node.receive({ signal: AbortSignal.timeout(1000) })).payload[0],
         99,

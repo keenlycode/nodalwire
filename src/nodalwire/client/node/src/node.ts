@@ -192,11 +192,10 @@ export class Node {
     if (!(payload instanceof Uint8Array)) {
       throw new TypeError("payload must be Uint8Array");
     }
-    const snapshot = Buffer.from(payload);
-    if (snapshot.byteLength > this.maxPayload) {
+    if (payload.byteLength > this.maxPayload) {
       throw new RelayError("payload_too_large");
     }
-    return snapshot;
+    return Buffer.from(payload);
   }
 
   private newId(except?: string): string {
@@ -213,7 +212,7 @@ export class Node {
     network: string,
     replyTo: string,
     options: OperationOptions,
-    id = this.newId(),
+    id = this.newId(replyTo || undefined),
     onReject?: (error: unknown) => void,
   ): Promise<string> {
     this.checkOpen();
@@ -340,7 +339,8 @@ export class Node {
     if (
       !validName(incoming.sender) || !validName(incoming.network) ||
       typeof incoming.id !== "string" || !ID_PATTERN.test(incoming.id) ||
-      (incoming.reply_to !== undefined && !ID_PATTERN.test(incoming.reply_to))
+      (incoming.reply_to !== undefined &&
+        (typeof incoming.reply_to !== "string" || !ID_PATTERN.test(incoming.reply_to)))
     ) {
       throw new TypeError("invalid incoming message metadata");
     }
