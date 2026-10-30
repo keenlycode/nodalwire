@@ -5,6 +5,7 @@
 {% set page_intro = 'NWM3 native-message API contract for the coordinated 0.3 candidate migration.' %}
 {% block content %}
 <section aria-labelledby="shared"><h2 id="shared">Shared contracts</h2>
+<p>This reference describes the NWM3 local development candidate. Install matching Python and Node artifacts built from the same ROOT-reviewed assembled source checkout using the <a href="{{ url('getting-started/') }}">local candidate setup</a>. Their development labels are Python <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code>; these labels do not imply registry availability. Released 0.2.x artifacts use AR2 and are incompatible with the API below.</p>
 <p>Names and networks match ASCII <code>[A-Za-z0-9][A-Za-z0-9_.-]{0,127}</code>. Endpoints are loopback-only TCP; the client default is <code>tcp://127.0.0.1:5555</code>. Registration admits a live name, not an authenticated identity. Open default autojoins; protected default starts with zero memberships. Nondefault networks always require explicit joins.</p>
 <p>Every send selects one network; omitted means <code>default</code>, never fallback. Both peers must be members and directional route policy must permit the send. Credentials authorize joining, not peer identity.</p></section>
 <section aria-labelledby="python"><h2 id="python">Python</h2>
@@ -34,7 +35,7 @@ asyncio.run(main())
 </dl>
 <p>Per-operation <code>timeout=None</code> uses the connection timeout. Invalid argument types/values raise <code>TypeError</code>/<code>ValueError</code>; relay/local protocol failures use <code>RelayError.code</code>. Cancellation uses Python's asyncio cancellation semantics and can follow an effect.</p></section>
 <section aria-labelledby="node"><h2 id="node">Node.js</h2>
-<p>The ESM package identity is <code>@devcapsule/nodalwire-client</code>, matching version <code>0.2.0</code>, for Node.js 24. Deno runs development tasks, not the client runtime. After the <a href="{{ url('getting-started/') }}">artifact installation</a>, save this fragment as <code>client.mjs</code> in your application and run <code>node client.mjs</code> there while a matching relay and responding Bob are connected. The import resolves the installed package, not repository source.</p>
+<p>The ESM package identity is <code>@devcapsule/nodalwire-client</code>, built locally with development label <code>0.3.0-dev.0</code> for Node.js 24. Use the tarball produced by the <a href="{{ url('getting-started/') }}">local candidate setup</a>, from the same reviewed checkout as the Python development artifact and NWM3 relay. Deno runs development tasks, not the client runtime. These instructions make no claim of registry availability; released Node 0.2.0 is AR2-only. Save this fragment as <code>client.mjs</code> in your application and run <code>node client.mjs</code> while a matching relay and responding Bob are connected.</p>
 {% set node_lifecycle %}import { Node } from "@devcapsule/nodalwire-client";
 
 const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
