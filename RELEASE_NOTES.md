@@ -1,6 +1,7 @@
 # NodalWire 0.2.0
 
-Stable release preparation; not yet published.
+Stable 0.2.0 release notes. Source preparation does not establish registry
+availability; publication and deployment are separate approved operations.
 
 ## Changes
 

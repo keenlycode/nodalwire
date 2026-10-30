@@ -1,0 +1,14 @@
+{% extends "design/_include/layout.html" %}
+{% block sidebar %}{% endblock %}
+{% block title %}{{ specimen_title }} · NodalWire design{% endblock %}
+{% block assets %}{{ super() }}
+<link rel="stylesheet" href="{{ url('assets/design/' ~ specimen_group ~ '/style.css') }}">
+<script type="module" src="{{ url('assets/design/' ~ specimen_group ~ '/index.js') }}"></script>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+{% include "design/_include/page-path.html" %}
+<h1>{{ specimen_title }}</h1><p class="lead">{{ specimen_description }}</p>
+</header>
+{% block specimens %}{% endblock %}
+{% endblock %}

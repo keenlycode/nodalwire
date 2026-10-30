@@ -1,0 +1,8 @@
+{% extends "design/_include/specimen-page.html" %}
+{% set design_page = 'tokens/spacing' %}
+{% set specimen_group = 'tokens' %}
+{% set specimen_title = 'Spacing' %}
+{% set specimen_description = 'The canonical spacing rhythm, shown at its actual resolved lengths.' %}
+{% block specimens %}
+<section id="spacing"><h2>Spacing scale</h2><div class="panel">{% for name,value in tokens.spacing.items() %}<div class="space-row"><code>{{ name }} · {{ value }}</code><div class="bar" style="width:{{ value }}"></div></div>{% endfor %}</div><p>sm, md and lg follow Adaptive; xs, xl and section extend the same rhythm for documentation.</p></section>
+{% endblock %}

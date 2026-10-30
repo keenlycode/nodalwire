@@ -1,0 +1,61 @@
+{% extends '_layouts/product.html' %}
+{% from '_partials/code-block.html' import code_block with context %}
+{% set page_path = 'reference/config/' %}
+{% set page_title = 'Configuration reference' %}
+{% set page_intro = 'Strict version 2 startup configuration, declared network policies, and honest persistence boundaries.' %}
+{% block content %}
+<section aria-labelledby="file"><h2 id="file">Load a version 2 file</h2>
+<p>Start with <code>.venv/bin/nodalwire serve --config local.toml</code>. Set <code>NODALWIRE_ADMIN_TOKEN</code> explicitly before startup, as in <a href="{{ url('getting-started/') }}">Getting Started</a>. This example deliberately contains no raw credential or verifier:</p>
+{% set config_example %}config_version = 2
+revision = 0
+endpoint = "tcp://127.0.0.1:5555"
+admin_endpoint = "tcp://127.0.0.1:5556"
+lease_seconds = 10.0
+send_hwm = 64
+receive_hwm = 64
+max_payload_bytes = 1048576
+allowed_names = ["alice", "bob", "observer"]
+deny = [["@writers", "observer"]]
+
+[routing_groups]
+writers = ["alice", "bob"]
+
+[networks.team]
+{% endset %}{{ code_block(config_example, 'local.toml', 'toml') }}
+<p><code>default</code> is added as open if omitted. The declared <code>team</code> network is also open, but peers must explicitly join it. <code>writers</code> is a static selector group, not a network membership list or an authenticated identity group. This rule denies Alice/Bob to Observer, not the reverse; unspecified routes are allowed.</p>
+<p><code>load_config(Path(...))</code> returns an immutable <code>RelayConfig</code>. TOML must explicitly have integer <code>config_version = 2</code>; legacy configuration, unknown top-level fields, and unsupported network policy fields are rejected. Constructing <code>RelayConfig()</code> in Python defaults the version to 2.</p></section>
+<section aria-labelledby="fields"><h2 id="fields">Fields and defaults</h2>
+<dl>
+<dt><code>config_version = 2</code></dt><dd>Required in TOML. No silent migration or legacy fallback.</dd>
+<dt><code>revision = 0</code></dt><dd>Integer from 0 through <code>2**53 - 1</code>. Successful configuration mutations advance it; exhausted revision cannot advance.</dd>
+<dt><code>endpoint = "tcp://127.0.0.1:5555"</code></dt><dd>Peer data bind endpoint. Loopback literal IPv4/IPv6 or normalized localhost only; a wildcard port <code>*</code> is allowed for binds.</dd>
+<dt><code>admin_endpoint = "tcp://127.0.0.1:5556"</code></dt><dd>Separate local administration bind endpoint with the same loopback validation. Use distinct data/admin addresses.</dd>
+<dt><code>lease_seconds = 10.0</code></dt><dd>Finite number from 0.1 through 3600. Client heartbeats run approximately every lease/3; pressure may delay or skip them.</dd>
+<dt><code>send_hwm = 64</code> / <code>receive_hwm = 64</code></dt><dd>Positive native integers through <code>2**31 - 1</code>. These bound message counts, not total bytes or all operating-system buffering.</dd>
+<dt><code>max_payload_bytes = 1048576</code></dt><dd>Positive integer through <code>2**31 - 4096</code>. Clients enforce the negotiated complete payload cap, including any application envelope.</dd>
+<dt><code>allowed_names</code> (omitted)</dt><dd>Omission allows any valid name at registration. An array restricts admission; an empty array admits none. Names are cooperative routing labels, not authenticated identities.</dd>
+<dt><code>deny = []</code></dt><dd>Array of directional source/destination selector pairs. Select exact names, <code>*</code>, or <code>@group</code>; referenced groups must exist.</dd>
+<dt><code>[routing_groups]</code> (empty)</dt><dd>Maps valid static group names to arrays of valid routing names. No membership or identity authority is implied.</dd>
+<dt><code>[networks.NAME]</code></dt><dd>Declares a network policy, open when empty. The only policy field is optional <code>join_verifier</code>. Network and node names use <code>[A-Za-z0-9][A-Za-z0-9_.-]{0,127}</code>.</dd>
+<dt><code>admin_verifier</code> (omitted)</dt><dd>Optional valid salted <code>scrypt-v1</code> verifier. If absent, startup requires the explicit environment token. <code>NODALWIRE_ADMIN_TOKEN</code>, when present, takes precedence, including failing if malformed.</dd>
+</dl></section>
+<section aria-labelledby="protection"><h2 id="protection">Configure protected networks</h2>
+<p>Python exposes <code>NetworkConfig</code> from <code>nodalwire.config</code> and <code>make_verifier</code> from <code>nodalwire.credentials</code>. This fragment constructs a protected default using a separately supplied join credential:</p>
+{% set protected_config %}from nodalwire import RelayConfig
+from nodalwire.config import NetworkConfig
+from nodalwire.credentials import make_verifier
+
+def protected_configuration(join_credential):
+    return RelayConfig(networks={
+        "default": NetworkConfig(join_verifier=make_verifier(join_credential)),
+    })
+{% endset %}{{ code_block(protected_config, 'configuration.py', 'python') }}
+<p>For TOML, place a generated valid verifier in the policy's <code>join_verifier</code>, not the raw token. Protect the file and credential channel. Administrator and join credentials should be distinct. A protected default permits registration with zero memberships; it does not deny registration outright. See <a href="{{ url('guides/networks/') }}">networks</a> for explicit join flows.</p></section>
+<section aria-labelledby="runtime"><h2 id="runtime">Startup and runtime boundaries</h2>
+<p>Endpoints, admission/routing rules, groups, lease, and native limits are startup-only. Runtime administration can change network policies and a configuration-managed administrator verifier, not arbitrary startup fields. Membership is ephemeral and never serialized as network configuration.</p>
+<p>The Python embedded API is <code>Relay(config)</code> or <code>Relay(store=store)</code>, with <code>ConfigStore</code> from <code>nodalwire.config_store</code> for explicit file ownership. Entering a relay's async context binds its sockets; start <code>relay.run()</code> as an owned task, cancel and await that task before context exit. The bound <code>relay.endpoint</code> and <code>relay.admin_endpoint</code> expose selected ports for wildcard binds.</p></section>
+<section aria-labelledby="persistence"><h2 id="persistence">Persistence and revision conflicts</h2>
+<p>Without a configuration path, mutations update memory only. With <code>serve --config</code>, configuration mutations serialize the complete schema to a temporary file, fsync it, replace the same original path, and fsync the parent directory. Comments and original formatting are not preserved. A regular nonsymlink file is required; startup and commit validation guard the owned file.</p>
+<p>Expected-revision checks prevent stale mutations. External-file fingerprint changes also produce a conflict rather than overwriting unseen edits; this is not a cross-process lock. Before replacement, persistence failure is <code>no_effect</code>. Failure after replacement can be <code>persistence_indeterminate</code>: the candidate is published in memory and the durability outcome remains uncertain. Re-read and reconcile; never blindly replay.</p>
+<p><code>member.remove</code> changes ephemeral membership, requires the current expected revision, and does not increment the configuration revision. Read operations return current revision plus redacted state. See <a href="{{ url('reference/admin/') }}">administration</a> for exact operation shapes and error handling.</p></section>
+{% endblock %}

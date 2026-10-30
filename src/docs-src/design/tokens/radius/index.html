@@ -1,0 +1,8 @@
+{% extends "design/_include/specimen-page.html" %}
+{% set design_page = 'tokens/radius' %}
+{% set specimen_group = 'tokens' %}
+{% set specimen_title = 'Radius' %}
+{% set specimen_description = 'Canonical corners for controls and grouped surfaces.' %}
+{% block specimens %}
+<section id="radius"><h2>Corner vocabulary</h2><div class="corners">{% for name,value in tokens.radius.items() %}<div><div class="corner" style="border-radius:{{ value }}">{{ name }}</div><p class="mono">{{ value }}</p></div>{% endfor %}</div><p>Use modest corners for controls; reserve larger corners for grouped surfaces.</p></section>
+{% endblock %}

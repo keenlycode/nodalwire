@@ -6,3 +6,7 @@ __pycache__/
 .ruff_cache/
 dist/
 *.egg-info/
+src/tools/docs/node_modules/
+src/tools/docs/.build/
+# Local generated preview only; published site lives at docs-branch root.
+/docs/

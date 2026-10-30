@@ -1,0 +1,33 @@
+<section aria-labelledby="code-blocks">
+<h2 id="code-blocks">Code Block</h2>
+<p>Filename and language share a header with the copy action. Python and JavaScript are highlighted in the browser; code stays readable without JavaScript or when highlighting is unavailable.</p>
+<div class="code-block-examples">
+<nw-code-block id="code-example" filename="relay.py" language="python">
+  <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">relay.py</span><span class="code-block-language">Python</span></span></div>
+<pre tabindex="0" aria-label="Python code example"><code>import json
+
+
+def encode_message(text: str) -&gt; bytes:
+    # Keep the message boundary explicit.
+    message = {"type": "message", "text": text, "version": 1}
+    return json.dumps(message).encode("utf-8")
+
+
+payload = encode_message("Hello, NodalWire 👋")
+print(payload)
+</code></pre></nw-code-block>
+<nw-code-block id="javascript-code-example" filename="message.js" language="javascript">
+  <div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">message.js</span><span class="code-block-language">JavaScript</span></span></div>
+<pre tabindex="0" aria-label="JavaScript code example"><code>function encodeMessage(text) {
+  // Preserve literal text, including &lt;tags&gt; &amp; whitespace.
+  const message = { type: "message", text, version: 1 };
+  return new TextEncoder().encode(JSON.stringify(message));
+}
+
+const payload = encodeMessage("Hello, NodalWire 👋");
+console.log(payload);
+// Long lines scroll inside the code block: abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+</code></pre></nw-code-block>
+</div>
+<p class="fine">Copy preserves the exact code, including indentation and final newlines. Other languages remain plain text. Highlighting loads one shared engine and only the requested Python or JavaScript grammar. <a href="{{ url('assets/licenses/runtime/NOTICE.txt') }}">Runtime licenses</a>.</p>
+</section>

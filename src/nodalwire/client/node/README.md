@@ -5,24 +5,39 @@ Deno orchestrates development, not runtime execution. Package identity remains
 `@devcapsule/nodalwire-client`; version `0.2.0` requires a matching `0.2.0` relay.
 AR2 is intentionally incompatible with AR1: neither endpoint silently downgrades.
 
-## Build and use
+## Consumers: use the built artifact
 
-For the `0.2.0` release, install the matching client:
+For prepublication, offline or local-artifact use, obtain the matching built
+`0.2.0` tarball and Python relay wheel from your maintainer. A source checkout
+does not establish registry availability; do not mix legacy public packages
+with this AR2 client. In a new
+application directory, using pnpm 12.5.1:
 
 ```sh
-npm install @devcapsule/nodalwire-client@0.2.0
+printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
+pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.2.0.tgz
 ```
 
-For local development, install an explicitly built artifact without publication:
+Import the installed package by name, as below; applications do not need the
+source checkout, Deno or a TypeScript compiler. The tarball ships compiled ESM
+and declarations. Do not overwrite an existing application's script policy.
+Only after `0.2.0` is actually published could
+`npm install @devcapsule/nodalwire-client@0.2.0` replace the artifact path.
+
+## Contributors: build the distribution
+
+From a source checkout, not the consumer application:
 
 ```sh
 cd src/nodalwire/client/node
 pnpm install --frozen-lockfile --store-dir ./node_modules/.pnpm-store
 deno task build
 pnpm pack
-# From your application:
-pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.2.0.tgz
 ```
+
+Hand the resulting tarball to the consumer; do not commit generated `dist/` by
+default. The root README describes matching Python artifact preparation and the
+separate maintainer acceptance path. Building a tarball does not publish it.
 
 The native `zeromq` install script is required. For pnpm versions requiring script
 approval, allow only `zeromq` in the application's `pnpm-workspace.yaml`:
@@ -166,15 +181,21 @@ Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching A
 server/Python source. From this directory:
 
 ```sh
-deno fmt --check src tests deno.json tsconfig.json package.json
+deno task fmt --check
 deno task lint
 deno task check
-deno task build
-node --test tests/*.test.mjs   # independent fake-router/lifecycle/codec checks
-python tests/interop.py       # real Python relay/client interoperability
-deno task test               # build + both check sets above
-python tests/package_smoke.py # pack/install consumer, types + real interop
+deno task test:unit     # build + root codec/inbox/protocol and fake-router checks
+deno task test:interop  # real Python relay/client interoperability
+deno task test         # build + native checks + Python interoperability
+deno task test:artifact # pack/install consumer, types + real interop
 ```
+
+All maintained tests live under repository-root `tests/`, not this package.
+Atomic module suites mirror `src/nodalwire/client/node/src/` under
+`tests/unit/nodalwire/client/node/src/`. Transport/relay and interoperability
+suites live in `tests/integration/nodalwire/client/node/`; the fake relay helper
+lives in `tests/helpers/nodalwire/client/node/`. Tasks resolve these locations
+relative to this package and use its pinned dependencies.
 
 Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
 run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
@@ -185,5 +206,11 @@ source without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
 scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 `NODALWIRE_PNPM_STORE` overrides the package-local dependency store. For an
 explicit artifact-only check while Python is unavailable, run
-`python tests/package_smoke.py --skip-interop`; its output labels real wire tests
-as skipped, not passed.
+`deno task test:artifact --skip-interop`; its output labels real wire tests
+as skipped, not passed. For both packages installed outside the checkout, run
+`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/nodalwire-0.2.0-py3-none-any.whl`.
+This creates a fresh Python environment, uses `-I`, copies only interoperability
+fixtures outside the repository and asserts installed provenance/version. Default
+source-mode interop alone does not establish installed-Python acceptance. The
+smoke's pnpm installation uses a prepared offline store; no cold-cache or broad
+platform certification is implied.
