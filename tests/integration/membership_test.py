@@ -13,8 +13,10 @@ def test_open_defaults_other_open_explicit_join_multiple_membership_and_no_fallb
     async def check():
         async with running_relay(networks={"red": NetworkConfig(), "blue": NetworkConfig()}) as h:
             alice, bob = await h.node("alice"), await h.node("bob")
-            await alice.send("bob", b"auto")
-            assert await bob.receive() == Message("alice", b"auto", "default")
+            identity = await alice.send("bob", b"auto")
+            assert await bob.receive() == Message(
+                id=identity, sender="alice", network="default", payload=b"auto"
+            )
             with pytest.raises(RelayError, match="not_member"):
                 await alice.send("bob", b"no implicit open join", network="red")
             assert (await alice.join("red")).changed
@@ -147,8 +149,14 @@ def test_real_python_request_reply_on_selected_network_with_unrelated_data():
             await bob.join("red")
             request = asyncio.create_task(alice.request("bob", bytes(range(256)), network="red"))
             incoming = await asyncio.wait_for(bob.receive(), 1)
-            await bob.send("alice", b"unrelated", network="red")
-            await bob.reply(incoming, b"response\x00\xff")
-            assert await request == Message("bob", b"response\x00\xff", "red")
-            assert await alice.receive() == Message("bob", b"unrelated", "red")
+            unrelated_id = await bob.send("alice", b"unrelated", network="red")
+            reply_id = await bob.reply(incoming, b"response\x00\xff")
+            assert reply_id != incoming.id
+            assert await request == Message(
+                id=reply_id, sender="bob", network="red", payload=b"response\x00\xff",
+                reply_to=incoming.id,
+            )
+            assert await alice.receive() == Message(
+                id=unrelated_id, sender="bob", network="red", payload=b"unrelated"
+            )
     asyncio.run(check())
