@@ -1,8 +1,8 @@
 """Bounded owned NWM3 relay/Python clients to built or installed Node client.
 
-Default mode uses this checkout, or NODALWIRE_PYTHON_SOURCE selects reviewed src/.
-NODALWIRE_PYTHON_INSTALLED=1 instead requires an isolated external environment;
-package_smoke.py --python-artifact stages these fixtures outside the checkout.
+Source-mode execution requires NODALWIRE_PYTHON_SOURCE to select exact reviewed
+NWM3 src/. NODALWIRE_PYTHON_INSTALLED=1 instead requires an isolated external
+environment; package_smoke.py --python-artifact stages fixtures outside checkout.
 """
 
 import asyncio
@@ -12,20 +12,9 @@ from pathlib import Path
 
 INSTALLED = os.environ.get("NODALWIRE_PYTHON_INSTALLED") == "1"
 SOURCE_SETTING = os.environ.get("NODALWIRE_PYTHON_SOURCE")
-if not INSTALLED:
-    if not SOURCE_SETTING:
-        raise RuntimeError("Set NODALWIRE_PYTHON_SOURCE to the exact reviewed NWM3 source tree")
-    SOURCE = Path(SOURCE_SETTING).resolve()
+SOURCE = Path(SOURCE_SETTING).resolve() if SOURCE_SETTING else None
+if not INSTALLED and SOURCE is not None and str(SOURCE) not in sys.path:
     sys.path.insert(0, str(SOURCE))
-
-import nodalwire  # noqa: E402
-from nodalwire import AdminClient, Node, Relay, RelayConfig  # noqa: E402
-from nodalwire.config import NetworkConfig  # noqa: E402
-from nodalwire.config_store import ConfigStore  # noqa: E402
-from nodalwire.credentials import make_verifier  # noqa: E402
-from nodalwire.protocol import VERSION as PYTHON_VERSION  # noqa: E402
-
-assert PYTHON_VERSION == b"NWM3", f"Interop requires NWM3 Python source, got {PYTHON_VERSION!r}"
 
 
 def validate_installed_paths(module, prefix, runtime, paths, checkout, cwd):
@@ -48,19 +37,40 @@ def validate_installed_paths(module, prefix, runtime, paths, checkout, cwd):
                 "Checkout path outside managed interpreter leaked")
 
 
-if INSTALLED:
-    from importlib.metadata import distribution
+def load_interop_runtime():
+    """Load a selected NWM3 source or installed Python artifact only at execution."""
+    global SOURCE, nodalwire, AdminClient, Node, Relay, RelayConfig
+    global NetworkConfig, ConfigStore, make_verifier
 
-    SOURCE = Path(nodalwire.__file__).resolve().parent
-    prefix = Path(sys.prefix).resolve()
-    metadata = distribution("nodalwire")
-    assert sys.flags.isolated, "Installed acceptance requires Python -I"
-    assert Path(metadata.locate_file("")).resolve().is_relative_to(prefix)
-    forbidden = Path(os.environ["NODALWIRE_FORBIDDEN_SOURCE"]).resolve()
-    validate_installed_paths(SOURCE, prefix, sys.base_prefix, sys.path, forbidden, Path.cwd())
-    assert metadata.version == os.environ["NODALWIRE_EXPECTED_VERSION"]
-    print(f"PASS installed Python provenance: version={metadata.version}; "
-          f"module={SOURCE}; prefix={prefix}; sys.path={sys.path}", flush=True)
+    if not INSTALLED:
+        if SOURCE is None:
+            raise RuntimeError(
+                "Set NODALWIRE_PYTHON_SOURCE to the exact reviewed NWM3 source tree"
+            )
+        if str(SOURCE) not in sys.path:
+            sys.path.insert(0, str(SOURCE))
+
+    import nodalwire
+    from nodalwire import AdminClient, Node, Relay, RelayConfig
+    from nodalwire.config import NetworkConfig
+    from nodalwire.config_store import ConfigStore
+    from nodalwire.credentials import make_verifier
+    from nodalwire.protocol import VERSION as python_version
+
+    assert python_version == b"NWM3", f"Interop requires NWM3, got {python_version!r}"
+    SOURCE = Path(nodalwire.__file__).resolve().parent if INSTALLED else SOURCE
+    if INSTALLED:
+        from importlib.metadata import distribution
+
+        prefix = Path(sys.prefix).resolve()
+        metadata = distribution("nodalwire")
+        assert sys.flags.isolated, "Installed acceptance requires Python -I"
+        assert Path(metadata.locate_file("")).resolve().is_relative_to(prefix)
+        forbidden = Path(os.environ["NODALWIRE_FORBIDDEN_SOURCE"]).resolve()
+        validate_installed_paths(SOURCE, prefix, sys.base_prefix, sys.path, forbidden, Path.cwd())
+        assert metadata.version == os.environ["NODALWIRE_EXPECTED_VERSION"]
+        print(f"PASS installed Python provenance: version={metadata.version}; "
+              f"module={SOURCE}; prefix={prefix}; sys.path={sys.path}", flush=True)
 
 
 async def scenario(protected_default=False):
@@ -191,6 +201,7 @@ async def scenario(protected_default=False):
 
 
 async def main():
+    load_interop_runtime()
     await scenario()
     await scenario(protected_default=True)
 

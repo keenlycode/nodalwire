@@ -16,7 +16,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from email.parser import BytesParser
+from email.policy import default
 from pathlib import Path
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[5]
 PACKAGE = ROOT / "src" / "nodalwire" / "client" / "node"
@@ -72,19 +75,41 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-interop", action="store_true")
     parser.add_argument("--python-artifact", type=Path,
-                        help="Install a matching Python wheel/sdist for isolated interop")
+                        help="Install a matching Python wheel for isolated interop")
+    parser.add_argument("--python-version",
+                        help="Expected nodalwire Python distribution version for --python-artifact")
     args = parser.parse_args()
     if (
         not args.skip_interop and not args.python_artifact and
         not os.environ.get("NODALWIRE_PYTHON_SOURCE")
     ):
         parser.error("source interop requires NODALWIRE_PYTHON_SOURCE for the reviewed NWM3 tree")
+    if args.python_version and not args.python_artifact:
+        parser.error("--python-version is only valid with --python-artifact")
     if args.python_artifact:
         if args.skip_interop:
             parser.error("--python-artifact cannot be combined with --skip-interop")
+        if not args.python_version:
+            parser.error("--python-artifact requires its own explicit --python-version")
         args.python_artifact = args.python_artifact.resolve()
-        if not args.python_artifact.is_file():
-            parser.error("--python-artifact must name an existing wheel/sdist")
+        if not args.python_artifact.is_file() or args.python_artifact.suffix != ".whl":
+            parser.error("--python-artifact must name an existing wheel")
+        try:
+            with ZipFile(args.python_artifact) as archive:
+                metadata_paths = [path for path in archive.namelist()
+                                  if path.endswith(".dist-info/METADATA")]
+                if len(metadata_paths) != 1:
+                    raise ValueError("wheel must contain exactly one dist-info/METADATA")
+                metadata = BytesParser(policy=default).parsebytes(
+                    archive.read(metadata_paths[0])
+                )
+        except (OSError, ValueError) as error:
+            parser.error(f"invalid Python wheel metadata: {error}")
+        if metadata["Name"] != "nodalwire" or metadata["Version"] != args.python_version:
+            parser.error(
+                "Python wheel metadata does not match its independent expected name/version"
+            )
+    node_expected_version = json.loads((PACKAGE / "package.json").read_text())["version"]
     scratch = os.environ.get("NODALWIRE_EVIDENCE_DIR")
     if scratch:
         Path(scratch).mkdir(parents=True, exist_ok=True)
@@ -148,6 +173,13 @@ void application;
         print("PASS installed declarations: bytes/network/membership/request/reply metadata contracts",
               flush=True)
         installed_root = consumer / "node_modules/@devcapsule/nodalwire-client"
+        installed_root_resolved = installed_root.resolve(strict=True)
+        assert installed_root_resolved.is_relative_to(consumer.resolve())
+        node_metadata = json.loads((installed_root_resolved / "package.json").read_text())
+        assert node_metadata["name"] == "@devcapsule/nodalwire-client"
+        assert node_metadata["version"] == node_expected_version
+        print(f"PASS installed Node provenance: version={node_metadata['version']}; "
+              f"package={installed_root_resolved}", flush=True)
         installed = installed_root / "dist/index.js"
         # Preserve root-relative fixture imports without changing any test body.
         # The scratch src SDK link targets the consumer install, never project dist.
@@ -185,8 +217,7 @@ void application;
                 "NODALWIRE_CLIENT_MODULE": installed.as_uri(),
                 "NODALWIRE_PYTHON_INSTALLED": "1",
                 "NODALWIRE_FORBIDDEN_SOURCE": str(ROOT),
-                "NODALWIRE_EXPECTED_VERSION": json.loads(
-                    (PACKAGE / "package.json").read_text())["version"],
+                "NODALWIRE_EXPECTED_VERSION": args.python_version,
             })
         else:
             run([sys.executable, str(Path(__file__).with_name("interop.py"))], env={

@@ -191,8 +191,10 @@ relative to this package and use its pinned dependencies.
 Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
 run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
 Source interop requires `NODALWIRE_PYTHON_SOURCE` to name the exact reviewed NWM3
-tree; the repository baseline may be incompatible. Focused fake-router tests alone
-are not cross-language acceptance evidence.
+tree; the repository baseline may be incompatible. Installed Python tests require
+an independent `--python-version` matching that wheel's own metadata (Python and
+Node development version strings intentionally differ). Focused fake-router tests
+alone are not cross-language acceptance evidence.
 `NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` selects the exact matching reviewed
 Python source for source-mode interoperability without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
 scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
@@ -200,7 +202,7 @@ scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 explicit artifact-only check while Python is unavailable, run
 `deno task test:artifact --skip-interop`; its output labels real wire tests
 as skipped, not passed. For both packages installed outside the checkout, run
-`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl`.
+`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl --python-version 0.3.0.dev0`.
 This creates a fresh Python environment, uses `-I`, copies only interoperability
 fixtures outside the repository and asserts installed provenance/version. Default
 source-mode interop alone does not establish installed-Python acceptance. The
