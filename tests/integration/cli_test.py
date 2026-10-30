@@ -474,6 +474,26 @@ def test_release_failure_preserves_accepted_result_or_primary_send_rejection(rel
     asyncio.run(run())
 
 
+def test_no_subcommand_shows_root_help_and_exits(monkeypatch):
+    monkeypatch.delenv("NODALWIRE_ADMIN_TOKEN", raising=False)
+
+    async def run():
+        outputs = []
+        for args in ((), ("--help",)):
+            process = await spawn(*args)
+            try:
+                out, err = await asyncio.wait_for(process.communicate(), 2)
+                assert process.returncode == 0
+                assert err == b""
+                assert b"serve" in out and b"send" in out and b"admin" in out
+                outputs.append(out)
+            finally:
+                await close_child(process)
+        assert outputs[0] == outputs[1]
+
+    asyncio.run(run())
+
+
 def test_help_and_startup_errors_are_secret_safe_and_on_correct_streams(tmp_path, monkeypatch):
     monkeypatch.delenv("NODALWIRE_ADMIN_TOKEN", raising=False)
 
@@ -489,7 +509,7 @@ def test_help_and_startup_errors_are_secret_safe_and_on_correct_streams(tmp_path
         missing.write_text(
             'config_version=2\nendpoint="tcp://127.0.0.1:*"\nadmin_endpoint="tcp://127.0.0.1:*"\n'
         )
-        code, events, err = await invoke("--config", missing)
+        code, events, err = await invoke("serve", "--config", missing)
         assert code == 2 and events == []
         assert json.loads(err)["error"] == "invalid_configuration_or_input"
         valid = config_file(tmp_path)

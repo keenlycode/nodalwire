@@ -12,7 +12,7 @@
 {% endset %}{{ code_block(help_commands, 'terminal', 'shell') }}
 <p>Each client invocation registers a new connection and explicitly joins the selected network, then disconnects. A later invocation does not inherit membership, pending requests, or an inbox. Use the <a href="{{ url('reference/api/') }}">Python/Node clients</a> for persistent service loops.</p></section>
 <section aria-labelledby="serve"><h2 id="serve">Relay: <code>serve</code></h2>
-<p><code>serve [--config PATH]</code> runs in the foreground. Invoking the root command without a subcommand also starts the relay. Supply <code>NODALWIRE_ADMIN_TOKEN</code> explicitly, or a valid configuration verifier; missing/malformed credentials fail before bind. The service prints its data endpoint after native bind succeeds.</p>
+<p><code>serve [--config PATH]</code> runs in the foreground. Invoking <code>nodalwire</code> without a subcommand shows help and exits; use <code>serve</code> explicitly to start the relay. Supply <code>NODALWIRE_ADMIN_TOKEN</code> explicitly, or a valid configuration verifier; missing/malformed credentials fail before bind. The service prints its data endpoint after native bind succeeds.</p>
 <p><code>serve</code> has no <code>--endpoint</code> option. Set data/admin endpoints in strict version 2 TOML. Without a file the configuration is memory-only; with <code>--config</code>, administration saves policy changes to that same file. Endpoints and native limits are startup-only.</p>
 {% set serve_commands %}export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 .venv/bin/nodalwire serve --config local.toml
