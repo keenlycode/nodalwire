@@ -1,7 +1,26 @@
-# NodalWire 0.2.0
+# NodalWire 0.2.1
 
-Stable 0.2.0 release notes. Source preparation does not establish registry
-availability; publication and deployment are separate approved operations.
+Python-only patch release. The Python relay version is 0.2.1; the Node package
+remains 0.2.0. Source preparation does not establish registry availability;
+publication and deployment are separate approved operations.
+
+## Changes
+
+- Bare `nodalwire` now displays help and exits instead of starting a relay.
+  Explicitly start the relay with `nodalwire serve`; callers that previously
+  passed root-level `--config` must use `nodalwire serve --config`.
+- No wire protocol, Node package, or network behavior change.
+
+## Python installation
+
+After publication, install with `python -m pip install 'nodalwire==0.2.1'`.
+Python requires 3.12 or newer.
+
+## Previous 0.2.0 release
+
+Stable 0.2.0 release notes follow; they describe the shared protocol and Node
+package, which remain at 0.2.0.
+
 
 ## Changes
 
@@ -41,7 +60,7 @@ availability; publication and deployment are separate approved operations.
 After publication, the corresponding installation commands are:
 
 ```sh
-python -m pip install 'nodalwire==0.2.0'
+python -m pip install 'nodalwire==0.2.1'
 npm install @devcapsule/nodalwire-client@0.2.0
 ```
 

@@ -22,6 +22,7 @@ async def service(config: Path, *, env=None):
         sys.executable,
         "-m",
         "nodalwire",
+        "serve",
         "--config",
         str(config),
         env=environment,

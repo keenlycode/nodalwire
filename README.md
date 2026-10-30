@@ -18,9 +18,9 @@ Transport/config version upgrades reject legacy wire/config rather than downgrad
 
 ## Consumers: install into your own application
 
-Version **0.2.0** requires matching Python and Node packages. Do not mix legacy
-0.1 packages with this AR2 relay. Building or checking a source checkout does not
-publish a release or establish registry availability.
+Python **0.2.1** and Node **0.2.0** are compatible; the Python patch changes
+CLI startup behavior only. Do not mix legacy 0.1 packages with this AR2 relay.
+Building or checking a source checkout does not publish a release or establish registry availability.
 
 For prepublication, offline or local-artifact use, obtain the matching wheel and
 built Node tarball from your maintainer. In a new
@@ -30,7 +30,7 @@ application directory, with Python 3.12+, Node.js 24, uv and pnpm 12.5.1:
 mkdir my-nodalwire-app
 cd my-nodalwire-app
 uv venv .venv
-uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.0-py3-none-any.whl
+uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.1-py3-none-any.whl
 printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
 pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
 ```
@@ -49,9 +49,10 @@ Follow the [Getting Started walkthrough](src/docs-src/getting-started/index.html
 for the relay and two clients. Supply an administrator token before starting the
 relay. Never start over an existing listener or connect 0.2 clients to a 0.1
 relay; use a private v2 configuration with unused loopback ports when necessary.
-Only after matching 0.2.0 artifacts are actually published would
-`uv pip install --python .venv/bin/python nodalwire==0.2.0` and
-`pnpm add @devcapsule/nodalwire-client@0.2.0` replace local artifact paths.
+Only after the matching Python 0.2.1 artifact is actually published would
+`uv pip install --python .venv/bin/python nodalwire==0.2.1` replace the local
+Python artifact path; the Node install remains
+`pnpm add @devcapsule/nodalwire-client@0.2.0`.
 
 ## Contributors: build from a checkout
 
@@ -77,7 +78,7 @@ both installed packages outside the checkout. After building the wheel above:
 
 ```sh
 NODALWIRE_EVIDENCE_DIR=/tmp python tests/integration/nodalwire/client/node/package_smoke.py \
-  --python-artifact /tmp/nodalwire-artifacts/nodalwire-0.2.0-py3-none-any.whl
+  --python-artifact /tmp/nodalwire-artifacts/nodalwire-0.2.1-py3-none-any.whl
 ```
 
 This builds/packs the SDK, installs a fresh external consumer, checks ESM/types
@@ -99,9 +100,9 @@ Maintained site inputs live in [src/docs-src/](src/docs-src/); isolated build
 scripts and locked dependencies live in [src/tools/docs/](src/tools/docs/).
 Root `docs/` is ignored local preview output, not tracked source-branch content.
 Validated public output is prepared separately for the dedicated `docs` branch
-root; generated site assets do not belong in `main`. The normal stable release
-goal is matching 0.2.0 PyPI/npm packages, followed by approved documentation
-publication. Package uploads, source/tag/docs pushes and Pages deployment require
+root; generated site assets do not belong in `main`. The normal release
+goal is Python 0.2.1 on PyPI and Node 0.2.0 on npm, followed by approved
+documentation publication. Package uploads, source/tag/docs pushes and Pages deployment require
 separate final approval; local preparation does none of them.
 See the [documentation tooling guide](src/tools/docs/README.md) for setup,
 preview, component ownership, and optional owned-browser verification.

@@ -24,6 +24,22 @@ from nodalwire.cli import (
 from nodalwire.protocol import RelayError
 
 
+@pytest.mark.parametrize("args", [[], ["--help"]])
+def test_root_help_does_not_execute_service(args, monkeypatch, capsys):
+    from nodalwire import cli
+
+    def unexpected_execution(*args, **kwargs):
+        pytest.fail("root help must not execute a service or operation")
+
+    monkeypatch.setattr(cli, "_execute", unexpected_execution)
+    with pytest.raises(SystemExit) as exit_info:
+        cli.app(args, exit_on_error=False)
+    assert exit_info.value.code == 0
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert "serve" in out and "send" in out and "admin" in out
+
+
 def test_bounded_input_binary_empty_and_exact_limit(tmp_path):
     for payload in (b"", b"\x00\xff\n", b"a" * 9):
         assert _bounded_read(io.BytesIO(payload), len(payload)) == payload

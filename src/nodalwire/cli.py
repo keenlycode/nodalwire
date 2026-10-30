@@ -635,7 +635,6 @@ def _client(
     _execute(invoke)
 
 
-@app.default
 def main(*, config: Path | None = None) -> None:
     """Start the relay; prints the bound endpoint after native bind succeeds.
 
