@@ -1,6 +1,6 @@
 import { isIP } from "node:net";
 
-export const VERSION = "AR2";
+export const VERSION = "NWM3";
 export const RELAY_CODES = new Set([
   "invalid_name",
   "admission_denied",
@@ -14,6 +14,8 @@ export const RELAY_CODES = new Set([
   "not_member",
   "destination_not_member",
   "payload_too_large",
+  "invalid_id",
+  "invalid_reply_to",
   "route_denied",
   "destination_unavailable",
   "destination_full",
@@ -34,10 +36,17 @@ export function credentialFrame(credential?: string): string {
   return credential;
 }
 
-export interface SendOptions extends OperationOptions {
+export interface RequestOptions extends OperationOptions {
   /** Omitted means default only, never another shared network. */
   network?: string;
 }
+
+export interface SendOptions extends RequestOptions {
+  /** Omitted means an ordinary message, not a reply. */
+  reply_to?: string;
+}
+
+export const ID_PATTERN = /^[0-9a-f]{32}$/;
 
 export interface MembershipReceipt {
   readonly network: string;

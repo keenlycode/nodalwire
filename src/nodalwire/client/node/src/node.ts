@@ -1,7 +1,6 @@
 import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
 import { Dealer } from "zeromq";
-import { decodeEnvelope, encodeEnvelope } from "./envelope.js";
 import { Inbox } from "./inbox.js";
 import type { Message } from "./inbox.js";
 import { Receipts } from "./receipts.js";
@@ -9,6 +8,7 @@ import {
   abortReason,
   ascii,
   credentialFrame,
+  ID_PATTERN,
   localEndpoint,
   ReceiptTimeout,
   RelayError,
@@ -16,7 +16,12 @@ import {
   validName,
   VERSION,
 } from "./protocol.js";
-import type { MembershipReceipt, OperationOptions, SendOptions } from "./protocol.js";
+import type {
+  MembershipReceipt,
+  OperationOptions,
+  RequestOptions,
+  SendOptions,
+} from "./protocol.js";
 
 export interface ConnectOptions extends OperationOptions {
   sendHwm?: number;
@@ -163,20 +168,66 @@ export class Node {
     destination: string,
     payload: Uint8Array,
     options: SendOptions = {},
-  ): Promise<void> {
+  ): Promise<string> {
     this.checkOpen();
-    if (!validName(destination)) throw new TypeError("invalid destination name");
+    const snapshot = this.snapshotPayload(payload);
     const network = selectedNetwork(options.network);
+    const replyTo = options.reply_to;
+    if (
+      replyTo !== undefined &&
+      (typeof replyTo !== "string" || !ID_PATTERN.test(replyTo))
+    ) {
+      throw new TypeError("invalid reply_to ID");
+    }
+    return await this.sendWithId(
+      destination,
+      snapshot,
+      network,
+      replyTo ?? "",
+      options,
+    );
+  }
+
+  private snapshotPayload(payload: Uint8Array): Buffer {
     if (!(payload instanceof Uint8Array)) {
       throw new TypeError("payload must be Uint8Array");
     }
-    if (payload.byteLength > this.maxPayload) throw new RelayError("payload_too_large");
+    const snapshot = Buffer.from(payload);
+    if (snapshot.byteLength > this.maxPayload) {
+      throw new RelayError("payload_too_large");
+    }
+    return snapshot;
+  }
+
+  private newId(except?: string): string {
+    let id: string;
+    do id = randomBytes(16).toString("hex"); while (
+      id === except || this.replies.has(id) || this.receipts.has(id)
+    );
+    return id;
+  }
+
+  private async sendWithId(
+    destination: string,
+    payload: Buffer,
+    network: string,
+    replyTo: string,
+    options: OperationOptions,
+    id = this.newId(),
+    onReject?: (error: unknown) => void,
+  ): Promise<string> {
+    this.checkOpen();
+    if (!validName(destination)) throw new TypeError("invalid destination name");
     await this.control(
       "SEND",
-      [Buffer.from(network), Buffer.from(destination), Buffer.from(payload)],
+      [Buffer.from(network), Buffer.from(destination), Buffer.from(replyTo), payload],
       options,
       emptyReceipt,
+      false,
+      onReject,
+      id,
     );
+    return id;
   }
 
   async join(
@@ -215,16 +266,19 @@ export class Node {
   async request(
     destination: string,
     payload: Uint8Array,
-    options: SendOptions = {},
+    options: RequestOptions = {},
   ): Promise<Message> {
     this.checkOpen();
+    if ("reply_to" in options || "id" in options) {
+      throw new TypeError("request does not accept ID overrides");
+    }
+    const snapshot = this.snapshotPayload(payload);
     if (!validName(destination)) throw new TypeError("invalid destination name");
     const network = selectedNetwork(options.network);
     const seconds = timeoutSeconds(options.timeout ?? this.timeout);
     options.signal?.throwIfAborted();
     if (this.replies.size >= this.maxPending) throw new RelayError("pending_full");
-    const id = randomBytes(16).toString("hex");
-    const encoded = encodeEnvelope({ kind: "request", id, payload }, this.maxPayload);
+    const id = this.newId();
     const receiptAbort = new AbortController();
     // Timer and SEND begin in this synchronous turn: a single monotonic deadline,
     // not a fresh timeout after receipt acceptance.
@@ -258,12 +312,13 @@ export class Node {
     try {
       // Receipt failures settle app ownership synchronously in the reader, just
       // like replies; Promise continuation timing must not reverse wire order.
-      void this.control(
-        "SEND",
-        [Buffer.from(network), Buffer.from(destination), Buffer.from(encoded)],
+      void this.sendWithId(
+        destination,
+        snapshot,
+        network,
+        "",
         { timeout: seconds, signal: receiptAbort.signal },
-        emptyReceipt,
-        false,
+        id,
         failed,
       ).catch(failed);
     } catch (error) {
@@ -277,21 +332,27 @@ export class Node {
     incoming: Message,
     payload: Uint8Array,
     options: OperationOptions = {},
-  ): Promise<void> {
+  ): Promise<string> {
     this.checkOpen();
-    if (!incoming || "network" in options) throw new TypeError("invalid reply options");
-    const envelope = decodeEnvelope(incoming.payload, this.maxPayload);
-    if (!envelope || envelope.kind !== "request") {
-      throw new TypeError("not a request envelope");
+    if (
+      !incoming || "network" in options || "reply_to" in options || "id" in options
+    ) throw new TypeError("invalid reply options");
+    if (
+      !validName(incoming.sender) || !validName(incoming.network) ||
+      typeof incoming.id !== "string" || !ID_PATTERN.test(incoming.id) ||
+      (incoming.reply_to !== undefined && !ID_PATTERN.test(incoming.reply_to))
+    ) {
+      throw new TypeError("invalid incoming message metadata");
     }
-    const encoded = encodeEnvelope(
-      { kind: "reply", id: envelope.id, payload },
-      this.maxPayload,
+    const snapshot = this.snapshotPayload(payload);
+    return await this.sendWithId(
+      incoming.sender,
+      snapshot,
+      incoming.network,
+      incoming.id,
+      options,
+      this.newId(incoming.id),
     );
-    await this.send(incoming.sender, encoded, {
-      ...options,
-      network: incoming.network,
-    });
   }
 
   /** Cancel only this waiter; queued data remains readable after close. */
@@ -352,11 +413,19 @@ export class Node {
     validate: (frames: Buffer[]) => T,
     initial = false,
     onReject?: (error: unknown) => void,
+    explicitId?: string,
   ): Promise<T> {
     if (this.closed) return Promise.reject(new RelayError("closed"));
     const seconds = timeoutSeconds(options.timeout ?? this.timeout);
     const token = initial ? Buffer.alloc(0) : this.token!;
-    const request = this.receipts.begin(token, seconds, options, validate, onReject);
+    const request = this.receipts.begin(
+      token,
+      seconds,
+      options,
+      validate,
+      onReject,
+      explicitId,
+    );
     const body: Buffer[] = [Buffer.from(VERSION), Buffer.from(command)];
     if (!initial) body.push(token);
     body.push(Buffer.from(request.id), ...frames);
@@ -395,28 +464,29 @@ export class Node {
         const command = ascii(frames[1]);
         const token = frames[2];
         if (command === "DATA") {
-          if (frames.length !== 6 || !this.token?.equals(token)) continue;
-          const network = ascii(frames[3]);
-          const sender = ascii(frames[4]);
+          if (frames.length !== 8 || !this.token?.equals(token)) continue;
+          const id = ascii(frames[3]);
+          const network = ascii(frames[4]);
+          const sender = ascii(frames[5]);
+          const replyTo = frames[6].length === 0 ? undefined : ascii(frames[6]);
           if (
-            !validName(network) || !validName(sender) ||
-            frames[5].length > this.maxPayload
+            !id || !ID_PATTERN.test(id) ||
+            (frames[6].length !== 0 && (!replyTo || !ID_PATTERN.test(replyTo))) ||
+            !network || !validName(network) || !sender || !validName(sender) ||
+            frames[7].length > this.maxPayload
           ) continue;
           const message: Message = {
+            id,
             network,
             sender,
-            payload: Uint8Array.from(frames[5]),
+            reply_to: replyTo,
+            payload: Uint8Array.from(frames[7]),
           };
-          const envelope = this.replies.size
-            ? decodeEnvelope(message.payload, this.maxPayload)
-            : undefined;
-          const waiter = envelope?.kind === "reply"
-            ? this.replies.get(envelope.id)
-            : undefined;
+          const waiter = replyTo ? this.replies.get(replyTo) : undefined;
           if (waiter && waiter.sender === sender && waiter.network === network) {
             // Synchronous ownership before Promise continuations: accepted reply wins
             // a subsequent same-turn abort or receipt failure.
-            waiter.resolve({ network, sender, payload: envelope!.payload });
+            waiter.resolve(message);
           } else await this.inbox.put(message);
           continue;
         }

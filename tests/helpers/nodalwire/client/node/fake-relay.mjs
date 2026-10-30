@@ -2,7 +2,7 @@ import { Router } from "./deps.mjs";
 
 export const TOKEN = "0123456789abcdef0123456789abcdef";
 
-/** Owned ephemeral AR2 socket. Every test closes/joins its sole reader. */
+/** Owned ephemeral NWM3 socket. Every test closes/joins its sole reader. */
 export async function fakeRelay(handler = () => {}, options = {}) {
   const router = new Router({ linger: 0 });
   await router.bind("tcp://127.0.0.1:*");
@@ -22,16 +22,17 @@ export async function fakeRelay(handler = () => {}, options = {}) {
           rid,
           token: TOKEN,
           ok: (...extra) =>
-            send(route, "AR2", "OK", initial ? "" : TOKEN, rid, ...extra),
-          error: (code) => send(route, "AR2", "ERROR", initial ? "" : TOKEN, rid, code),
-          data: (network, sender, payload, token = TOKEN) =>
-            send(route, "AR2", "DATA", token, network, sender, payload),
+            send(route, "NWM3", "OK", initial ? "" : TOKEN, rid, ...extra),
+          error: (code) =>
+            send(route, "NWM3", "ERROR", initial ? "" : TOKEN, rid, code),
+          data: (id, network, sender, replyTo, payload, token = TOKEN) =>
+            send(route, "NWM3", "DATA", token, id, network, sender, replyTo, payload),
           raw: (...body) => send(route, ...body),
         };
         seen.push(frames);
         if (initial) peers.set(frames[4].toString(), peer);
         if (await handler(peer)) continue;
-        if (version.toString() !== "AR2") continue;
+        if (version.toString() !== "NWM3") continue;
         switch (peer.command) {
           case "HELLO":
             await peer.ok(TOKEN, "10", "1048576", options.memberships ?? '["default"]');
