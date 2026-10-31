@@ -1,148 +1,130 @@
 {% extends "_layouts/product.html" %}
 {% set page_path = 'getting-started/' %}
 {% set page_title = 'Get started' %}
-{% set page_intro = 'Build the local development candidate, then exchange a message between Python and Node.js.' %}
+{% set page_intro = 'Install NodalWire, start a local relay, and send your first message.' %}
 {% set page_ancestors = [] %}
 {% block content %}
-<p>In this walkthrough you will build matching local artifacts, start your own relay, and run two small programs. Python receives a greeting and sends one back to Node.js. Keep the relay and both programs on the same machine.</p>
-<section aria-labelledby="setup">
-  <h2 id="setup">1. Prepare matching local artifacts</h2>
+<p>
+  You will send <code>hello</code> between two terminals on your computer.
+  You only need the NodalWire command-line tool for this walkthrough—no application
+  code, Node.js setup, or source build.
+</p>
+<p>
+  This quick start uses the published Python release <strong>0.2.1</strong>.
+  Use that same release in all three terminals, including the relay; do not mix
+  an existing development relay with these clients.
+</p>
+
+<section aria-labelledby="install">
+  <h2 id="install">1. Install NodalWire</h2>
   <p>
-    This walkthrough targets the NWM3 development candidate, not a published
-    0.3 release. Build both local artifacts from the same reviewed NWM3 source
-    checkout. The development labels are Python
-    <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code>; they identify local
-    candidate builds only and make no claim of registry availability. Released
-    Python 0.2.x / Node 0.2.0 artifacts use AR2 and are incompatible with NWM3.
-    You need Python 3.12+, Node.js 24, <code>uv</code>, and pnpm 12.5.1.
+    You need Python 3.12 or later and
+    <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a>.
+    Install the command-line tool in its own environment:
   </p>
-  {% set build_example %}# From the reviewed NWM3 source checkout:
-uv sync --locked
-pnpm --dir src/nodalwire/client/node install --frozen-lockfile
-pnpm --dir src/nodalwire/client/node exec tsc -p tsconfig.json
-mkdir -p /tmp/nodalwire-nwm3-candidate
-uv build --out-dir /tmp/nodalwire-nwm3-candidate
-pnpm --dir src/nodalwire/client/node pack --pack-destination /tmp/nodalwire-nwm3-candidate
-{% endset %}{{ code_block(build_example, 'build local candidate artifacts', 'shell') }}
-  <p>Confirm both outputs came from that same reviewed checkout. Then create a
-    separate application directory and install the local files; do not install by
-    package name or overwrite an existing application's pnpm script policy:</p>
-  {% set setup_example %}mkdir my-nodalwire-app
-cd my-nodalwire-app
-uv venv .venv
-uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.3.0.dev0-py3-none-any.whl
-printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
-pnpm add /absolute/path/devcapsule-nodalwire-client-0.3.0-dev.0.tgz
-{% endset %}{{ code_block(setup_example, 'install local candidate artifacts', 'shell') }}
-  <p>Replace the local artifact paths with the files built above. Run the remaining
-    walkthrough commands from this application directory. These shell paths are
-    for Linux/macOS; local verification covered Linux only. Do not substitute
-    released 0.2.x artifacts for either NWM3 dependency.</p>
-  <details>
-    <summary>About the Node.js setup</summary>
-    <p>
-      The local tarball includes compiled JavaScript and declarations; consumers
-      need neither Deno nor TypeScript. The native <code>zeromq</code> install
-      script is required and explicitly permitted above. Native prebuild/fallback
-      build availability is platform-dependent; other package managers have
-      different script policies. Contributor builds and maintainer artifact
-      acceptance are separate steps described in the repository README. Building
-      or installing these local candidate files does not publish them or establish
-      registry availability.
-    </p>
-  </details>
+  {% set install_example %}uv tool install 'nodalwire==0.2.1'
+nodalwire --version
+{% endset %}{{ code_block(install_example, 'install NodalWire', 'shell') }}
+  <p>
+    These commands use a Linux/macOS-style shell. Open three terminals before
+    continuing, and check that <code>nodalwire --version</code> reports
+    <code>0.2.1</code> in each one.
+  </p>
 </section>
 
 <section aria-labelledby="start-relay">
   <h2 id="start-relay">2. Start the relay — Terminal 1</h2>
-  <p>Create a private administrator token, then start the relay. Leave it running.</p>
-  {% set relay_example %}export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-.venv/bin/nodalwire serve
+  <p>
+    The relay passes messages between your applications. Generate a private
+    administrator token, then start it:
+  </p>
+  {% set relay_example %}export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+nodalwire serve
 {% endset %}{{ code_block(relay_example, 'terminal 1', 'shell') }}
   <p>
-    The token is required to start the relay, but these clients do not need it.
-    This example uses the default local endpoint and an open <code>default</code>
-    network. Do not start a second relay if one is already using these ports, or
-    connect these clients to a released AR2 relay. For a separate instance, use
-    <code>.venv/bin/nodalwire serve --config relay.toml</code> with unused loopback
-    data/admin ports in a <a href="../reference/config/">v2 configuration</a>.
-    Set <code>NODALWIRE_ENDPOINT</code> to its data endpoint in both client terminals.
+    Leave this terminal running. You should see
+    <code>tcp://127.0.0.1:5555</code> and a <code>serving</code> status event.
+    <strong>No configuration file is required.</strong>
   </p>
-</section>
-
-<section aria-labelledby="python">
-  <h2 id="python">3. Run Python — Terminal 2</h2>
-  <p>Save this as <code>python-echo.py</code> in your application directory.</p>
-  {% set python_example %}import asyncio
-import os
-
-from nodalwire import Node
-
-
-async def main():
-    endpoint = os.getenv("NODALWIRE_ENDPOINT", "tcp://127.0.0.1:5555")
-    async with await Node.connect("python-echo", endpoint) as echo:
-        print("Python is ready", flush=True)
-        message = await asyncio.wait_for(echo.receive(), timeout=120)
-        print(message.payload.decode())
-        await echo.send(message.sender, b"hello from Python")
-
-
-asyncio.run(main())
-{% endset %}{{ code_block(python_example, 'python-echo.py', 'python') }}
-  <p>Open a second terminal and run:</p>
-  {% set python_command %}.venv/bin/python python-echo.py
-{% endset %}{{ code_block(python_command, 'terminal 2', 'shell') }}
-  <p>Wait for <code>Python is ready</code>, then run Node.js in the next step.</p>
-</section>
-
-<section aria-labelledby="node">
-  <h2 id="node">4. Run Node.js — Terminal 3</h2>
-  <p>Save this as <code>node-exchange.mjs</code> in your application directory.</p>
-  {% set javascript_example %}import { Node } from "@devcapsule/nodalwire-client";
-
-const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
-const client = await Node.connect("node-client", endpoint);
-try {
-  await client.send("python-echo", new TextEncoder().encode("hello from Node"));
-  const reply = await client.receive({ signal: AbortSignal.timeout(5000) });
-  console.log(new TextDecoder().decode(reply.payload));
-} finally {
-  await client.close();
-}
-{% endset %}{{ code_block(javascript_example, 'node-exchange.mjs', 'javascript') }}
-  <p>Open a third terminal and run:</p>
-  {% set node_command %}node node-exchange.mjs
-{% endset %}{{ code_block(node_command, 'terminal 3', 'shell') }}
   <p>
-    Python prints <code>hello from Node</code> and Node.js prints
-    <code>hello from Python</code>. Both clients then exit; the relay stays running.
-    Press Ctrl-C in Terminal 1 when you are finished with your relay.
+    Keep the token private. It protects relay administration; you do not need to
+    copy it into the other terminals for this example. The relay uses an open
+    <code>default</code> network and listens only on your computer.
   </p>
-  <details>
-    <summary>If the exchange does not finish</summary>
-    <p>
-      Python waits up to two minutes for the message; Node.js waits up to five
-      seconds for the reply. If either times out, check the relay, restart Python,
-      wait for its readiness line, then run Node.js again. These examples use
-      <code>127.0.0.1:5555</code> unless <code>NODALWIRE_ENDPOINT</code> is set.
-      An existing protected network needs a join credential; see the
-      <a href="../guides/networks/">networks guide</a>.
-    </p>
-  </details>
+</section>
+
+<section aria-labelledby="receive">
+  <h2 id="receive">3. Wait for a message — Terminal 2</h2>
+  <p>Name this receiver <code>bob</code> and wait for one message:</p>
+  {% set receive_example %}nodalwire receive --name bob --timeout 60
+{% endset %}{{ code_block(receive_example, 'terminal 2', 'shell') }}
+  <p>
+    Wait until you see an event with <code>"event":"ready"</code>, then
+    continue to Terminal 3. The receiver will wait for up to 60 seconds.
+  </p>
+</section>
+
+<section aria-labelledby="send">
+  <h2 id="send">4. Send hello — Terminal 3</h2>
+  <p>Send a message to <code>bob</code>, using <code>alice</code> as the sender:</p>
+  {% set send_example %}printf 'hello' | nodalwire send bob --name alice
+{% endset %}{{ code_block(send_example, 'terminal 3', 'shell') }}
+  <p>
+    Terminal 3 prints an <code>accepted</code> event. In Terminal 2, you should see
+    a <code>message</code> event with sender <code>alice</code> and payload
+    <code>aGVsbG8=</code>, followed by a <code>complete</code> event.
+    That payload is simply <code>hello</code> encoded as base64: the CLI uses
+    JSON so it can display binary messages as well as text.
+  </p>
+  <p>
+    You have sent your first message. <code>accepted</code> means the relay queued
+    it; the <code>message</code> event shows that Bob received it. Neither event
+    promises that an application processed it or stored it permanently.
+  </p>
+  <p>
+    Both client commands exit after this exchange. To try again, restart the
+    receiver, wait for <code>ready</code>, then send another message. When you are
+    finished, press <strong>Ctrl-C in Terminal 1</strong> to stop your relay.
+  </p>
+</section>
+
+<section aria-labelledby="troubleshooting">
+  <h2 id="troubleshooting">If something does not work</h2>
+  <dl>
+    <dt><code>nodalwire</code> is not found</dt>
+    <dd>
+      Run <code>uv tool update-shell</code>, then open a new terminal and check
+      <code>nodalwire --version</code> again.
+    </dd>
+    <dt>The relay will not start</dt>
+    <dd>
+      Run the token-generation command in the same terminal as
+      <code>nodalwire serve</code>. If either default port (5555 or 5556) is
+      already in use, do not stop an unfamiliar process. See
+      <a href="{{ url('run-a-relay/') }}">Run a relay</a> for choosing other ports.
+    </dd>
+    <dt>The message times out or Bob is unavailable</dt>
+    <dd>
+      Keep the relay running and make sure all terminals use version 0.2.1.
+      Restart Terminal 2's receiver and wait for <code>ready</code> before sending.
+      These commands all use the same default local relay; an existing protected
+      network needs its own join credential.
+    </dd>
+  </dl>
+  <p>
+    For command options, run <code>nodalwire --help</code> or
+    <code>nodalwire receive --help</code>.
+  </p>
 </section>
 
 <section aria-labelledby="next">
-  <h2 id="next">Next steps</h2>
+  <h2 id="next">Where next?</h2>
   <p>
-    You have exchanged bytes between two local applications. The reply shows
-    that Python ran the reply line in this example; a reply in your own application
-    confirms only what that application chooses to acknowledge. Sending alone does
-    not confirm processing. Continue with <a href="{{ url('messaging/') }}">messaging</a>,
-    <a href="{{ url('connect-your-apps/') }}">connecting your apps</a>, or the
-    <a href="{{ url('reference/api/') }}">API reference</a>.
-    Read <a href="../guides/security/">security</a> before sharing credentials:
-    they grant permission, not peer identity or encryption.
+    <a href="{{ url('connect-your-apps/') }}">Connect your apps</a> when you are
+    ready to use NodalWire from a program, or read
+    <a href="{{ url('messaging/') }}">Messaging</a> to learn about sending,
+    receiving, and waiting for replies. Check the version requirements there
+    before adding an SDK to this published-release setup.
   </p>
 </section>
 {% endblock %}
