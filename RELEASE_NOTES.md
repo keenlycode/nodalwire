@@ -1,4 +1,73 @@
-# NodalWire 0.2.1
+# NodalWire 0.3.0
+
+Coordinated Python **0.3.0** and Node **0.3.0** release preparation. These notes
+record the intended release contents; they are not evidence of registry
+publication. Package upload, tags, canonical-branch integration and documentation
+deployment require a separate release approval.
+
+## What changes
+
+- **Native message metadata:** NWM3 carries message `id` and optional `reply_to`
+  separately from raw application payload bytes in both SDKs.
+- **Native request correlation:** requests wait for a matching message ID, sender
+  and network. Replies get a fresh ID and reference the incoming message ID.
+  Unrelated and late messages remain available in the ordinary bounded inbox.
+- **Accepted message IDs:** successful Python and Node `send`/`reply` operations
+  return the generated message ID, after queue acceptance.
+- **CLI messages:** receive/reply events include native message metadata. Help
+  now includes a complete first-message walkthrough, command examples, parameter
+  descriptions and administration/revision guidance. No startup or authentication
+  requirement was relaxed.
+- **Node development tooling:** Node.js, TypeScript and pnpm scripts replace the
+  Deno task runner. The SDK ships compiled ESM and declarations; no SDK bundler
+  or new dependency is needed. Browser documentation bundles continue using esbuild.
+- **User documentation:** version-aware routing, task-oriented learning pages,
+  API/admin/protocol references and accessible static messaging diagrams. Getting
+  started follows install → relay → receive → send, without a source build.
+
+## Breaking upgrade from Python 0.2.x / Node 0.2.0
+
+1. Stop the old applications and relay, then upgrade the relay and **every**
+   messaging client together to 0.3.0. NWM3 rejects AR2; mixed versions cannot
+   communicate. There is no compatibility shim, automatic downgrade, translation,
+   reconnect or replay. Keep the previous artifacts/configuration separately if
+   you need a coordinated rollback; do not mix old clients with a new relay.
+2. Remove NWR1 envelope imports, encoding and decoding. `Message.payload` is now
+   raw application bytes, including bytes that happen to begin with `NWR1`.
+   Use native `Message.id` and `Message.reply_to` for correlation. Python uses
+   `None` and Node uses `undefined` when `reply_to` is absent.
+3. Update consumers of `send` and `reply` return values to accept a message-ID
+   string. Prefer SDK `request`/`reply` rather than reproducing correlation logic.
+   A message ID is not authenticated identity or proof of remote work.
+4. Regenerate saved CLI input files. A received message event has exactly
+   `event`, `id`, `reply_to`, `network`, `sender`, and `payload`; payload remains
+   base64 in CLI JSON. `reply --request-file` rejects old four-key events and
+   malformed/duplicate fields before connecting.
+5. Preserve configuration version **2** and NA1 administration: neither format
+   changed. Continue supplying an admin credential explicitly, and join protected
+   networks with their own credentials. A config file remains optional.
+
+Queue acceptance is not delivery, processing or durability. Timeout/cancellation
+can leave an uncertain outcome; do not automatically retry a possibly completed
+operation. Bounded inboxes and pending-request limits still apply.
+
+## Installation after publication
+
+```sh
+python -m pip install 'nodalwire==0.3.0'
+npm install @devcapsule/nodalwire-client@0.3.0
+```
+
+Python requires **3.12+**; the Node ESM client supports **Node.js 24** and needs
+its native `zeromq` dependency's install script. Consumers need no source checkout
+or TypeScript compiler. For prepublication verification, install the built
+wheel/tarball instead of assuming these versions are already in the registries.
+The release-readiness report records actual artifact hashes and tested platforms;
+source version strings alone establish neither publication nor certification.
+
+---
+
+## Released 0.2.1
 
 Python-only patch release. The Python relay version is 0.2.1; the Node package
 remains 0.2.0. Source preparation does not establish registry availability;

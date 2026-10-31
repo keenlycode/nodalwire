@@ -21,9 +21,21 @@ async function files(directory) {
 }
 
 /** A fresh checkout needs only the pinned tools, not the prototype kernel. */
-export async function buildSite({ dev = false } = {}) {
+export async function buildSite({ version = "dev", includeDesign = false, dev = false, mode = "local", stableVersion, releaseAvailable = false } = {}) {
+  if (version !== "dev" && !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) {
+    throw new Error("Version must be dev or a strict major.minor.patch identifier");
+  }
+  if (!["local", "artifact"].includes(mode)) throw new Error("Mode must be local or artifact");
+  if (mode === "artifact" && (!stableVersion || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(stableVersion))) {
+    throw new Error("Artifact root requires an explicit verified existing --stable-version");
+  }
+  if (releaseAvailable && (version === "dev" || mode !== "artifact" || stableVersion !== version)) {
+    throw new Error("--release-available requires artifact mode selecting the matching release version");
+  }
+  // Legacy dev means design playground, never a documentation version.
+  includeDesign ||= dev;
   await mkdir(work, { recursive: true });
-  const inputs = (await files(source)).filter(name => dev || path.relative(source, name).split(path.sep)[0] !== "design");
+  const inputs = (await files(source)).filter(name => includeDesign || path.relative(source, name).split(path.sep)[0] !== "design");
   const styles = inputs.filter((name) => path.basename(name) === "style.ts");
   const resolveFile = path.join(work, "resolve.mjs");
   const imports = styles.map((name, index) => `import style${index} from ${JSON.stringify(name)};`);
@@ -120,14 +132,25 @@ export async function buildSite({ dev = false } = {}) {
   execFileSync("uv", [
     "run", "--locked", "--project", toolRoot, "python", path.join(toolRoot, "render.py"),
     "--source", source, "--stage", stage, "--output", path.join(root, "docs"), "--data", dataFile,
-    ...(dev ? ["--dev"] : []),
+    "--version", version, "--mode", mode,
+    ...(stableVersion ? ["--stable-version", stableVersion] : []),
+    ...(releaseAvailable ? ["--release-available"] : []),
+    ...(includeDesign ? ["--include-design"] : []),
   ], { cwd: root, stdio: "inherit" });
-  return { data, stage };
+  return { data, stage, output: path.join(root, "docs", version) };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
-  if (args.some(arg => arg !== "--dev")) throw new Error("Usage: node build.mjs [--dev]");
-  await buildSite({ dev: args.includes("--dev") });
-  console.log(`Built src/docs-src/ → docs/ (${args.includes("--dev") ? "development with design" : "public, no design"}; Engrave + TypeScript/esbuild)`);
+  const options = {};
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--include-design" || arg === "--dev") options.includeDesign = true;
+    else if (arg === "--release-available") options.releaseAvailable = true;
+    else if (["--version", "--mode", "--stable-version"].includes(arg) && args[i + 1] && !args[i + 1].startsWith("--")) {
+      options[{ "--version": "version", "--mode": "mode", "--stable-version": "stableVersion" }[arg]] = args[++i];
+    } else throw new Error("Usage: node build.mjs [--version dev|X.Y.Z] [--include-design] [--mode local|artifact] [--stable-version X.Y.Z] [--release-available]");
+  }
+  await buildSite(options);
+  console.log(`Built src/docs-src/ → docs/${options.version ?? "dev"}/ (${options.includeDesign ? "with design playground" : "product only"}; ${options.mode ?? "local"} root policy)`);
 }

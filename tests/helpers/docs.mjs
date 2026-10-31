@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const source = path.join(root, "src/docs-src");
+export const site = path.join(root, "docs/dev");
 export const toolRoot = path.join(root, "src/tools/docs");
 export const work = path.join(toolRoot, ".build");
 export const requireDocs = createRequire(pathToFileURL(path.join(toolRoot, "package.json")));

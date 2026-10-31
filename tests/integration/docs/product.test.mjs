@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { connect } from "../../helpers/docs-browser.mjs";
 
-const routes = ["/", "/getting-started/", "/guides/networks/", "/guides/request-reply/", "/guides/security/", "/reference/api/", "/reference/cli/", "/reference/config/", "/reference/admin/"];
+const topRoutes = ["/", "/getting-started/", "/messaging/", "/connect-your-apps/", "/run-a-relay/", "/reference/api/", "/protocol/"];
+const routes = [...topRoutes, "/guides/networks/", "/guides/request-reply/", "/guides/security/", "/reference/cli/", "/reference/config/", "/reference/admin/"];
 
 test("product routes preserve native semantics, responsive geometry, contrast and exact code", {
   skip: !process.env.DOCS_TEST_CDP || !process.env.DOCS_TEST_ORIGIN,
@@ -18,7 +19,7 @@ test("product routes preserve native semantics, responsive geometry, contrast an
       assert.equal(result.exceptionDetails, undefined, JSON.stringify(result.exceptionDetails));
       return result.result.value;
     }
-    async function navigate(route, noJS = false) {
+    async function navigate(route, noJS = false, prefix = "/dev") {
       await page.call("Emulation.setScriptExecutionDisabled", { value: noJS });
       const loaded = new Promise((resolve, reject) => {
         const timeout = setTimeout(() => { page.socket.removeEventListener("message", listener); reject(Error("owned page load deadline")); }, 10000);
@@ -29,12 +30,12 @@ test("product routes preserve native semantics, responsive geometry, contrast an
         };
         page.socket.addEventListener("message", listener);
       });
-      await page.call("Page.navigate", { url: process.env.DOCS_TEST_ORIGIN + route });
+      await page.call("Page.navigate", { url: process.env.DOCS_TEST_ORIGIN + prefix + route });
       await loaded;
     }
     for (const route of routes) {
       await navigate(route);
-      assert.equal(await value(`return document.querySelectorAll('main#main').length===1&&document.querySelectorAll('main > nw-container').length===1&&document.querySelectorAll('h1').length===1&&document.querySelectorAll('nav[aria-label="Documentation"] a[aria-current="page"]').length===1&&document.querySelectorAll('nw-page-path a[aria-current="page"]').length===1;`), true, route);
+      assert.equal(await value(`return document.querySelectorAll('main#main').length===1&&document.querySelectorAll('main > nw-container').length===1&&document.querySelectorAll('h1').length===1&&document.querySelectorAll('nav[aria-label="Documentation"] a[aria-current="page"]').length===${topRoutes.includes(route) ? 1 : 0}&&document.querySelectorAll('nw-page-path a[aria-current="page"]').length===1&&document.querySelector('.version-indicator').textContent.includes('Development');`), true, route);
       for (const width of [1440, 768, 375, 320]) {
         await page.call("Emulation.setDeviceMetricsOverride", { width, height: 1000, deviceScaleFactor: 1, mobile: false });
         assert.equal(await value(`const c=document.querySelector('main > nw-container'),r=c.getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth&&r.width<=1000&&Math.abs(r.left-(document.documentElement.clientWidth-r.width)/2)<1&&[...document.querySelectorAll('nw-code-block')].every(b=>{const p=b.querySelector('pre'),h=b.querySelector('.code-block-header');return p.clientWidth<=b.clientWidth&&Math.abs(parseFloat(getComputedStyle(p).lineHeight)/parseFloat(getComputedStyle(p).fontSize)-1.5)<0.001&&(!h||h.getBoundingClientRect().bottom<=p.getBoundingClientRect().top+1);});`), true, `${route} width=${width}`);
@@ -52,7 +53,7 @@ test("product routes preserve native semantics, responsive geometry, contrast an
     }
     for (const route of ["/", "/getting-started/", "/reference/api/"]) {
       await navigate(route, true);
-      assert.equal(await value(`return document.querySelector('main h1').getBoundingClientRect().height>0&&document.querySelectorAll('nav[aria-label="Documentation"] a').length>=9&&[...document.querySelectorAll('nw-code-block')].every(b=>!b.querySelector('button')&&b.querySelector('pre').getBoundingClientRect().height>0&&getComputedStyle(b.querySelector('code')).whiteSpace==='pre'&&getComputedStyle(b).backgroundColor!==getComputedStyle(document.body).backgroundColor)&&document.documentElement.scrollWidth<=innerWidth;`), true, `no-JS ${route}`);
+      assert.equal(await value(`return document.querySelector('main h1').getBoundingClientRect().height>0&&document.querySelectorAll('nav[aria-label="Documentation"] a').length>=7&&[...document.querySelectorAll('nw-code-block')].every(b=>!b.querySelector('button')&&b.querySelector('pre').getBoundingClientRect().height>0&&getComputedStyle(b.querySelector('code')).whiteSpace==='pre'&&getComputedStyle(b).backgroundColor!==getComputedStyle(document.body).backgroundColor)&&document.documentElement.scrollWidth<=innerWidth;`), true, `no-JS ${route}`);
     }
     await page.call("Emulation.setScriptExecutionDisabled", { value: false });
     await navigate("/getting-started/");
@@ -62,6 +63,46 @@ test("product routes preserve native semantics, responsive geometry, contrast an
     await page.call("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
     await page.call("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
     assert.equal(await value(`return location.hash==='#main';`), true, "native skip-link Enter activation");
+    await value(`document.querySelector('.product-navigation a').focus();return true;`);
+    await page.call("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+    await page.call("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
+    assert.equal(await value(`const links=[...document.querySelectorAll('.product-navigation a')];return document.activeElement===links[1]&&getComputedStyle(links[1]).outlineStyle==='solid';`), true, "native top-navigation Tab order and visible focus");
+
+    await navigate("/", false, "");
+    assert.equal(await value(`for(let n=0;n<50&&location.pathname!=='/dev/';n++)await new Promise(r=>setTimeout(r,20));return location.pathname==='/dev/';`), true, "local root opens development docs");
+
+    // Simulate GitHub Pages' project prefix using the exact already-built bytes,
+    // without starting another server or copying the site/environment.
+    const prefixErrors = [];
+    const intercept = async event => {
+      const message = JSON.parse(event.data);
+      if (message.method !== "Fetch.requestPaused") return;
+      const { requestId, request } = message.params;
+      try {
+        const url = new URL(request.url);
+        assert.ok(url.pathname.startsWith("/nodalwire/dev/"));
+        const response = await fetch(process.env.DOCS_TEST_ORIGIN + url.pathname.slice("/nodalwire".length) + url.search, { headers: { "User-Agent": "Automata/1.0" } });
+        assert.equal(response.status, 200, request.url);
+        await page.call("Fetch.fulfillRequest", { requestId, responseCode: response.status,
+          responseHeaders: [{ name: "Content-Type", value: response.headers.get("content-type") || "application/octet-stream" }],
+          body: Buffer.from(await response.arrayBuffer()).toString("base64") });
+      } catch (error) {
+        prefixErrors.push(String(error));
+        await page.call("Fetch.failRequest", { requestId, errorReason: "Failed" });
+      }
+    };
+    page.socket.addEventListener("message", intercept);
+    try {
+      await page.call("Fetch.enable", { patterns: [{ urlPattern: process.env.DOCS_TEST_ORIGIN + "/nodalwire/*" }] });
+      for (const route of topRoutes) {
+        await navigate(route, false, "/nodalwire/dev");
+        assert.equal(await value(`await customElements.whenDefined('nw-code-block');return location.pathname.startsWith('/nodalwire/dev/')&&[...document.querySelectorAll('.product-navigation a')].every(a=>new URL(a.href).pathname.startsWith('/nodalwire/dev/'))&&[...document.querySelectorAll('script[src],link[rel=stylesheet]')].every(e=>new URL(e.src||e.href).pathname.startsWith('/nodalwire/dev/'))&&getComputedStyle(document.querySelector('.product-navigation')).display==='flex';`), true, `actual project-prefix navigation/assets ${route}`);
+      }
+      assert.deepEqual(prefixErrors, []);
+    } finally {
+      await page.call("Fetch.disable");
+      page.socket.removeEventListener("message", intercept);
+    }
   } finally {
     if (targetId) await owner.call("Target.closeTarget", { targetId });
     page?.socket.close(); owner.socket.close();

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, mkdtemp, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
-import { root, toolRoot } from "../../helpers/docs.mjs";
+import { root, toolRoot, site } from "../../helpers/docs.mjs";
 import { api } from "../../helpers/docs-token-api.mjs";
 import { buildSite } from "../../../src/tools/docs/build.mjs";
 
@@ -17,15 +17,26 @@ async function snapshot(directory) {
   return result;
 }
 
-test("public and dev builds reproduce all files and public replaces stale design output", async () => {
-  const directory = path.join(root, "docs");
+test("targeted version builds reproduce files and preserve all non-target output", async () => {
+  const directory = site;
+  const sentinel = await mkdtemp(path.join(root, "docs/.preservation-fixture-"));
+  await writeFile(path.join(sentinel, "preservation-fixture.txt"), "Preserve this fixture byte-for-byte\r\n");
+  const otherVersion = await snapshot(sentinel);
+  const rootEntries = Object.fromEntries(Object.entries(await snapshot(path.join(root, "docs"))).filter(([name]) => !name.startsWith("dev/") && !["index.html", "versions.json", ".nojekyll"].includes(name)));
+  try {
   await buildSite();
   const first = await snapshot(directory);
   await buildSite();
   assert.deepEqual(first, await snapshot(directory));
   assert.ok(".nojekyll" in first);
   assert.ok("index.html" in first);
-  assert.equal(Object.keys(first).filter(name => name.endsWith(".html")).length, 9);
+  for (const route of ["", "getting-started/", "messaging/", "connect-your-apps/", "run-a-relay/", "reference/api/", "protocol/"]) {
+    assert.ok(`${route}index.html` in first, `versioned route ${route}`);
+  }
+  assert.equal(first["specs/nwm3.md"], (await readFile(path.join(root, "src/docs-src/specs/nwm3.md"))).toString("base64"));
+  const manifest = JSON.parse(await readFile(path.join(root, "docs/versions.json"), "utf8"));
+  assert.equal(manifest.versions.find(v => v.id === "dev").status, "development");
+  assert.match(await readFile(path.join(root, "docs/index.html"), "utf8"), /url=dev\//);
   assert.ok(Object.keys(first).every(name => !name.startsWith("design/") && !name.startsWith("assets/design/")));
   for (const icon of ["open-menu", "pan-end"]) {
     assert.ok(!(`assets/icons/gnomicon/${icon}.svg` in first), "raw design-only icons must not leak from shared paths");
@@ -53,10 +64,32 @@ test("public and dev builds reproduce all files and public replaces stale design
   await buildSite();
   assert.deepEqual(first, await snapshot(directory), "public rebuild removes all stale dev pages/assets");
   assert.ok(Object.keys(first).every((name) => !/\.(ts|mjs|py|map)$/.test(name)));
-  assert.deepEqual(JSON.parse(await readFile(path.join(root, "docs/assets/tokens.json"), "utf8")), api.tokens);
+  assert.deepEqual(JSON.parse(await readFile(path.join(site, "assets/tokens.json"), "utf8")), api.tokens);
   const meta = JSON.parse(await readFile(path.join(toolRoot, ".build/browser-metafile.json"), "utf8"));
   assert.ok(Object.keys(meta.inputs).length > 0);
   assert.ok(Object.keys(meta.inputs).every((name) => !name.includes("colorjs.io")));
   // Historical design/browser suites run serially after this test; explicit dev fixture.
-  await buildSite({ dev: true });
+  await buildSite({ includeDesign: true });
+  assert.deepEqual(otherVersion, await snapshot(sentinel));
+  const after = await snapshot(path.join(root, "docs"));
+  for (const [name, bytes] of Object.entries(rootEntries)) assert.equal(after[name], bytes, `preserved ${name}`);
+  } finally {
+    await rm(sentinel, { recursive: true, force: true });
+  }
+});
+
+test("matching release preview builds a separate version without claiming publication", async () => {
+  const { version } = JSON.parse(await readFile(path.join(root, "src/nodalwire/client/node/package.json"), "utf8"));
+  const dev = await snapshot(site);
+  const result = await buildSite({ version });
+  assert.equal(result.output, path.join(root, "docs", version));
+  assert.deepEqual(dev, await snapshot(site), "release preview preserves dev byte-for-byte");
+  const manifest = JSON.parse(await readFile(path.join(root, "docs/versions.json"), "utf8"));
+  const release = manifest.versions.find(entry => entry.id === version);
+  assert.equal(release.status, "preview");
+  assert.equal(release.releaseAvailable, false);
+  assert.notEqual(manifest.latestStable, version);
+  assert.ok((await readFile(path.join(result.output, "getting-started/index.html"), "utf8")).includes(version));
+  assert.match(await readFile(path.join(root, "docs/index.html"), "utf8"), new RegExp(`url=${version.replaceAll(".", "\\.")}/`));
+  await buildSite({ includeDesign: true }); // Restore the fixture needed by design suites.
 });

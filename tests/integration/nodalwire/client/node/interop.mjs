@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
-const { decodeEnvelope, Node, ReceiptTimeout, RelayError } = await import(
+const { Node, ReceiptTimeout, RelayError } = await import(
   process.env.NODALWIRE_CLIENT_MODULE ??
     new URL(
       "../../../../../src/nodalwire/client/node/dist/index.js",
@@ -37,11 +37,12 @@ if (mode === "protected") {
       false,
     );
     await node.send("py-echo", Uint8Array.of(255));
-    assert.deepEqual(await boundedReceive(node), {
-      network: "default",
-      sender: "py-echo",
-      payload: Uint8Array.of(255),
-    });
+    const received = await boundedReceive(node);
+    assert.equal(received.id.length, 32);
+    assert.equal(received.reply_to, undefined);
+    assert.equal(received.network, "default");
+    assert.equal(received.sender, "py-echo");
+    assert.deepEqual(received.payload, Uint8Array.of(255));
     await node.leave("default");
     assert.equal((await node.leave("default")).changed, false);
     await assert.rejects(
@@ -73,6 +74,8 @@ async function openScenario() {
       payload.fill(42);
       await sent;
       const message = await boundedReceive(alice);
+      assert.match(message.id, /^[0-9a-f]{32}$/);
+      assert.equal(message.reply_to, undefined);
       assert.equal(message.network, "default");
       assert.equal(message.sender, "py-echo");
       assert.deepEqual(message.payload, snapshot);
@@ -136,14 +139,18 @@ async function openScenario() {
         Uint8Array.from({ length: 256 }, (_, i) => i),
       ]
     ) {
-      const response = await alice.request("py-echo", payload, {
+      const requestPayload = Buffer.concat([
+        Buffer.from("node-request-fixture:"),
+        Buffer.from(payload),
+      ]);
+      const response = await alice.request("py-echo", requestPayload, {
         network: "team",
       });
-      assert.deepEqual(response, {
-        network: "team",
-        sender: "py-echo",
-        payload,
-      });
+      assert.equal(response.network, "team");
+      assert.equal(response.sender, "py-echo");
+      assert.match(response.id, /^[0-9a-f]{32}$/);
+      assert.equal(response.reply_to.length, 32);
+      assert.deepEqual(response.payload, Uint8Array.from(payload));
       assert.equal(
         Buffer.from((await boundedReceive(alice)).payload).toString(),
         "unrelated",
@@ -153,10 +160,11 @@ async function openScenario() {
       network: "team",
     });
     const incoming = await boundedReceive(alice);
-    const envelope = decodeEnvelope(incoming.payload);
-    assert.equal(envelope.kind, "request");
+    assert.deepEqual(incoming.payload, Uint8Array.from({ length: 256 }, (_, i) => i));
     assert.equal(incoming.network, "team");
-    await alice.reply(incoming, envelope.payload);
+    assert.match(incoming.id, /^[0-9a-f]{32}$/);
+    const replyId = await alice.reply(incoming, incoming.payload);
+    assert.match(replyId, /^[0-9a-f]{32}$/);
     assert.equal(
       Buffer.from((await boundedReceive(alice)).payload).toString(),
       "python-request-ok",
@@ -215,7 +223,7 @@ async function openScenario() {
   await Promise.all([replacement.close(), replacement.close()]);
   await replacement.close();
   console.log(
-    "PASS AR2 multi-membership/no fallback, binary request/reply both directions, unrelated DATA, rotation future joins/removal cutoff, heartbeat and release",
+    "PASS NWM3 multi-membership/no fallback, binary request/reply both directions, unrelated DATA, rotation future joins/removal cutoff, heartbeat and release",
   );
 
   const source = await Node.connect("source", endpoint);

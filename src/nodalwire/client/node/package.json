@@ -1,8 +1,19 @@
 {
   "name": "@devcapsule/nodalwire-client",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Network membership and byte client for the local NodalWire relay",
   "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "scripts": {
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
+    "build": "pnpm run clean && node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "check": "node node_modules/typescript/bin/tsc --noEmit --noUnusedLocals --noUnusedParameters -p tsconfig.json",
+    "test:native": "node --test '../../../../tests/unit/nodalwire/client/node/src/*.test.mjs' '../../../../tests/integration/nodalwire/client/node/*.test.mjs'",
+    "test:unit": "pnpm run build && pnpm run test:native",
+    "test:interop": "python ../../../../tests/integration/nodalwire/client/node/interop.py",
+    "test:artifact": "python ../../../../tests/integration/nodalwire/client/node/package_smoke.py",
+    "test": "pnpm run check && pnpm run build && pnpm run test:native && pnpm run test:interop"
+  },
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "types": "./dist/index.d.ts",
   "files": ["dist", "README.md", "LICENSE"],

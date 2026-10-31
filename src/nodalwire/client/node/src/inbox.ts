@@ -1,8 +1,10 @@
 import { abortReason, RelayError } from "./protocol.js";
 
 export interface Message {
-  readonly network: string;
+  readonly id: string;
   readonly sender: string;
+  readonly network: string;
+  readonly reply_to: string | undefined;
   /** Caller-owned mutable bytes, independent of the native socket's buffers. */
   readonly payload: Uint8Array;
 }

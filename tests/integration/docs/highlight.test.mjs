@@ -20,7 +20,7 @@ test('Runtime highlighting on served pages, lazy loading, fallback and responsiv
     ({targetId}=await owner.call('Target.createTarget',{url:'about:blank',background:true}));page=await connect(process.env.DOCS_TEST_CDP.replace(/\/devtools\/.*$/,`/devtools/page/${targetId}`));await page.call('Page.enable');await page.call('Network.enable');await page.call('Network.setCacheDisabled',{cacheDisabled:true});page.on('Network.requestWillBeSent',p=>requested.push(new URL(p.request.url).pathname));
     async function value(code){const r=await page.call('Runtime.evaluate',{expression:`(async()=>{${code}})()`,awaitPromise:true,returnByValue:true});assert.equal(r.exceptionDetails,undefined,JSON.stringify(r.exceptionDetails));return r.result.value;}
     async function check(code){assert.equal(await value(code),true);}
-    async function navigate(path,noJS=false){await page.call('Emulation.setScriptExecutionDisabled',{value:noJS});const loaded=new Promise(r=>page.on('Page.loadEventFired',r));await page.call('Page.navigate',{url:process.env.DOCS_TEST_ORIGIN+path});await loaded;}
+    async function navigate(path,noJS=false){await page.call('Emulation.setScriptExecutionDisabled',{value:noJS});const loaded=new Promise(r=>page.on('Page.loadEventFired',r));await page.call('Page.navigate',{url:process.env.DOCS_TEST_ORIGIN+'/dev'+path});await loaded;}
     await t.test('Pages without a supported code block do not fetch the highlighter',async()=>{
       await navigate('/design/tokens/');assert.ok(!requested.some(p=>p.includes('/code-highlight-')));
     });

@@ -2,7 +2,7 @@ import asyncio
 import base64
 import io
 import json
-from types import SimpleNamespace
+from types import SimpleNamespace as _SimpleNamespace
 
 import pytest
 
@@ -22,6 +22,12 @@ from nodalwire.cli import (
     _request_with_events,
 )
 from nodalwire.protocol import RelayError
+
+
+def SimpleNamespace(**fields):
+    fields.setdefault("id", "f" * 32)
+    fields.setdefault("reply_to", None)
+    return _SimpleNamespace(**fields)
 
 
 @pytest.mark.parametrize("args", [[], ["--help"]])
@@ -100,20 +106,29 @@ def test_valid_deadline():
     assert _positive_deadline(5) == 5.0
 
 
-def test_received_metadata_roundtrip_and_base64_output():
-    message = SimpleNamespace(network="red", sender="alice", payload=b"\0\xff\x1b[31m")
+def test_received_metadata_roundtrip_and_base64_output(monkeypatch):
+    from nodalwire import cli
+
+    class NativeMessage:
+        def __init__(self, **fields):
+            self.__dict__.update(fields)
+
+    monkeypatch.setattr(cli, "Message", NativeMessage)
+    message = NativeMessage(
+        id="1" * 32, reply_to=None, network="red", sender="alice", payload=b"\0\xff\x1b[31m"
+    )
     event = _message_event(message)
     assert event == {
         "event": "message",
+        "id": "1" * 32,
+        "reply_to": None,
         "network": "red",
         "sender": "alice",
         "payload": base64.b64encode(message.payload).decode("ascii"),
     }
     incoming = _decode_incoming(json.dumps(event).encode(), 1024)
-    assert (incoming.network, incoming.sender, incoming.payload) == (
-        "red",
-        "alice",
-        message.payload,
+    assert (incoming.id, incoming.reply_to, incoming.network, incoming.sender, incoming.payload) == (
+        message.id, None, "red", "alice", message.payload
     )
     assert "\x1b" not in json.dumps(event)
 
@@ -131,11 +146,31 @@ def test_received_metadata_roundtrip_and_base64_output():
         b'{"event":"reply","network":"red","sender":"a","payload":""}',
         b'{"event":"message","network":"bad network","sender":"a","payload":""}',
         b'{"event":"message","network":"red","sender":"a","payload":false}',
+        b'{"event":"message","id":"short","reply_to":null,"network":"red","sender":"a","payload":""}',
+        b'{"event":"message","id":"11111111111111111111111111111111","reply_to":"","network":"red","sender":"a","payload":""}',
+        b'{"event":"message","id":"11111111111111111111111111111111","reply_to":null,"network":"red","sender":"a","payload":"","extra":0}',
+        b'{"event":"message","id":"11111111111111111111111111111111","reply_to":null,"network":"red","sender":"a","payload":"AB=="}',
+        b'{"event":"message","id":"11111111111111111111111111111111","reply_to":null,"network":"red","sender":"a","payload":"","other":NaN}',
     ],
 )
 def test_untrusted_reply_input_rejected_without_echo(data):
     with pytest.raises(CLIInputError, match="^invalid incoming message JSON$"):
         _decode_incoming(data, 100)
+
+
+def test_cli_fixture_message_is_parsed_as_native_raw_message(monkeypatch):
+    from pathlib import Path
+    from nodalwire import cli
+
+    class NativeMessage:
+        def __init__(self, **fields):
+            self.__dict__.update(fields)
+
+    monkeypatch.setattr(cli, "Message", NativeMessage)
+    fixture = json.loads((Path(__file__).resolve().parents[2] / "fixtures/nwm3/wire.json").read_text())
+    message = _decode_incoming(json.dumps(fixture["cli"]["message"]).encode(), 256)
+    assert message.id == fixture["cli"]["message"]["id"]
+    assert message.reply_to is None and message.payload == b"\x00\xff"
 
 
 def test_deeply_nested_reply_metadata_is_safe_input_error():
@@ -513,9 +548,11 @@ def test_each_operation_joins_selected_network_and_reply_uses_incoming_network()
 
             async def send(self, destination, payload, *, network, timeout):
                 self.calls.append(("send", destination, payload, network))
+                return "c" * 32
 
             async def reply(self, incoming, payload, *, timeout):
                 self.calls.append(("reply", incoming.sender, payload, incoming.network))
+                return "d" * 32
 
         node = Peer()
         output = _OutputBudget(max_count=64, max_bytes=10000, stream=io.StringIO())
@@ -531,9 +568,16 @@ def test_each_operation_joins_selected_network_and_reply_uses_incoming_network()
             output=output,
         )
         assert node.calls == [("join", "red", "join-token"), ("send", "bob", b"binary", "red")]
-        assert result["meaning"] == "native_queue_acceptance_only"
-        incoming = SimpleNamespace(network="blue", sender="alice", payload=b"request-envelope")
-        await _peer_operation(
+        assert result == {
+            "event": "accepted",
+            "id": "c" * 32,
+            "reply_to": None,
+            "network": "red",
+            "recipient": "bob",
+            "meaning": "native_queue_acceptance_only",
+        }
+        incoming = SimpleNamespace(id="1" * 32, network="blue", sender="alice", payload=b"raw request")
+        result = await _peer_operation(
             node,
             "reply",
             destination=None,
@@ -546,6 +590,7 @@ def test_each_operation_joins_selected_network_and_reply_uses_incoming_network()
             incoming=incoming,
         )
         assert node.calls[-2:] == [("join", "blue", None), ("reply", "alice", b"reply", "blue")]
+        assert result["id"] == "d" * 32 and result["reply_to"] == incoming.id
 
     asyncio.run(run())
 

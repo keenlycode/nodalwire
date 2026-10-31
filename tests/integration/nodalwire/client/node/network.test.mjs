@@ -16,7 +16,7 @@ const status = (code) => (error) => error instanceof RelayError && error.code ==
 const bounded = () => ({ signal: AbortSignal.timeout(1000) });
 
 test(
-  "AR2 protected-default admission, network selectors, membership receipts and snapshots",
+  "NWM3 protected-default admission, network selectors, membership receipts and snapshots",
   { timeout: 3000 },
   async () => {
     let change = "1";
@@ -46,22 +46,26 @@ test(
       const bytes = Uint8Array.of(100, 1, 2, 200);
       const sent = node.send("peer", bytes.subarray(1, 3), { network: "team" });
       bytes.fill(0);
-      await sent;
+      const sendId = await sent;
+      assert.match(sendId, /^[0-9a-f]{32}$/);
       await node.send("peer", new Uint8Array());
       const sends = relay.seen.filter((frames) => frames[2].toString() === "SEND");
       assert.equal(sends[0][5].toString(), "team");
       assert.equal(sends[0][6].toString(), "peer");
-      assert.deepEqual([...sends[0][7]], [1, 2]);
+      assert.equal(sends[0][7].length, 0);
+      assert.deepEqual([...sends[0][8]], [1, 2]);
       assert.equal(sends[1][5].toString(), "default");
-      assert.ok(relay.seen.every((frames) => frames[1].toString() === "AR2"));
+      assert.ok(relay.seen.every((frames) => frames[1].toString() === "NWM3"));
       const joins = relay.seen.filter((frames) => frames[2].toString() === "JOIN");
       assert.equal(joins[0][6].toString(), "fixture-token");
       assert.equal(joins.at(-1)[6].length, 0);
       const peer = relay.peers.get("node");
-      await peer.data("team", "peer", Uint8Array.of(255, 0));
+      await peer.data("1".repeat(32), "team", "peer", "", Uint8Array.of(255, 0));
       assert.deepEqual(await node.receive(bounded()), {
-        network: "team",
+        id: "1".repeat(32),
         sender: "peer",
+        network: "team",
+        reply_to: undefined,
         payload: Uint8Array.of(255, 0),
       });
       for (const credential of ["", " ", "\n", "é", "x".repeat(1025), "\ud800"]) {
@@ -129,7 +133,7 @@ test(
       response = (peer) => peer.error("secret-fixture-invalid-code");
       await assert.rejects(node.join("team"), { message: "invalid_receipt" });
       response = (peer) =>
-        peer.raw("AR2", "ERROR", TOKEN, peer.rid, "join_denied", "extra");
+        peer.raw("NWM3", "ERROR", TOKEN, peer.rid, "join_denied", "extra");
       await assert.rejects(node.join("team"), status("invalid_receipt"));
     } finally {
       await node.close();
@@ -173,7 +177,7 @@ test("HELLO rejects malformed metadata and never installs a partial incarnation"
   }
 });
 
-test("AR1 never admits or triggers downgrade; stale DATA/receipt frames never match", {
+test("AR2 never admits or triggers downgrade; stale DATA/receipt frames never match", {
   timeout: 3000,
 }, async () => {
   const old = await fakeRelay(async (peer) => {
@@ -188,18 +192,37 @@ test("AR1 never admits or triggers downgrade; stale DATA/receipt frames never ma
       ReceiptTimeout,
     );
     assert.equal(old.seen.length, 1);
-    assert.equal(old.seen[0][1].toString(), "AR2");
+    assert.equal(old.seen[0][1].toString(), "NWM3");
   } finally {
     await old.close();
   }
   const relay = await fakeRelay(async (peer) => {
     if (peer.command === "SEND") {
-      await peer.raw("AR2", "OK", "stale-token", peer.rid);
-      await peer.raw("AR2", "OK", TOKEN, "unknown-id");
-      await peer.data("team", "peer", Uint8Array.of(1), "stale-token");
-      await peer.data(Buffer.from([0xf4, 0x65, 0x61, 0x6d]), "peer", Uint8Array.of(2));
-      await peer.data("team", Buffer.from([0xf0, 0x65, 0x65, 0x72]), Uint8Array.of(3));
-      await peer.data("team", "peer", Uint8Array.of(4));
+      await peer.raw("NWM3", "OK", "stale-token", peer.rid);
+      await peer.raw("NWM3", "OK", TOKEN, "unknown-id");
+      await peer.data(
+        "1".repeat(32),
+        "team",
+        "peer",
+        "",
+        Uint8Array.of(1),
+        "stale-token",
+      );
+      await peer.data(
+        "2".repeat(32),
+        Buffer.from([0xf4, 0x65, 0x61, 0x6d]),
+        "peer",
+        "",
+        Uint8Array.of(2),
+      );
+      await peer.data(
+        "3".repeat(32),
+        "team",
+        Buffer.from([0xf0, 0x65, 0x65, 0x72]),
+        "",
+        Uint8Array.of(3),
+      );
+      await peer.data("4".repeat(32), "team", "peer", "", Uint8Array.of(4));
       return true;
     }
   });
@@ -207,8 +230,10 @@ test("AR1 never admits or triggers downgrade; stale DATA/receipt frames never ma
   try {
     const sent = assert.rejects(node.send("peer", new Uint8Array()), ReceiptTimeout);
     assert.deepEqual(await node.receive(bounded()), {
-      network: "team",
+      id: "4".repeat(32),
       sender: "peer",
+      network: "team",
+      reply_to: undefined,
       payload: Uint8Array.of(4),
     });
     await sent;
@@ -230,8 +255,8 @@ test(
     });
     try {
       const peer = relay.peers.get("node");
-      await peer.data("team", "peer", Uint8Array.of(1));
-      await peer.data("team", "peer", Uint8Array.of(2));
+      await peer.data("1".repeat(32), "team", "peer", "", Uint8Array.of(1));
+      await peer.data("2".repeat(32), "team", "peer", "", Uint8Array.of(2));
       await sleep(15);
       await assert.rejects(
         node.join("team", undefined, { timeout: 0.03 }),
@@ -240,7 +265,7 @@ test(
       assert.equal(node.receiveNowait().payload[0], 1);
       assert.equal((await node.receive(bounded())).payload[0], 2);
       await node.leave("team");
-      await peer.data("team", "peer", Uint8Array.of(3));
+      await peer.data("3".repeat(32), "team", "peer", "", Uint8Array.of(3));
       await sleep(10);
       await node.close();
       assert.equal(node.receiveNowait().payload[0], 3);

@@ -40,12 +40,12 @@ async def create_team(admin_endpoint, admin_token):
 <p>All operations except the four reads above are mutations. Argument keys are exact; unexpected fields are rejected. Configuration commits increment revision even when the resulting policy is equivalent. Protection changes and join-token rotation govern future joins, not existing members or already accepted data.</p></section>
 <section aria-labelledby="cli"><h2 id="cli">CLI control</h2>
 <p>The default token variable is <code>NODALWIRE_ADMIN_TOKEN</code>. Read first, then substitute the observed integer for <code>REVISION</code>. A changed revision is a reason to reconsider the operation, not a cue for a blind loop.</p>
-{% set admin_commands %}.venv/bin/nodalwire admin config.get
-.venv/bin/nodalwire admin network.list
-export TEAM_JOIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-.venv/bin/nodalwire admin network.create \
+{% set admin_commands %}nodalwire admin config.get
+nodalwire admin network.list
+export TEAM_JOIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire admin network.create \
   --network team --credential-env TEAM_JOIN_TOKEN --expected-revision REVISION
-.venv/bin/nodalwire admin member.list --network team
+nodalwire admin member.list --network team
 {% endset %}{{ code_block(admin_commands, 'terminal', 'shell') }}
 <p><code>--token-env VARIABLE</code> selects the current administrator credential; <code>--credential-env VARIABLE</code> selects a new join/admin credential. Both name variables, not bearer values. <code>network.update</code> requires <code>--protected</code> or <code>--no-protected</code>. <code>member.remove</code> maps <code>--member NAME</code> to the <code>name</code> argument. <code>--endpoint</code> selects the separate administration endpoint. See <a href="{{ url('reference/cli/') }}">CLI output and exit status</a>.</p></section>
 <section aria-labelledby="outcomes"><h2 id="outcomes">Errors and persistence outcomes</h2>

@@ -4,7 +4,7 @@ import json
 import math
 import re
 
-VERSION = b"AR2"
+VERSION = b"NWM3"
 ADMIN_VERSION = b"NA1"
 DEFAULT_NETWORK = "default"
 MAX_ADMIN_JSON = 65_536
@@ -19,6 +19,12 @@ OK = b"OK"
 ERROR = b"ERROR"
 DATA = b"DATA"
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\Z")
+_MESSAGE_ID = re.compile(rb"[0-9a-f]{32}\Z")
+
+
+def valid_message_id(frame: bytes) -> bool:
+    """Validate native message metadata, never create or normalize an ID."""
+    return isinstance(frame, bytes) and _MESSAGE_ID.fullmatch(frame) is not None
 
 
 def valid_name(name: str) -> bool:

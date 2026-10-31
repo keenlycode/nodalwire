@@ -1,0 +1,32 @@
+{% extends '_layouts/product.html' %}
+{% from '_partials/code-block.html' import code_block with context %}
+{% set page_path = 'messaging/' %}
+{% set page_title = 'Messaging' %}
+{% set page_intro = 'Send bytes, receive messages, and understand what a reply tells you.' %}
+{% block content %}
+<section aria-labelledby="message"><h2 id="message">A message carries your bytes</h2>
+<p>Choose a destination and a network. The relay routes your payload as opaque bytes: it does not parse JSON or decide what your message means. A received <code>Message</code> also includes an ID, sender, network, and optional <code>reply_to</code>. Names are routing labels, not proof of identity.</p>
+<p>Both applications need to be connected and members of the selected network. The open <code>default</code> network is joined automatically; other networks require an explicit join. See <a href="{{ url('guides/networks/') }}">networks and membership</a>.</p></section>
+<section aria-labelledby="send"><h2 id="send">Send and receive</h2>
+<nw-message-diagram kind="send"><figure><figcaption>Send acceptance is not application processing</figcaption><ol><li>Alice sends bytes to Bob through the relay.</li><li>The relay checks routing and accepts the data into Bob's native destination queue; Alice can receive a success receipt.</li><li>Bob can later receive and process the data. Alice's send success alone does not establish either event or durable storage.</li></ol></figure></nw-message-diagram>
+<p>With a matching relay running and Bob already connected, this Python example sends one message. It uses the open default network. Follow <a href="{{ url('getting-started/') }}">Get started</a> for a complete two-process exchange and cleanup.</p>
+{% set send_example %}import asyncio
+from nodalwire import Node
+
+async def main():
+    async with await Node.connect("alice") as alice:
+        message_id = await alice.send("bob", b"hello")
+        print("queued:", message_id)
+
+asyncio.run(main())
+{% endset %}{{ code_block(send_example, 'send.py', 'python') }}
+<p>On success, the output starts with <code>queued:</code> followed by a generated message ID. The context manager closes Alice's connection. Bob must be online, joined, and permitted by routing policy; otherwise sending can fail. A successful send confirms relay native per-destination queue acceptance only, not Bob's receipt or processing.</p>
+<p>A connected Bob can read <code>message = await bob.receive()</code> and inspect <code>message.payload</code>. In Node.js use <code>await bob.receive()</code> and a <code>Uint8Array</code> payload; see the <a href="{{ url('reference/api/') }}">API reference</a> for lifecycle and timeout details.</p></section>
+<section aria-labelledby="reply"><h2 id="reply">Ask for an application reply</h2>
+<nw-message-diagram kind="request-reply"><figure><figcaption>A reply is a separate message</figcaption><ol><li>Alice sends a request with a generated message ID and waits for a matching reply.</li><li>Bob receives the request and chooses when and what to acknowledge.</li><li>Bob's reply has a fresh ID and its <code>reply_to</code> references the request ID. Alice matches the reply, sender, and network.</li></ol></figure></nw-message-diagram>
+<p>For connected Python nodes, <code>response = await alice.request("bob", b"question", timeout=5)</code> waits for a matching reply; Bob can respond with <code>await bob.reply(incoming, b"answer")</code>. Run Bob's receiver concurrently. The reply confirms only what Bob's application chose to acknowledge; it is not identity proof or a guarantee of durable business work.</p>
+<p>The <a href="{{ url('guides/request-reply/') }}">request/reply guide</a> has runnable Python and Node examples, matching rules, and inbox guidance.</p></section>
+<section aria-labelledby="uncertainty"><h2 id="uncertainty">Handle uncertain outcomes</h2>
+<p>A timeout or cancellation may occur after a message was queued or another effect happened. Do not assume failure means nothing happened, and do not blindly retry a mutation. NodalWire supplies no automatic retry, reconnect, replay, or durable-delivery guarantee. Design application acknowledgements and idempotency for the effects that matter to you.</p>
+<p>Keep consuming ordinary messages while waiting for requests: a full inbox can pause the reader and delay replies or control progress. Consult <a href="{{ url('reference/api/') }}">API errors and lifecycle</a> for exact limits.</p></section>
+{% endblock %}

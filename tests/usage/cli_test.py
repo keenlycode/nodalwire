@@ -42,8 +42,11 @@ def test_one_shot_send_to_library_peer_on_selected_open_network():
                 )
                 stdout, stderr = await asyncio.wait_for(process.communicate(b"hello\0\xff"), 3)
                 assert process.returncode == 0 and stderr == b""
-                assert json.loads(stdout)["meaning"] == "native_queue_acceptance_only"
+                accepted = json.loads(stdout)
+                assert accepted["meaning"] == "native_queue_acceptance_only"
                 message = await receiver.receive()
+                assert accepted["id"] == message.id
+                assert accepted["reply_to"] is None and message.reply_to is None
                 assert (message.network, message.sender, message.payload) == (
                     "work",
                     "one-shot",

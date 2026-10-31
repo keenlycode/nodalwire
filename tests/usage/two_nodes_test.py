@@ -22,15 +22,19 @@ def test_two_nodes_exchange_bytes(monkeypatch):
                     await Node.connect("alice", endpoint) as alice,
                     await Node.connect("bob", endpoint) as bob,
                 ):
-                    await alice.send("bob", b"hello\x00")
+                    accepted_id = await alice.send("bob", b"hello\x00")
                     incoming = await asyncio.wait_for(bob.receive(), timeout=2)
+                    assert incoming.id == accepted_id
+                    assert incoming.reply_to is None
                     assert incoming.sender == "alice"
                     assert incoming.payload == b"hello\x00"
                     assert incoming.network == "default"
 
                     # Reply to the sender supplied by the relay, not a payload field.
-                    await bob.send(incoming.sender, b"reply\xff", network=incoming.network)
+                    reply_id = await bob.reply(incoming, b"reply\xff")
+                    assert reply_id != accepted_id
                     reply = await asyncio.wait_for(alice.receive(), timeout=2)
+                    assert reply.id == reply_id and reply.reply_to == accepted_id
                     assert reply.sender == "bob"
                     assert reply.payload == b"reply\xff"
             finally:

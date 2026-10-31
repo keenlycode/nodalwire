@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path, PurePosixPath
@@ -136,20 +137,170 @@ class RenderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             render.validate_links(self.stage)
 
-    def test_publish_replaces_only_marked_generated_docs(self):
+    def fixture_output(self):
+        output = self.root / "docs"
+        output.mkdir()
+        (output / ".nojekyll").write_text("")
+        (output / "index.html").write_bytes(b"Legacy snapshot\r\n")
+        (output / "assets").mkdir()
+        (output / "assets/keep.txt").write_text("Keep root asset")
+        (output / "0.2.0").mkdir()
+        (output / "0.2.0/index.html").write_text("Fixture stable, not imported project docs")
+        (self.stage / "index.html").write_text("Built dev")
+        return output
+
+    def snapshot(self, directory):
+        return {str(p.relative_to(directory)): p.read_bytes()
+                for p in directory.rglob("*") if p.is_file()}
+
+    def test_publish_only_target_preserves_root_assets_versions_and_root_backup_once(self):
+        output = self.fixture_output()
+        before_stable = self.snapshot(output / "0.2.0")
+        render.publish(self.stage, self.source, output)
+        self.assertEqual((output / "dev/index.html").read_text(), "Built dev")
+        self.assertEqual((output / "assets/keep.txt").read_text(), "Keep root asset")
+        self.assertEqual(before_stable, self.snapshot(output / "0.2.0"))
+        self.assertIn('url=dev/', (output / "index.html").read_text())
+        backup = self.root / "src/tools/docs/.build/root-index.once.html"
+        self.assertEqual(backup.read_bytes(), b"Legacy snapshot\r\n")
+        first = self.snapshot(output)
+        render.publish(self.stage, self.source, output)
+        self.assertEqual(first, self.snapshot(output))
+        self.assertEqual(backup.read_bytes(), b"Legacy snapshot\r\n")
+        manifest = json.loads((output / "versions.json").read_text())
+        self.assertEqual(manifest["latestStable"], None)
+        self.assertEqual(manifest["versions"], [render.DEVELOPMENT_VERSION])
+
+    def test_publish_requires_generated_root_and_safe_paths(self):
         output = self.root / "docs"
         output.mkdir()
         (output / "manual.txt").write_text("Do not overwrite")
+        (self.stage / "index.html").write_text("Built")
         with self.assertRaises(ValueError):
             render.publish(self.stage, self.source, output)
         self.assertEqual((output / "manual.txt").read_text(), "Do not overwrite")
         (output / ".nojekyll").write_text("")
-        (self.stage / "index.html").write_text("Built")
-        render.publish(self.stage, self.source, output)
-        self.assertFalse((output / "manual.txt").exists())
-        self.assertEqual((output / "index.html").read_text(), "Built")
+        for version in ("../dev", "/dev", "dev/", "0.3.0", "0.2.1", "01.2.3", "dev\\evil"):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                render.publish(self.stage, self.source, output, version=version)
         with self.assertRaises(ValueError):
             render.publish(self.stage, self.source, self.source)
+        (output / "dev").symlink_to(self.stage, target_is_directory=True)
+        before = self.snapshot(self.stage)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output)
+        self.assertEqual(before, self.snapshot(self.stage))
+
+    def test_artifact_refuses_unverified_stable_without_changing_any_output(self):
+        output = self.fixture_output()
+        before = self.snapshot(output)
+        for stable in (None, "dev", "0.2.0", "../0.2.0"):
+            with self.subTest(stable=stable), self.assertRaises(ValueError):
+                render.publish(self.stage, self.source, output, mode="artifact", stable_version=stable)
+            self.assertEqual(before, self.snapshot(output))
+
+    def test_artifact_selects_only_explicit_existing_verified_stable_fixture(self):
+        output = self.fixture_output()
+        stable = {"id": "0.2.0", "path": "0.2.0/", "label": "Stable fixture",
+                  "status": "stable", "releaseAvailable": True}
+        (output / "versions.json").write_text(json.dumps({
+            "schemaVersion": 1, "latestStable": None, "versions": [stable]}))
+        original = self.snapshot(output / "0.2.0")
+        render.publish(self.stage, self.source, output, mode="artifact", stable_version="0.2.0")
+        self.assertIn('url=0.2.0/', (output / "index.html").read_text())
+        self.assertEqual(original, self.snapshot(output / "0.2.0"))
+        manifest = json.loads((output / "versions.json").read_text())
+        self.assertEqual(manifest["latestStable"], "0.2.0")
+        self.assertIn(stable, manifest["versions"])
+
+    def release_metadata(self, python="0.3.0", node="0.3.0"):
+        (self.root / "pyproject.toml").write_text(f'[project]\nversion = "{python}"\n')
+        package = self.root / "src/nodalwire/client/node/package.json"
+        package.parent.mkdir(parents=True, exist_ok=True)
+        package.write_text(json.dumps({"version": node}))
+
+    def test_release_preview_requires_matching_versions_and_preserves_other_output(self):
+        output = self.fixture_output()
+        self.release_metadata()
+        previous = self.snapshot(output / "0.2.0")
+        render.publish(self.stage, self.source, output, version="0.3.0")
+        manifest = json.loads((output / "versions.json").read_text())
+        preview, = manifest["versions"]
+        self.assertEqual(preview["id"], "0.3.0")
+        self.assertEqual(preview["status"], "preview")
+        self.assertIs(preview["releaseAvailable"], False)
+        self.assertIsNone(manifest["latestStable"])
+        self.assertEqual(previous, self.snapshot(output / "0.2.0"))
+        self.assertIn('url=0.3.0/', (output / "index.html").read_text())
+        before = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0",
+                           mode="artifact", stable_version="0.3.0")
+        self.assertEqual(before, self.snapshot(output))
+        self.release_metadata(node="0.2.0")
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0")
+        self.assertEqual(before, self.snapshot(output))
+
+    def test_release_render_uses_version_metadata_and_refuses_stable_overwrite(self):
+        self.release_metadata()
+        (self.source / "index.html").write_text("{{ docs_version.id }}:{{ docs_version.status }}")
+        render.render_site(self.source, self.stage, {}, version="0.3.0")
+        self.assertEqual((self.stage / "index.html").read_text().strip(), "0.3.0:preview")
+        output = self.fixture_output()
+        (output / "versions.json").write_text(json.dumps({
+            "schemaVersion": 1, "latestStable": "0.3.0", "versions": [
+                {"id": "0.3.0", "path": "0.3.0/", "status": "stable",
+                 "releaseAvailable": True}]}))
+        before = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0")
+        self.assertEqual(before, self.snapshot(output))
+
+    def test_explicit_available_release_promotes_fixture_only_after_operator_attestation(self):
+        self.release_metadata()
+        output = self.fixture_output()
+        (self.source / "index.html").write_text(
+            "{{ docs_version.id }}:{{ docs_version.status }}:{{ docs_version.releaseAvailable }}"
+        )
+        render.render_site(self.source, self.stage, {}, version="0.3.0", release_available=True)
+        self.assertEqual((self.stage / "index.html").read_text().strip(), "0.3.0:stable:True")
+        before = self.snapshot(output)
+        for kwargs in ({}, {"mode": "artifact", "stable_version": "0.2.0"}):
+            with self.assertRaises(ValueError):
+                render.publish(self.stage, self.source, output, version="0.3.0",
+                               release_available=True, **kwargs)
+            self.assertEqual(before, self.snapshot(output))
+        with self.assertRaises(ValueError):
+            render.documentation_version(self.source, "dev", release_available=True)
+        render.publish(self.stage, self.source, output, version="0.3.0", mode="artifact",
+                       stable_version="0.3.0", release_available=True)
+        manifest = json.loads((output / "versions.json").read_text())
+        self.assertEqual(manifest["latestStable"], "0.3.0")
+        self.assertEqual(manifest["versions"][0]["status"], "stable")
+        self.assertIs(manifest["versions"][0]["releaseAvailable"], True)
+        self.assertIn('url=0.3.0/', (output / "index.html").read_text())
+        stable = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0", mode="artifact",
+                           stable_version="0.3.0", release_available=True)
+        self.assertEqual(stable, self.snapshot(output))
+
+    def test_broken_stage_leaves_existing_output_untouched(self):
+        output = self.fixture_output()
+        (self.stage / "index.html").write_text('<a href="missing/">Broken</a>')
+        before = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output)
+        self.assertEqual(before, self.snapshot(output))
+
+    def test_specification_copy_is_byte_identical(self):
+        (self.source / "specs").mkdir()
+        spec = b"# Frozen protocol\r\n\nOpaque bytes.\n"
+        (self.source / "specs/nwm3.md").write_bytes(spec)
+        (self.source / "index.html").write_text('<a href="specs/nwm3.md">Wire spec</a>')
+        render.render_site(self.source, self.stage, {})
+        self.assertEqual((self.stage / "specs/nwm3.md").read_bytes(), spec)
 
 
 if __name__ == "__main__":

@@ -26,10 +26,14 @@ export class Receipts {
     options: OperationOptions,
     validate: (frames: Buffer[]) => T,
     onReject?: (error: unknown) => void,
+    explicitId?: string,
   ) {
     if (options.signal?.aborted) throw abortReason(options.signal);
     if (this.pending.size >= this.capacity) throw new RelayError("pending_full");
-    const id = randomBytes(16).toString("hex");
+    const id = explicitId ?? randomBytes(16).toString("hex");
+    if (!/^[0-9a-f]{32}$/.test(id) || this.pending.has(id)) {
+      throw new RelayError("pending_full");
+    }
     let entry: Pending;
     const promise = new Promise<T>((resolve, reject) => {
       const finish = () => {
@@ -67,6 +71,10 @@ export class Receipts {
       promise,
       reject: (error: unknown) => this.pending.get(id)?.reject(error),
     };
+  }
+
+  has(id: string): boolean {
+    return this.pending.has(id);
   }
 
   matches(id: Buffer, token: Buffer): boolean {

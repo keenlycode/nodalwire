@@ -10,7 +10,6 @@ import select
 import signal
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
@@ -25,11 +24,42 @@ from .protocol import ReceiptTimeout, RelayError, valid_name
 from .server import Relay
 
 app = App(
-    help=(
-        "Loopback relay and bounded one-shot commands. Each client invocation has a new "
-        "connection/membership; use Python/Node libraries for persistent use. "
-        "Credentials grant permission, not peer-name identity. No automatic retries."
-    )
+    help="""\
+Exchange bytes between local applications through a loopback relay.
+
+Start with serve, then receive in one terminal and send in another. Use
+request/reply when an application response is needed, or admin to inspect
+and manage the relay.
+
+Quick start (POSIX shell; three terminals)
+----------------------------------------
+Terminal 1: start the relay. No config file is needed; an admin token is required::
+
+    ADMIN_TOKEN=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+    export NODALWIRE_ADMIN_TOKEN="$ADMIN_TOKEN"
+    nodalwire serve
+
+Terminal 2: wait for one message. Wait for the ready event before sending::
+
+    nodalwire receive --name bob --timeout 30
+
+Terminal 3: send bytes to that connected receiver::
+
+    printf 'hello' | nodalwire send bob --name alice
+
+The defaults are tcp://127.0.0.1:5555 for messages and
+tcp://127.0.0.1:5556 for administration. Message clients use the open default network.
+Stop the relay with Ctrl-C. Keep the generated credential private; admin clients
+need the same value, but ordinary clients on an open network do not.
+
+Each client command connects, joins, performs one bounded operation, then
+disconnects. Later commands do not share its connection or membership. Use the
+Python/Node libraries for persistent applications. Send success means queue
+acceptance, not processing or durable storage. No command automatically retries.
+Credentials grant permission, not authenticated peer-name identity.
+
+Run nodalwire COMMAND --help for options and examples for that command.
+""",
 )
 
 
@@ -179,20 +209,23 @@ def _positive_deadline(timeout: float) -> float:
 def _message_event(message, *, event: str = "message") -> dict:
     return {
         "event": event,
+        "id": message.id,
+        "reply_to": message.reply_to,
         "network": message.network,
         "sender": message.sender,
         "payload": base64.b64encode(message.payload).decode("ascii"),
     }
 
 
-@dataclass(frozen=True)
-class _Incoming:
-    network: str
-    sender: str
-    payload: bytes
+def _valid_message_id(value) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 32
+        and all(char in "0123456789abcdef" for char in value)
+    )
 
 
-def _decode_incoming(data: bytes, max_payload: int) -> _Incoming:
+def _decode_incoming(data: bytes, max_payload: int) -> Message:
     def unique(pairs):
         result = {}
         for key, value in pairs:
@@ -201,12 +234,20 @@ def _decode_incoming(data: bytes, max_payload: int) -> _Incoming:
             result[key] = value
         return result
 
+    def reject_constant(_value):
+        raise ValueError("nonfinite JSON number")
+
     try:
-        item = json.loads(data, object_pairs_hook=unique)
-        if not isinstance(item, dict) or set(item) != {"event", "network", "sender", "payload"}:
+        item = json.loads(data, object_pairs_hook=unique, parse_constant=reject_constant)
+        if not isinstance(item, dict) or set(item) != {
+            "event", "id", "reply_to", "network", "sender", "payload"
+        }:
             raise ValueError("invalid message fields")
-        if item["event"] != "message" or not all(
-            valid_name(item[key]) for key in ("network", "sender")
+        if (
+            item["event"] != "message"
+            or not _valid_message_id(item["id"])
+            or (item["reply_to"] is not None and not _valid_message_id(item["reply_to"]))
+            or not all(valid_name(item[key]) for key in ("network", "sender"))
         ):
             raise ValueError("invalid message metadata")
         encoded = item["payload"]
@@ -217,7 +258,13 @@ def _decode_incoming(data: bytes, max_payload: int) -> _Incoming:
             raise ValueError("invalid payload encoding")
     except (ValueError, TypeError, UnicodeError, binascii.Error, RecursionError):
         raise CLIInputError("invalid incoming message JSON") from None
-    return _Incoming(item["network"], item["sender"], payload)
+    return Message(
+        id=item["id"],
+        sender=item["sender"],
+        network=item["network"],
+        payload=payload,
+        reply_to=item["reply_to"],
+    )
 
 
 class _OutputBudget:
@@ -380,7 +427,7 @@ async def _peer_operation(
     timeout: float,
     count: int,
     output: _OutputBudget,
-    incoming: _Incoming | None = None,
+    incoming: Message | None = None,
     ready=None,
 ) -> dict:
     if operation not in {"send", "receive", "request", "reply"}:
@@ -393,24 +440,27 @@ async def _peer_operation(
         raise CLIInputError("receive count must be between one and 1024")
     if operation == "reply":
         if incoming is None:
-            raise CLIInputError("incoming request metadata required")
+            raise CLIInputError("incoming message metadata required")
         network = incoming.network
     async with asyncio.timeout(_positive_deadline(timeout)):
         # Even open nondefault networks require a new explicit join per invocation.
         await node.join(network, credential, timeout=timeout)
         if operation == "send":
-            await node.send(destination, payload, network=network, timeout=timeout)
+            message_id = await node.send(destination, payload, network=network, timeout=timeout)
             return {
                 "event": "accepted",
+                "id": message_id,
+                "reply_to": None,
                 "network": network,
                 "recipient": destination,
                 "meaning": "native_queue_acceptance_only",
             }
         if operation == "reply":
-            message = Message(incoming.sender, incoming.payload, incoming.network)
-            await node.reply(message, payload, timeout=timeout)
+            message_id = await node.reply(incoming, payload, timeout=timeout)
             return {
                 "event": "accepted",
+                "id": message_id,
+                "reply_to": incoming.id,
                 "network": network,
                 "recipient": incoming.sender,
                 "meaning": "native_queue_acceptance_only",
@@ -535,7 +585,7 @@ async def _client_run(
     count: int,
     max_unrelated: int,
     max_output_bytes: int,
-    incoming: _Incoming | None,
+    incoming: Message | None,
 ) -> None:
     remaining = _positive_deadline(deadline - time.monotonic())
     output = _OutputBudget(
@@ -636,15 +686,44 @@ def _client(
 
 
 def main(*, config: Path | None = None) -> None:
-    """Start the relay; prints the bound endpoint after native bind succeeds.
+    """Start a foreground relay for local applications; stop with Ctrl-C.
+
+    No config file is required. By default, messages use tcp://127.0.0.1:5555,
+    administration uses tcp://127.0.0.1:5556, and clients join the open default
+    network. Both endpoints are loopback-only.
+
+    An administrator credential IS required, even without a file. Generate one
+    and start the relay in a POSIX shell::
+
+        ADMIN_TOKEN=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+        export NODALWIRE_ADMIN_TOKEN="$ADMIN_TOKEN"
+        nodalwire serve
+
+    Keep that value private. Admin clients need the same token. The environment
+    value overrides a configured admin_verifier; missing or malformed credentials
+    fail before bind. Tokens must be 1-1024 printable ASCII characters without
+    spaces; use a strong random value, not an example password.
+
+    To customize ports, create relay.toml (still using the environment token)::
+
+        config_version = 2
+        endpoint = "tcp://127.0.0.1:6000"
+        admin_endpoint = "tcp://127.0.0.1:6001"
+
+    Then run nodalwire serve --config relay.toml. Clients must select the matching
+    --endpoint. If startup fails, check the credential, v2 TOML syntax and whether
+    another process already owns either port. The bound message endpoint is
+    printed on stdout, followed by a serving JSON status event. Failures are
+    JSON on stderr.
 
     Parameters
     ----------
     config
-        Strict v2 TOML; administrative changes save to this SAME file. Without
-        a file, configuration is memory-only. Endpoints and native limits are
-        startup-only. NODALWIRE_ADMIN_TOKEN overrides configured verifier;
-        missing or malformed administrator credentials fail before bind.
+        Optional existing v2 TOML file. Without it, settings and administrative
+        changes are memory-only and lost on shutdown; no file is created.
+        With it, administrative changes save to this same file. Endpoints and
+        native limits are startup-only; use an admin_verifier or the environment
+        credential described above.
     """
 
     def start():
@@ -669,12 +748,39 @@ def send(
     timeout: float = 5,
     max_bytes: int = 1048576,
 ) -> None:
-    """Send bounded stdin/file bytes once, then disconnect; no retry.
+    """Send bytes to a connected receiver, then disconnect.
 
-    A successful receipt is native queue acceptance, not application execution.
-    --join-token-env names an environment variable, never the credential itself.
-    --timeout includes input reading, connection and operation (cleanup <=0.2s).
-    Omitted --network selects default ONLY. Each invocation explicitly joins anew.
+    Start the relay and a receiver first (see nodalwire --help). For example::
+
+        printf 'hello' | nodalwire send bob --name alice
+        nodalwire send bob --name alice --input-file message.bin
+
+    Success emits an accepted JSON event: the relay queued the bytes, not proof
+    that Bob received or processed them or that they are durably stored. There is
+    no automatic retry. Each invocation connects and joins the selected network
+    anew; omitting --network selects default only.
+
+    Parameters
+    ----------
+    destination
+        Connected recipient's node name, for example bob; not an endpoint URL.
+    name
+        Sender's node name for this invocation; distinct from the recipient.
+    endpoint
+        Relay message endpoint (not the separate administration endpoint).
+    network
+        Network to join before sending. The recipient must be a member too.
+    join_token_env
+        Name of an environment variable containing the selected protected
+        network's join token, never the token itself. Omit for an open network.
+    input_file
+        Read raw payload bytes from this file instead of stdin. Without it,
+        pipe input or finish interactive stdin with EOF; do not pass base64.
+    timeout
+        Total seconds for input, connection, join and send; cleanup adds at most
+        0.2 seconds. A timeout is not proof that nothing was queued.
+    max_bytes
+        Maximum raw payload bytes to read; oversized input is rejected.
     """
     _client(
         "send",
@@ -700,11 +806,37 @@ def receive(
     count: int = 1,
     max_output_bytes: int = 2097152,
 ) -> None:
-    """Receive a finite count of messages as base64 JSON, then disconnect.
+    """Wait for messages, print base64 JSON events, then disconnect.
 
-    Emits ready after JOIN, then message events and a completion event. There is
-    no continuous mode or connection/membership shared with later invocations.
-    --max-output-bytes bounds message JSON; ready/completion are small fixed status.
+    Run this before sending to bob from another terminal::
+
+        nodalwire receive --name bob --timeout 30
+        nodalwire receive --name bob --count 3 --timeout 60
+
+    Wait for the ready event before sending. Stdout contains one JSON event per
+    line: ready after joining, message events, then completion. The payload field
+    is base64, not decoded text. This is a finite receiver, not a background
+    service; later commands do not inherit its connection or membership.
+
+    Parameters
+    ----------
+    name
+        Receiver's node name. Senders address messages to this name.
+    endpoint
+        Relay message endpoint (not the administration endpoint).
+    network
+        Network to join for this invocation; default does not join other networks.
+    join_token_env
+        Environment variable NAME holding this protected network's join token.
+        Omit for an open network; never pass the token as a command argument.
+    timeout
+        Total seconds for connection, join and receiving all requested messages;
+        not a separate timeout per message. Cleanup adds at most 0.2 seconds.
+    count
+        Number of messages to receive before successful completion; positive only.
+    max_output_bytes
+        Total message-event JSON byte budget. Small ready/completion status events
+        are separate. Reaching a limit is not successful completion.
     """
     _client(
         "receive",
@@ -732,13 +864,46 @@ def request(
     max_unrelated: int = 64,
     max_output_bytes: int = 1048576,
 ) -> None:
-    """Hold one connection for a correlated reply, then disconnect.
+    """Send a request and wait on the same connection for an application reply.
 
-    Emits unrelated ordinary messages (base64 JSON), never silently discards them.
-    Count/byte cutoff cancels the wait with an uncertain outcome; timeout does NOT
-    mean the remote application did nothing. No retry/reconnect/replay.
-    --max-output-bytes bounds unrelated events; terminal reply JSON <=2MiB.
-    Matching is sender/network/kind/unpredictable ID, NOT authenticated identity.
+    Bob must already be connected and able to reply. For example::
+
+        printf 'status?' | nodalwire request bob --name alice --timeout 30
+
+    Unlike send, this waits for a reply whose reply_to, sender and network match
+    the request; these fields are not authenticated peer identity. The reply
+    payload is base64 in a JSON event. Unrelated messages are emitted as ordinary
+    message events, never silently discarded. A timeout or output/count cutoff
+    leaves the remote outcome uncertain: the application may already have acted.
+    No retry, reconnect or replay is attempted. See nodalwire reply --help for
+    the responder workflow; use the SDK for a persistent request/reply service.
+
+    Parameters
+    ----------
+    destination
+        Connected responder's node name, not an endpoint URL.
+    name
+        Requester's node name; remains connected until reply or failure.
+    endpoint
+        Relay message endpoint (not the administration endpoint).
+    network
+        Network to join for this request; the responder must be a member too.
+    join_token_env
+        Environment variable NAME holding the protected network's join token.
+        Omit for an open network; never supply the token directly.
+    input_file
+        Read raw request bytes from this file instead of stdin; no base64 input.
+    timeout
+        Total seconds for input, connection, join, send and reply wait.
+        Cleanup adds at most 0.2 seconds; timeout does not undo remote work.
+    max_bytes
+        Maximum raw request payload bytes to read.
+    max_unrelated
+        Maximum unrelated message events while waiting; exceeding it cancels
+        the wait with an uncertain outcome, not a successful reply.
+    max_output_bytes
+        Byte budget for unrelated message JSON events. The terminal reply event
+        has a separate maximum of 2 MiB.
     """
     _client(
         "request",
@@ -766,11 +931,44 @@ def reply(
     timeout: float = 5,
     max_bytes: int = 1048576,
 ) -> None:
-    """Reply using a prior receive message JSON file and new stdin/file bytes.
+    """Reply to one saved incoming message using new stdin/file bytes.
 
-    The file must contain exactly one message event with the original request
-    envelope. Uses its incoming network explicitly and joins on a NEW connection;
-    no hidden connection is retained. The requester must still be connected.
+    First receive a request as bob (keep Alice's request command running)::
+
+        nodalwire receive --name bob --timeout 30 > events.jsonl
+
+    Copy ONLY the message event line into request.json, not the ready/completion
+    lines or the whole JSONL stream. Then reconnect as the same responder::
+
+        printf 'ok' | nodalwire reply --name bob --request-file request.json
+
+    The file must be one message JSON object with exactly event, id, reply_to,
+    network, sender and payload. This command derives recipient, reply_to and
+    network from it, joins on a NEW connection, sends a fresh reply, then exits.
+    The requester must still be connected and waiting. For continuous responders
+    prefer the Python/Node SDK; no hidden connection survives receive.
+
+    Parameters
+    ----------
+    name
+        Responder node name; must match the destination of the original request
+        for the requester's correlation check to accept this reply.
+    request_file
+        JSON file containing exactly one received message event, not JSONL,
+        an entire command transcript, or a reply event.
+    endpoint
+        Relay message endpoint that the requester is using.
+    join_token_env
+        Environment variable NAME holding the incoming network's join token.
+        Its network is taken from request-file, not a separate --network option.
+    input_file
+        Read new raw reply bytes from this file instead of stdin; the saved
+        request's base64 payload is not reused as the reply.
+    timeout
+        Total seconds for reading both files/input, connection, join and send;
+        cleanup adds at most 0.2 seconds. No retry on uncertain failure.
+    max_bytes
+        Maximum raw reply payload bytes; also bounds accepted request metadata.
     """
     _client(
         "reply",
@@ -814,15 +1012,68 @@ def admin(
     expected_revision: int | None = None,
     timeout: float = 5,
 ) -> None:
-    """One administrative operation on the SEPARATE loopback endpoint.
+    """Inspect or change relay settings through its authenticated admin endpoint.
 
-    Operations: config.get, network.list/get/create/update/rotate/delete,
-    member.list/remove, admin.rotate (use their dotted names). Mutation requires
-    --expected-revision from a prior explicit read; no automatic retry/read-modify
-    replay. --protected/--no-protected is explicit for network.update.
-    --token-env selects administrator credential; --credential-env selects NEW
-    network/admin credential. Both flags name variables, never bearer values.
-    Env-managed server admin rotation is rejected. Reads redact all verifiers.
+    Use the SAME administrator token as the running relay, in an environment
+    variable. The default token variable is NODALWIRE_ADMIN_TOKEN. Read first::
+
+        nodalwire admin config.get
+        nodalwire admin network.list
+        nodalwire admin member.list --network default
+
+    Each success emits JSON with revision and result. For a change, pass the
+    current revision from that explicit read, for example if revision is 0::
+
+        nodalwire admin network.create --network team --expected-revision 0
+
+    This creates an open network. For a protected network, first set a strong
+    new token in TEAM_JOIN_TOKEN, then use (with the CURRENT revision)::
+
+        nodalwire admin network.create --network team \\
+            --credential-env TEAM_JOIN_TOKEN --expected-revision 0
+
+    Operations and their additional options:
+
+    * config.get, network.list: no additional options.
+    * network.get, network.delete, member.list: --network.
+    * network.create: --network, optional --credential-env (protected if supplied).
+    * network.update: --network and explicit --protected or --no-protected;
+      optional --credential-env for the new protection policy.
+    * network.rotate: --network and --credential-env for a new join token.
+    * member.remove: --network and --member.
+    * admin.rotate: --credential-env for a new admin token; not allowed when the
+      server's administrator credential is environment-managed.
+
+    Every mutation also requires --expected-revision; reads must omit it. On a
+    revision conflict, read and deliberately reconsider the change; no automatic
+    retry/read-modify replay is performed. Reads redact credential verifiers.
+    Configuration is persistent only when the relay was started with --config.
+
+    Parameters
+    ----------
+    operation
+        One dotted operation name listed above, for example config.get.
+    endpoint
+        Separate ADMIN endpoint; do not use the message endpoint on port 5555.
+    token_env
+        Environment variable NAME containing the CURRENT administrator token.
+        Never pass the bearer value itself as an argument.
+    network
+        Network name required by network/member operations listed above.
+    member
+        Node name to remove; used only with member.remove.
+    protected
+        Explicit protection policy for network.update. Use --protected to
+        require a join credential, or --no-protected to make the network open.
+    credential_env
+        Environment variable NAME containing a NEW network/admin credential.
+        This is different from token-env, which authenticates the current call.
+    expected_revision
+        Revision from a prior read; required for mutations, forbidden for reads.
+        Never reuse the example revision without checking the current value.
+    timeout
+        Total seconds for authentication, connection and this operation.
+        Timeout is not proof a mutation failed; do not blindly retry.
     """
 
     def invoke():

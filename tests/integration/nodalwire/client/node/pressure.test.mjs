@@ -17,7 +17,7 @@ test("non-reading connected peer fills the native HWM without a JS outbound queu
     const frames = await router.receive();
     await router.send([
       frames[0],
-      "AR2",
+      "NWM3",
       "OK",
       "",
       frames[3],
@@ -53,7 +53,7 @@ test("non-reading connected peer fills the native HWM without a JS outbound queu
     }
     assert.ok(
       acceptedWithoutReceipt,
-      "at least one native send accepted without an AR2 receipt",
+      "at least one native send accepted without a NWM3 receipt",
     );
     assert.ok(full, "bounded probe reached native EAGAIN");
   } finally {

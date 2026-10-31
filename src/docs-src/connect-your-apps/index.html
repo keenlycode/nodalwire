@@ -1,0 +1,13 @@
+{% extends '_layouts/product.html' %}
+{% set page_path = 'connect-your-apps/' %}
+{% set page_title = 'Connect your apps' %}
+{% set page_intro = 'Choose names, connect to one local relay, and agree on how your applications exchange bytes.' %}
+{% block content %}
+<p>For Python applications, create a virtual environment and install <code>nodalwire==0.3.0</code> into it. For Node.js 24 applications, install <code>@devcapsule/nodalwire-client@0.3.0</code>. Registry installation applies after publication; prepublication testing uses the matching verified local artifacts. The CLI's isolated tool installation is separate from your application's Python environment.</p>
+<section aria-labelledby="path"><h2 id="path">From a first exchange to your own apps</h2>
+<ol><li>Install matching 0.3.0 packages and try the first-message walkthrough in <a href="{{ url('getting-started/') }}">Get started</a>.</li><li>Pick a distinct live routing name for each connection. Connect to the same loopback relay and keep each connection open while it is needed.</li><li>Join a common network and select it when sending. Open <code>default</code> joins automatically; every nondefault network and a protected default require explicit joins.</li><li>Agree on payload encoding and application acknowledgements. NodalWire routes opaque bytes rather than defining your application format.</li><li>Close each client when finished and handle uncertain outcomes without blindly retrying.</li></ol>
+<p>For exact Python and Node.js connection and cleanup methods, see the <a href="{{ url('reference/api/') }}">API reference</a>. For send and request/reply examples, start with <a href="{{ url('messaging/') }}">Messaging</a>.</p></section>
+<section aria-labelledby="trust"><h2 id="trust">Networks and trust</h2>
+<p>Read <a href="{{ url('guides/networks/') }}">networks and membership</a> for open and protected examples, and <a href="{{ url('guides/security/') }}">security and local trust</a> before sharing credentials. A network credential grants permission to join; it does not authenticate a peer's name. Bearer credentials do not encrypt local traffic.</p>
+<p>Need to configure the service? Continue to <a href="{{ url('run-a-relay/') }}">Run a relay</a>.</p></section>
+{% endblock %}

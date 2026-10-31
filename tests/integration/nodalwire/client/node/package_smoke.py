@@ -1,8 +1,8 @@
 """Install actual local tarball; verify exports/types/native transport and real wire.
 
 --skip-interop explicitly limits evidence to the installed Node artifact.
-Default interop uses matching reviewed AR2 Python source. --python-artifact installs
-matching Python into a fresh external venv and runs copied interop fixtures there
+Default interop uses the explicitly selected matching reviewed NWM3 Python source.
+--python-artifact installs matching Python into a fresh external venv and runs copied fixtures there
 with isolated imports, proving both installed packages instead of Python source.
 NODALWIRE_PYTHON_SOURCE selects source-mode src/, NODALWIRE_ARTIFACT_DIR optionally
 retains the checked tarball, NODALWIRE_EVIDENCE_DIR selects scratch placement.
@@ -16,7 +16,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from email.parser import BytesParser
+from email.policy import default
 from pathlib import Path
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[5]
 PACKAGE = ROOT / "src" / "nodalwire" / "client" / "node"
@@ -29,11 +32,29 @@ def run(args, cwd=PACKAGE, env=None):
     subprocess.run(args, cwd=cwd, env=env, check=True, timeout=90)
 
 
+def validate_distribution(distribution, sources=PACKAGE / "src"):
+    """Reject stale compiler outputs, including removed legacy modules."""
+    expected = set()
+    for source in sources.rglob("*.ts"):
+        if source.name.endswith(".d.ts"):
+            continue
+        stem = source.relative_to(sources).with_suffix("").as_posix()
+        expected.update((stem + ".js", stem + ".d.ts"))
+    actual = {p.relative_to(distribution).as_posix()
+              for p in distribution.rglob("*") if p.is_file()}
+    if not expected or actual != expected:
+        raise ValueError(f"Unexpected SDK distribution files: extra={sorted(actual - expected)}, "
+                         f"missing={sorted(expected - actual)}")
+
+
 def stage_native_fixtures(fixture_root, installed_root):
     """Mirror only public SDK test fixtures; every SDK import uses the artifact."""
     sdk = fixture_root / "src/nodalwire/client/node"
     sdk.parent.mkdir(parents=True)
     sdk.symlink_to(installed_root.resolve(), target_is_directory=True)
+    fixture = fixture_root / "tests/fixtures/nwm3/wire.json"
+    fixture.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "tests/fixtures/nwm3/wire.json", fixture)
     copied = []
     for relative, pattern in (
         ("tests/unit/nodalwire/client/node/src", "*.test.mjs"),
@@ -69,14 +90,41 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-interop", action="store_true")
     parser.add_argument("--python-artifact", type=Path,
-                        help="Install a matching Python wheel/sdist for isolated interop")
+                        help="Install a matching Python wheel for isolated interop")
+    parser.add_argument("--python-version",
+                        help="Expected nodalwire Python distribution version for --python-artifact")
     args = parser.parse_args()
+    if (
+        not args.skip_interop and not args.python_artifact and
+        not os.environ.get("NODALWIRE_PYTHON_SOURCE")
+    ):
+        parser.error("source interop requires NODALWIRE_PYTHON_SOURCE for the reviewed NWM3 tree")
+    if args.python_version and not args.python_artifact:
+        parser.error("--python-version is only valid with --python-artifact")
     if args.python_artifact:
         if args.skip_interop:
             parser.error("--python-artifact cannot be combined with --skip-interop")
+        if not args.python_version:
+            parser.error("--python-artifact requires its own explicit --python-version")
         args.python_artifact = args.python_artifact.resolve()
-        if not args.python_artifact.is_file():
-            parser.error("--python-artifact must name an existing wheel/sdist")
+        if not args.python_artifact.is_file() or args.python_artifact.suffix != ".whl":
+            parser.error("--python-artifact must name an existing wheel")
+        try:
+            with ZipFile(args.python_artifact) as archive:
+                metadata_paths = [path for path in archive.namelist()
+                                  if path.endswith(".dist-info/METADATA")]
+                if len(metadata_paths) != 1:
+                    raise ValueError("wheel must contain exactly one dist-info/METADATA")
+                metadata = BytesParser(policy=default).parsebytes(
+                    archive.read(metadata_paths[0])
+                )
+        except (OSError, ValueError) as error:
+            parser.error(f"invalid Python wheel metadata: {error}")
+        if metadata["Name"] != "nodalwire" or metadata["Version"] != args.python_version:
+            parser.error(
+                "Python wheel metadata does not match its independent expected name/version"
+            )
+    node_expected_version = json.loads((PACKAGE / "package.json").read_text())["version"]
     scratch = os.environ.get("NODALWIRE_EVIDENCE_DIR")
     if scratch:
         Path(scratch).mkdir(parents=True, exist_ok=True)
@@ -84,7 +132,8 @@ def main():
         work = Path(temporary)
         if args.python_artifact and work.resolve().is_relative_to(ROOT.resolve()):
             parser.error("Installed-package evidence directory must be outside checkout")
-        run(["deno", "task", "build"])
+        run(["pnpm", "run", "build"])
+        validate_distribution(PACKAGE / "dist")
         run(["pnpm", "pack", "--pack-destination", str(work)])
         tarball, = work.glob("*.tgz")
         consumer = work / "consumer"
@@ -97,28 +146,27 @@ def main():
         (consumer / "pnpm-workspace.yaml").write_text("allowBuilds:\n  zeromq: true\n")
         run(["pnpm", "install", "--offline", "--store-dir", str(STORE)], cwd=consumer)
         run(["node", "--input-type=module", "-e",
-             'import { Node, RelayError, ReceiptTimeout, encodeEnvelope, decodeEnvelope } '
+             'import { Node, RelayError, ReceiptTimeout } '
              'from "@devcapsule/nodalwire-client"; '
-             'if (!Node || !RelayError || !ReceiptTimeout || !encodeEnvelope || !decodeEnvelope) '
+             'if (!Node || !RelayError || !ReceiptTimeout) '
              'throw Error("exports"); console.log("PASS installed ESM exports/native import");'],
             cwd=consumer)
         (consumer / "consumer.ts").write_text('''import {
-  Node, encodeEnvelope, decodeEnvelope, type Envelope,
-  type Message, type MembershipReceipt, type SendOptions,
+  Node, type Message, type MembershipReceipt, type RequestOptions, type SendOptions,
 } from "@devcapsule/nodalwire-client";
 async function application() {
   const node = await Node.connect("typed", undefined, { inboxSize: 2 });
   const receipt: MembershipReceipt = await node.join("team", "fixture-token");
   const options: SendOptions = { network: receipt.network, timeout: 1 };
-  await node.send("peer", Uint8Array.of(0, 255), options);
+  const acceptedId: string = await node.send("peer", Uint8Array.of(0, 255), options);
+  const requestOptions: RequestOptions = { network: receipt.network, timeout: 1 };
   const message: Message = await node.receive({ signal: AbortSignal.timeout(100) });
   const bytes: Uint8Array = message.payload;
   const queued: Message | undefined = node.receiveNowait();
-  const response: Message = await node.request("peer", bytes, options);
-  await node.reply(message, response.payload, { timeout: 1 });
-  const envelope: Envelope = { kind: "request", id: "a".repeat(32), payload: bytes };
-  const decoded: Envelope | undefined = decodeEnvelope(encodeEnvelope(envelope));
-  console.log(message.sender, message.network, queued, decoded);
+  const response: Message = await node.request("peer", bytes, requestOptions);
+  const replyId: string = await node.reply(message, response.payload, { timeout: 1 });
+  console.log(message.id, message.reply_to, message.sender, message.network,
+    queued, acceptedId, replyId);
   // @ts-expect-error string is not a byte payload
   await node.send("peer", "not bytes");
   // @ts-expect-error callers cannot bypass admission
@@ -127,6 +175,10 @@ async function application() {
   receipt.changed = true;
   // @ts-expect-error reply cannot override the incoming network
   await node.reply(message, bytes, { network: "other" });
+  // @ts-expect-error request has no caller-supplied correlation ID
+  await node.request("peer", bytes, { reply_to: "a".repeat(32) });
+  // @ts-expect-error send has no caller-supplied message ID
+  await node.send("peer", bytes, { id: "a".repeat(32) });
   await node.leave("team");
   await node.close();
 }
@@ -135,9 +187,18 @@ void application;
         run(["node", str(PACKAGE / "node_modules/typescript/bin/tsc"),
              "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2022",
              "consumer.ts"], cwd=consumer)
-        print("PASS installed declarations: bytes/network/membership/request/codec contracts",
-              flush=True)
+        print("PASS installed declarations: "
+              "bytes/network/membership/request/reply metadata contracts", flush=True)
         installed_root = consumer / "node_modules/@devcapsule/nodalwire-client"
+        installed_root_resolved = installed_root.resolve(strict=True)
+        assert installed_root_resolved.is_relative_to(consumer.resolve())
+        node_metadata = json.loads((installed_root_resolved / "package.json").read_text())
+        assert node_metadata["name"] == "@devcapsule/nodalwire-client"
+        assert node_metadata["version"] == node_expected_version
+        print(f"PASS installed Node provenance: version={node_metadata['version']}; "
+              f"package={installed_root_resolved}", flush=True)
+        validate_distribution(installed_root / "dist")
+        print("PASS installed distribution inventory: current ESM/declarations only", flush=True)
         installed = installed_root / "dist/index.js"
         # Preserve root-relative fixture imports without changing any test body.
         # The scratch src SDK link targets the consumer install, never project dist.
@@ -175,8 +236,7 @@ void application;
                 "NODALWIRE_CLIENT_MODULE": installed.as_uri(),
                 "NODALWIRE_PYTHON_INSTALLED": "1",
                 "NODALWIRE_FORBIDDEN_SOURCE": str(ROOT),
-                "NODALWIRE_EXPECTED_VERSION": json.loads(
-                    (PACKAGE / "package.json").read_text())["version"],
+                "NODALWIRE_EXPECTED_VERSION": args.python_version,
             })
         else:
             run([sys.executable, str(Path(__file__).with_name("interop.py"))], env={
