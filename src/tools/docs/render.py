@@ -6,6 +6,7 @@ import posixpath
 import re
 import shutil
 import tempfile
+import tomllib
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
@@ -100,7 +101,28 @@ def version_id(value: str) -> str:
     return value
 
 
-def render_site(source: Path, stage: Path, data: dict, *, development: bool = False) -> None:
+def documentation_version(source: Path, version: str) -> dict:
+    """Allow a release preview only for the matching Python/Node source version."""
+    version_id(version)
+    if version == "dev":
+        return DEVELOPMENT_VERSION.copy()
+    root = source.parent.parent
+    try:
+        python_version = tomllib.loads((root / "pyproject.toml").read_text())["project"]["version"]
+        node_version = json.loads(
+            (root / "src/nodalwire/client/node/package.json").read_text()
+        )["version"]
+    except (OSError, KeyError, ValueError) as error:
+        raise ValueError("Release preview requires Python and Node version metadata") from error
+    if python_version != version or node_version != version:
+        raise ValueError("Release preview must match both Python and Node package versions")
+    return {"id": version, "label": f"{version} (release preview)",
+            "path": version + "/", "status": "preview", "releaseAvailable": False}
+
+
+def render_site(source: Path, stage: Path, data: dict, *, development: bool = False,
+                version: str = "dev") -> None:
+    metadata = documentation_version(source, version)
     load = get_template(
         dir_src=source,
         autoescape=jinja2.select_autoescape(["html"]),
@@ -119,7 +141,7 @@ def render_site(source: Path, stage: Path, data: dict, *, development: bool = Fa
         page_path = PurePosixPath(relative.as_posix())
         rendered = load(relative.as_posix()).render(
             **data, development=development, navigation=NAVIGATION,
-            docs_version=DEVELOPMENT_VERSION,
+            docs_version=metadata,
             url=lambda target, current=page_path: page_url(current, target)
         )
         destination.write_text(rendered + "\n", encoding="utf-8")
@@ -168,10 +190,7 @@ def no_symlink(path: Path) -> None:
 
 def publish(stage: Path, source: Path, output: Path, *, version: str = "dev",
             mode: str = "local", stable_version: str | None = None) -> None:
-    version_id(version)
-    # This source tree describes an unreleased candidate, not a historical release.
-    if version != "dev":
-        raise ValueError("Current source may only be published as dev; release import is deferred")
+    metadata = documentation_version(source, version)
     if mode not in {"local", "artifact"}:
         raise ValueError("Publication mode must be local or artifact")
     if (source.name != "docs-src" or source.parent.name != "src"
@@ -200,7 +219,9 @@ def publish(stage: Path, source: Path, output: Path, *, version: str = "dev",
         if identifier in seen or entry.get("path") != identifier + "/":
             raise ValueError("Invalid or duplicate version entry")
         seen.add(identifier)
-    root_target, root_label = "dev/", DEVELOPMENT_VERSION["label"]
+    if any(e["id"] == version and e.get("status") == "stable" for e in manifest["versions"]):
+        raise ValueError("Refusing to overwrite an existing stable documentation snapshot")
+    root_target, root_label = version + "/", metadata["label"]
     if mode == "artifact":
         # A tag or version string is not evidence of package/source availability.
         if stable_version is None or version_id(stable_version) == "dev":
@@ -221,7 +242,7 @@ def publish(stage: Path, source: Path, output: Path, *, version: str = "dev",
         if not selected or selected.get("status") != "stable" or selected.get("releaseAvailable") is not True:
             raise ValueError("Manifest latestStable is not verified")
     manifest["versions"] = sorted(
-        [e for e in manifest["versions"] if e["id"] != version] + [DEVELOPMENT_VERSION.copy()],
+        [e for e in manifest["versions"] if e["id"] != version] + [metadata],
         key=lambda entry: entry["id"],
     )
     # Preserve the legacy root entry once, outside the served artifact. Never erase
@@ -262,7 +283,7 @@ def main() -> None:
     parser.add_argument("--stable-version")
     args = parser.parse_args()
     data = json.loads(args.data.read_text(encoding="utf-8"))
-    render_site(args.source, args.stage, data, development=args.include_design)
+    render_site(args.source, args.stage, data, development=args.include_design, version=args.version)
     publish(args.stage, args.source, args.output, version=args.version, mode=args.mode,
             stable_version=args.stable_version)
 

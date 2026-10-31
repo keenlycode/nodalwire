@@ -1,21 +1,68 @@
-# NodalWire 0.3 candidate — unreleased migration notes
+# NodalWire 0.3.0
 
-NWM3 is a breaking messaging wire and API migration. This source tree describes
-candidate behavior only; it does not establish that 0.3 artifacts are published
-or available. Do not mix NWM3 clients with AR2 relays or AR2 clients with NWM3
-relays. Coordinate matching client/relay migration; NA1 administration and
-configuration version 2 remain unchanged.
+Coordinated Python **0.3.0** and Node **0.3.0** release preparation. These notes
+record the intended release contents; they are not evidence of registry
+publication. Package upload, tags, canonical-branch integration and documentation
+deployment require a separate release approval.
 
-- Message IDs and optional `reply_to` are native metadata; there is no NWR1
-  envelope parser, automatic translation, or legacy compatibility shim.
-- `Message.payload` contains raw application bytes. Remove envelope imports and
-  decoding, use `id`/`reply_to` for application correlation, and consume the IDs
-  returned by accepted `send` and `reply` operations.
-- Saved CLI receive events must be regenerated with the exact six-key message
-  schema. `reply --request-file` rejects legacy event files and malformed or
-  duplicate fields before connecting.
-- Queue acceptance is not delivery or application completion. Timeouts and
-  cancellation can have uncertain effects; no automatic retry is added.
+## What changes
+
+- **Native message metadata:** NWM3 carries message `id` and optional `reply_to`
+  separately from raw application payload bytes in both SDKs.
+- **Native request correlation:** requests wait for a matching message ID, sender
+  and network. Replies get a fresh ID and reference the incoming message ID.
+  Unrelated and late messages remain available in the ordinary bounded inbox.
+- **Accepted message IDs:** successful Python and Node `send`/`reply` operations
+  return the generated message ID, after queue acceptance.
+- **CLI messages:** receive/reply events include native message metadata. Help
+  now includes a complete first-message walkthrough, command examples, parameter
+  descriptions and administration/revision guidance. No startup or authentication
+  requirement was relaxed.
+- **User documentation:** version-aware routing, task-oriented learning pages,
+  API/admin/protocol references and accessible static messaging diagrams. Getting
+  started follows install → relay → receive → send, without a source build.
+
+## Breaking upgrade from Python 0.2.x / Node 0.2.0
+
+1. Stop the old applications and relay, then upgrade the relay and **every**
+   messaging client together to 0.3.0. NWM3 rejects AR2; mixed versions cannot
+   communicate. There is no compatibility shim, automatic downgrade, translation,
+   reconnect or replay. Keep the previous artifacts/configuration separately if
+   you need a coordinated rollback; do not mix old clients with a new relay.
+2. Remove NWR1 envelope imports, encoding and decoding. `Message.payload` is now
+   raw application bytes, including bytes that happen to begin with `NWR1`.
+   Use native `Message.id` and `Message.reply_to` for correlation. Python uses
+   `None` and Node uses `undefined` when `reply_to` is absent.
+3. Update consumers of `send` and `reply` return values to accept a message-ID
+   string. Prefer SDK `request`/`reply` rather than reproducing correlation logic.
+   A message ID is not authenticated identity or proof of remote work.
+4. Regenerate saved CLI input files. A received message event has exactly
+   `event`, `id`, `reply_to`, `network`, `sender`, and `payload`; payload remains
+   base64 in CLI JSON. `reply --request-file` rejects old four-key events and
+   malformed/duplicate fields before connecting.
+5. Preserve configuration version **2** and NA1 administration: neither format
+   changed. Continue supplying an admin credential explicitly, and join protected
+   networks with their own credentials. A config file remains optional.
+
+Queue acceptance is not delivery, processing or durability. Timeout/cancellation
+can leave an uncertain outcome; do not automatically retry a possibly completed
+operation. Bounded inboxes and pending-request limits still apply.
+
+## Installation after publication
+
+```sh
+python -m pip install 'nodalwire==0.3.0'
+npm install @devcapsule/nodalwire-client@0.3.0
+```
+
+Python requires **3.12+**; the Node ESM client supports **Node.js 24** and needs
+its native `zeromq` dependency's install script. Consumers need no source checkout,
+Deno or TypeScript compiler. For prepublication verification, install the built
+wheel/tarball instead of assuming these versions are already in the registries.
+The release-readiness report records actual artifact hashes and tested platforms;
+source version strings alone establish neither publication nor certification.
+
+---
 
 ## Released 0.2.1
 

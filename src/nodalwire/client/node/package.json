@@ -1,6 +1,6 @@
 {
   "name": "@devcapsule/nodalwire-client",
-  "version": "0.3.0-dev.0",
+  "version": "0.3.0",
   "description": "Network membership and byte client for the local NodalWire relay",
   "type": "module",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },

@@ -5,21 +5,21 @@
 {% set page_intro = 'Start a local relay, inspect its configuration, and administer networks deliberately.' %}
 {% block content %}
 <section aria-labelledby="start"><h2 id="start">Start your relay</h2>
-<p>First prepare the matching NWM3 development artifacts in <a href="{{ url('getting-started/') }}">Get started</a>. From that application directory, supply an administrator token and run the relay in the foreground:</p>
-{% set relay_example %}export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-.venv/bin/nodalwire serve
+<p>Install NodalWire 0.3.0 as described in <a href="{{ url('getting-started/') }}">Get started</a>, then supply an administrator token and run the relay in the foreground:</p>
+{% set relay_example %}export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire serve
 {% endset %}{{ code_block(relay_example, 'terminal 1', 'shell') }}
 <p>Leave this terminal open. The relay reports its data endpoint after binding; the default data endpoint is <code>tcp://127.0.0.1:5555</code>, and administration uses the separate <code>tcp://127.0.0.1:5556</code>. Do not start another relay on ports already in use. Press Ctrl-C to stop your relay when finished.</p>
 <p>Without a configuration file, administrative changes are memory-only. To persist supported policy changes, start with <code>serve --config local.toml</code>; see the <a href="{{ url('reference/config/') }}">version 2 configuration reference</a> for a valid file and persistence boundaries. Endpoints and native limits are startup-only.</p></section>
 <section aria-labelledby="admin"><h2 id="admin">Administration: create a network</h2>
 <p>In a second terminal, make the same administrator token available securely as <code>NODALWIRE_ADMIN_TOKEN</code>; do not paste it into a command or share it as a network join token. Read the current revision first:</p>
-{% set admin_read %}.venv/bin/nodalwire admin config.get
+{% set admin_read %}nodalwire admin config.get
 {% endset %}{{ code_block(admin_read, 'terminal 2', 'shell') }}
 <p>The JSON response includes the current revision and redacted configuration, not bearer values. On a relay without a <code>team</code> network, replace <code>REVISION</code> below with the observed integer. This creates a protected network using a separate generated join credential:</p>
-{% set admin_create %}export TEAM_JOIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-.venv/bin/nodalwire admin network.create \
+{% set admin_create %}export TEAM_JOIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire admin network.create \
   --network team --credential-env TEAM_JOIN_TOKEN --expected-revision REVISION
-.venv/bin/nodalwire admin member.list --network team
+nodalwire admin member.list --network team
 {% endset %}{{ code_block(admin_create, 'terminal 2', 'shell') }}
 <p>The create response identifies <code>team</code> as protected and reports the new revision. The member list is initially empty if no one has joined. Give the join credential to authorized applications through a trusted local channel; each must explicitly join <code>team</code>. It grants join permission, not identity or administrator authority. See <a href="{{ url('guides/networks/') }}">networks and membership</a> for client examples.</p>
 <p>If the revision has changed, reconsider your intended operation against current state; do not blindly retry. A timeout can also follow a mutation, so read and reconcile the state before deciding what to do. Configuration-file commits can have indeterminate persistence outcomes; consult the exact reference.</p></section>

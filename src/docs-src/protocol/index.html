@@ -14,6 +14,6 @@
 <section aria-labelledby="admin"><h2 id="admin">Administration is separate</h2>
 <p>NA1 administration uses a separate local endpoint and authority. Its operations and revision semantics are described in the <a href="{{ url('reference/admin/') }}">administration reference</a>; a practical walkthrough is in <a href="{{ url('run-a-relay/') }}">Run a relay</a>. Administrator and network-join credentials grant distinct permissions, not peer identity.</p></section>
 <section aria-labelledby="compatibility"><h2 id="compatibility">Version compatibility</h2>
-<p>NWM3 is the unreleased development candidate, not a published 0.3 release. Use matching locally built Python <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code> artifacts with the matching relay. Released 0.2.x uses incompatible AR2. NA1 administration and configuration version 2 remain separate and unchanged by the NWM3 migration.</p>
+<p>NodalWire <code>0.3.0</code> uses NWM3. Use matching Python and Node 0.3.0 packages with the relay; 0.2.x uses incompatible AR2 and cannot be mixed with them. NA1 administration and configuration version 2 are unchanged. The frozen specification retains its original development-planning context; package release versions and installation are described in <a href="{{ url('getting-started/') }}">Getting started</a>.</p>
 <p>Sending success is relay native per-destination queue acceptance—not proof of processing or durable storage. See <a href="{{ url('messaging/') }}">Messaging</a> for the practical meaning and timeout boundaries.</p></section>
 {% endblock %}

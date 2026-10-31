@@ -19,17 +19,31 @@ pnpm --dir src/tools/docs verify
 ```
 
 After setup, `pnpm --dir src/tools/docs build` rebuilds the product site at
-`docs/dev/`. Current sources describe an **unreleased NWM3 development candidate**;
-this command does not create a 0.3 release or relabel them as 0.2.1.
+`docs/dev/`. Current sources prepare NodalWire **0.3.0**; this command neither
+publishes packages nor establishes registry availability.
 
 `pnpm --dir src/tools/docs build:dev` adds the design playground under
 `docs/dev/design/`, including the six token pages. Its canonical switch is
 `--include-design`; legacy `--dev` remains a playground-only alias, **not** a
-version selector. Both builds target version `dev`, use the same pipeline and
+version selector. Both default builds target version `dev`, use the same pipeline and
 replace only that subtree. A product-only rebuild removes its stale playground
 pages, but preserves other version directories and legacy root assets.
 
-Local mode writes a relative root redirect to `dev/`. Before its first replacement,
+An explicit release preview can be prepared with:
+
+```sh
+node src/tools/docs/build.mjs --version 0.3.0
+```
+
+A release identifier must exactly match **both** Python and Node package metadata;
+this is not a historical-release importer. It builds only `docs/0.3.0/`, preserves
+other versions, and records `status: preview`, `releaseAvailable: false`. It cannot
+be selected as stable by artifact mode, and a verified stable snapshot cannot be
+overwritten. Registry verification and stable promotion belong to the separate
+publication gate. The frozen wire specification is copied byte-for-byte.
+
+Local mode writes a relative root redirect to the selected version (`dev/` by
+default, `0.3.0/` for that preview). Before its first replacement,
 the exact original root index is saved once to
 `src/tools/docs/.build/root-index.once.html`, outside the served artifact.
 `docs/versions.json` records truthful development metadata, with `latestStable:
@@ -75,8 +89,8 @@ When that verified snapshot exists, artifact mode preserves it and all other
 versions, rebuilds only dev, records `latestStable`, and uses a relative root
 redirect to the selected stable snapshot. Without such evidence it fails rather
 than making unreleased dev the public stable default. Historical release import
-is not implemented by this tool. Current sources cannot be built under a release
-identifier. Never copy credentials, task state, `node_modules`, build tooling or
+is not implemented by this tool. Explicit matching-version builds prepare release
+previews only; they do not declare stable availability. Never copy credentials, task state, `node_modules`, build tooling or
 the source checkout into published output. The ignored local `docs/` tree can
 contain preserved legacy files: review the complete artifact before any separately
 approved publication. No command here pushes, deploys or changes Pages settings.

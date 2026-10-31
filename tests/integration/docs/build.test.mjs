@@ -77,3 +77,19 @@ test("targeted version builds reproduce files and preserve all non-target output
     await rm(sentinel, { recursive: true, force: true });
   }
 });
+
+test("matching release preview builds a separate version without claiming publication", async () => {
+  const { version } = JSON.parse(await readFile(path.join(root, "src/nodalwire/client/node/package.json"), "utf8"));
+  const dev = await snapshot(site);
+  const result = await buildSite({ version });
+  assert.equal(result.output, path.join(root, "docs", version));
+  assert.deepEqual(dev, await snapshot(site), "release preview preserves dev byte-for-byte");
+  const manifest = JSON.parse(await readFile(path.join(root, "docs/versions.json"), "utf8"));
+  const release = manifest.versions.find(entry => entry.id === version);
+  assert.equal(release.status, "preview");
+  assert.equal(release.releaseAvailable, false);
+  assert.notEqual(manifest.latestStable, version);
+  assert.ok((await readFile(path.join(result.output, "getting-started/index.html"), "utf8")).includes(version));
+  assert.match(await readFile(path.join(root, "docs/index.html"), "utf8"), new RegExp(`url=${version.replaceAll(".", "\\.")}/`));
+  await buildSite({ includeDesign: true }); // Restore the fixture needed by design suites.
+});

@@ -213,6 +213,50 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(manifest["latestStable"], "0.2.0")
         self.assertIn(stable, manifest["versions"])
 
+    def release_metadata(self, python="0.3.0", node="0.3.0"):
+        (self.root / "pyproject.toml").write_text(f'[project]\nversion = "{python}"\n')
+        package = self.root / "src/nodalwire/client/node/package.json"
+        package.parent.mkdir(parents=True, exist_ok=True)
+        package.write_text(json.dumps({"version": node}))
+
+    def test_release_preview_requires_matching_versions_and_preserves_other_output(self):
+        output = self.fixture_output()
+        self.release_metadata()
+        previous = self.snapshot(output / "0.2.0")
+        render.publish(self.stage, self.source, output, version="0.3.0")
+        manifest = json.loads((output / "versions.json").read_text())
+        preview, = manifest["versions"]
+        self.assertEqual(preview["id"], "0.3.0")
+        self.assertEqual(preview["status"], "preview")
+        self.assertIs(preview["releaseAvailable"], False)
+        self.assertIsNone(manifest["latestStable"])
+        self.assertEqual(previous, self.snapshot(output / "0.2.0"))
+        self.assertIn('url=0.3.0/', (output / "index.html").read_text())
+        before = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0",
+                           mode="artifact", stable_version="0.3.0")
+        self.assertEqual(before, self.snapshot(output))
+        self.release_metadata(node="0.2.0")
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0")
+        self.assertEqual(before, self.snapshot(output))
+
+    def test_release_render_uses_version_metadata_and_refuses_stable_overwrite(self):
+        self.release_metadata()
+        (self.source / "index.html").write_text("{{ docs_version.id }}:{{ docs_version.status }}")
+        render.render_site(self.source, self.stage, {}, version="0.3.0")
+        self.assertEqual((self.stage / "index.html").read_text().strip(), "0.3.0:preview")
+        output = self.fixture_output()
+        (output / "versions.json").write_text(json.dumps({
+            "schemaVersion": 1, "latestStable": "0.3.0", "versions": [
+                {"id": "0.3.0", "path": "0.3.0/", "status": "stable",
+                 "releaseAvailable": True}]}))
+        before = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0")
+        self.assertEqual(before, self.snapshot(output))
+
     def test_broken_stage_leaves_existing_output_untouched(self):
         output = self.fixture_output()
         (self.stage / "index.html").write_text('<a href="missing/">Broken</a>')

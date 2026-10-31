@@ -1,151 +1,129 @@
 # NodalWire
 
-A loopback-only byte relay with explicit network membership and separate local
-administration, designed for AI agents to use and maintain.
+A loopback-only byte relay for local applications, with Python and Node.js
+clients, explicit network membership, and separate authenticated administration.
 
-- Usage: [tests/usage/](tests/usage/)
-- Python: [src/nodalwire/](src/nodalwire/)
-- Node.js: [src/nodalwire/client/node/](src/nodalwire/client/node/)
-- Membership/request examples: [tests/integration/membership_test.py](tests/integration/membership_test.py)
-- Configuration/persistence: [src/nodalwire/config_store.py](src/nodalwire/config_store.py)
-- Administrative API: [src/nodalwire/admin.py](src/nodalwire/admin.py)
+## Install and send your first message
 
-All declared networks are open unless protected; a protected default requires an
-explicit join. Credentials grant join/admin permission, not peer identity. Local
-bearer authentication is not encryption. Startup requires an explicitly supplied
-admin token (`NODALWIRE_ADMIN_TOKEN`) or configuration verifier; none is generated.
-Transport/config version upgrades reject legacy wire/config rather than downgrade.
+This source prepares **NodalWire 0.3.0**: Python `nodalwire==0.3.0` and Node
+`@devcapsule/nodalwire-client@0.3.0`. Building or testing this checkout does not
+publish either package. The registry commands below apply after publication;
+prepublication consumers can install the verified local artifacts instead.
 
-## Consumers: install into your own application
-
-Python **0.2.1** and Node **0.2.0** are compatible; the Python patch changes
-CLI startup behavior only. Do not mix legacy 0.1 packages with this AR2 relay.
-Building or checking a source checkout does not publish a release or establish registry availability.
-
-## Breaking NWM3 candidate migration
-
-Maintained source documentation now describes the coordinated NWM3 messaging
-migration tracked as a 0.3 candidate. This is a breaking wire and API change,
-not a 0.2.x patch. It requires matching NWM3 relays and clients together; remove
-NWR1 envelope helpers, use raw `Message.payload` plus native `id`/`reply_to`,
-and consume IDs returned by successful sends/replies. NA1 administration and
-configuration version 2 remain unchanged. The candidate is not an assertion that
-0.3 artifacts are published or available; continue to use the released 0.2.x
-artifacts described below until a separate release decision.
-
-For prepublication, offline or local-artifact use, obtain the matching wheel and
-built Node tarball from your maintainer. In a new
-application directory, with Python 3.12+, Node.js 24, uv and pnpm 12.5.1:
+Python requires **3.12+**. With [uv](https://docs.astral.sh/uv/):
 
 ```sh
-mkdir my-nodalwire-app
-cd my-nodalwire-app
-uv venv .venv
-uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.1-py3-none-any.whl
-printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
-pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
+uv tool install 'nodalwire==0.3.0'
 ```
 
-Use `from nodalwire import Node` in Python and
-`import { Node } from "@devcapsule/nodalwire-client"` in an `.mjs` application.
-Run Python with `.venv/bin/python`; the installed relay is
-`.venv/bin/nodalwire`. No checkout, Deno or TypeScript compiler is required by
-these consumers. The Node dependency `zeromq` still requires its native binding
-and lifecycle script; pnpm's explicit `allowBuilds` entry permits only that
-package. Other package managers have their own script policies; platform/prebuilt
-availability and fallback native-build prerequisites remain zeromq's concern.
-These commands use a new directory; do not overwrite an existing app's policy.
+In Terminal 1, generate a private admin credential and start the relay:
 
-Follow the [Getting Started walkthrough](src/docs-src/getting-started/index.html)
-for the relay and two clients. Supply an administrator token before starting the
-relay. Never start over an existing listener or connect 0.2 clients to a 0.1
-relay; use a private v2 configuration with unused loopback ports when necessary.
-Only after the matching Python 0.2.1 artifact is actually published would
-`uv pip install --python .venv/bin/python nodalwire==0.2.1` replace the local
-Python artifact path; the Node install remains
-`pnpm add @devcapsule/nodalwire-client@0.2.0`.
+```sh
+export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+nodalwire serve
+```
+
+No config file is required. Leave the relay running. In Terminal 2:
+
+```sh
+nodalwire receive --name bob --timeout 60
+```
+
+Wait for the `ready` event, then in Terminal 3:
+
+```sh
+printf 'hello' | nodalwire send bob --name alice
+```
+
+Bob receives a JSON message event with base64 payload `aGVsbG8=` (`hello`).
+`accepted` means relay queue acceptance, not application processing or durable
+storage. Both client commands exit after the exchange. Stop the relay with
+Ctrl-C. Run `nodalwire --help` or `nodalwire COMMAND --help` for more examples.
+
+For applications, install `nodalwire==0.3.0` into the application's Python
+virtual environment and use `from nodalwire import Node`. For Node.js **24**:
+
+```sh
+npm install @devcapsule/nodalwire-client@0.3.0
+```
+
+Use `import { Node } from "@devcapsule/nodalwire-client"` from an ESM application.
+No source checkout, Deno or TypeScript compiler is required by consumers. The
+native `zeromq` dependency needs its installation script; with pnpm, explicitly
+allow only `zeromq` in your application's script policy. Do not overwrite an
+existing policy. Native prebuild/fallback availability is platform-dependent.
+
+## Upgrading from 0.2.x
+
+**Upgrade the relay and every messaging client together.** Version 0.3.0 uses
+NWM3 and cannot communicate with the AR2 protocol in Python 0.2.x / Node 0.2.0.
+There is no rolling mixed-version mode, downgrade, translation, reconnect or
+replay. See [release and migration notes](RELEASE_NOTES.md) for the API changes.
+NA1 administration and configuration version 2 remain unchanged.
+
+The relay is loopback-only. Credentials grant join/admin permission, not peer-name
+identity or encryption. Startup requires `NODALWIRE_ADMIN_TOKEN` or a configured
+admin verifier; the server does not generate or reveal a secret. Every declared
+network is open unless protected. A protected default requires an explicit join.
+
+## Documentation
+
+- [Getting started](src/docs-src/getting-started/index.html)
+- [Messaging](src/docs-src/messaging/index.html)
+- [Python and Node API](src/docs-src/reference/api/index.html)
+- [Configuration](src/docs-src/reference/config/index.html)
+- [Node package guide](src/nodalwire/client/node/README.md)
+- [Executable usage examples](tests/usage/)
+
+Maintained site inputs are in `src/docs-src/`. Root `docs/` is ignored generated
+output, not source-branch content. The [docs tooling guide](src/tools/docs/README.md)
+explains local builds, release previews and the separate publishing boundary.
 
 ## Contributors: build from a checkout
 
-Consumers do not perform these steps. From this repository, prepare locked
-Python and Node development dependencies and build distributable artifacts:
+Consumers do not perform these steps. Prepare the locked environments first:
 
 ```sh
 uv sync --locked
 pnpm -C src/nodalwire/client/node install --frozen-lockfile
-pnpm -C src/nodalwire/client/node exec tsc -p tsconfig.json
+(cd src/nodalwire/client/node && deno task build)
 uv build --out-dir /tmp/nodalwire-artifacts
 pnpm -C src/nodalwire/client/node pack --pack-destination /tmp/nodalwire-artifacts
 ```
 
-Install those artifacts into a separate application as above. Do not commit SDK
-`dist/` by default. Deno orchestrates the existing SDK development/test tasks;
-it is not an application runtime requirement.
-
-## Maintainers: readiness is not publication
-
-Inspect wheel/sdist/tarball contents, record versions and SHA256 hashes, and check
-both installed packages outside the checkout. After building the wheel above:
+Install the wheel or tarball into a separate consumer environment for testing.
+For example, `uv pip install --python /path/to/venv/bin/python
+/tmp/nodalwire-artifacts/nodalwire-0.3.0-py3-none-any.whl` installs the local Python
+artifact. Do not commit generated SDK `dist/` by default. Deno orchestrates SDK
+development checks, not application execution.
 
 ```sh
-NODALWIRE_EVIDENCE_DIR=/tmp python tests/integration/nodalwire/client/node/package_smoke.py \
-  --python-artifact /tmp/nodalwire-artifacts/nodalwire-0.2.1-py3-none-any.whl
-```
-
-This builds/packs the SDK, installs a fresh external consumer, checks ESM/types
-and native cases, then runs copied interoperability fixtures against an isolated
-installed Python package. Python uses `-I`; package/metadata origins, versions
-and source-path exclusion are checked. A task-managed interpreter's own standard
-library may live in ignored task storage; package and consumer paths must remain
-external, and repository source/direct-root import paths are rejected.
-The default smoke run instead uses Python source;
-`--skip-interop` establishes Node-artifact evidence only. Native dependency stores
-must be prepared for its offline pnpm installation. Local passes do not certify
-pristine machines, all supported Python versions/platforms or security. Rebuild
-artifacts after README changes; package content and recorded hashes must match
-the final reviewed diff. Publishing, tags and Git operations are separate approvals.
-
-## Documentation and development checks
-
-Maintained site inputs live in [src/docs-src/](src/docs-src/); isolated build
-scripts and locked dependencies live in [src/tools/docs/](src/tools/docs/).
-Root `docs/` is ignored local preview output, not tracked source-branch content.
-Validated public output is prepared separately for the dedicated `docs` branch
-root; generated site assets do not belong in `main`. The normal release
-goal is Python 0.2.1 on PyPI and Node 0.2.0 on npm, followed by approved
-documentation publication. Package uploads, source/tag/docs pushes and Pages deployment require
-separate final approval; local preparation does none of them.
-See the [documentation tooling guide](src/tools/docs/README.md) for setup,
-preview, component ownership, and optional owned-browser verification.
-
-All maintained tests live under root `tests/`. Unit paths mirror source paths
-relative to `src/`; whole-site, transport, and interoperability flows are
-integration tests. After installing each project's locked development dependencies,
-run these from the repository root:
-
-```sh
-# Core Python environment (pytest + NodalWire's runtime dependencies).
-uv run --locked pytest
-
-# Isolated docs environment: strict TypeScript, build, Node and Python docs tests.
+uv run --locked --no-sync pytest
 pnpm --dir src/tools/docs verify
-
-# Node SDK environment: build, native unit/integration, Python interoperability.
-(cd src/nodalwire/client/node && deno task test)
-# Additional packaged-consumer/types/interoperability check:
-(cd src/nodalwire/client/node && deno task test:artifact)
+(cd src/nodalwire/client/node && NODALWIRE_PYTHON_SOURCE="$PWD/../../.." deno task test)
+NODALWIRE_EVIDENCE_DIR=/tmp uv run --locked --no-sync python \
+  tests/integration/nodalwire/client/node/package_smoke.py \
+  --python-artifact /tmp/nodalwire-artifacts/nodalwire-0.3.0-py3-none-any.whl \
+  --python-version 0.3.0
 ```
 
-These commands account for separate locked environments without adding docs
-packages to NodalWire's runtime dependencies. Root pytest explicitly discovers
-core module units, top-level core integration suites and usage tests (272 cases).
-Docs renderer units and site navigation integration cases run via the docs
-`verify` command in the Engrave/Jinja environment, alongside its Node suites.
-Executable documentation examples run through the same command in the separate
-locked core Python environment, where NodalWire and pytest are available.
-Verification explicitly builds the development playground for existing design
-checks, then finishes with a clean public build excluding `/design/`. This explicit collection boundary keeps default root pytest usable; it
-does not skip docs tests within their configured runner. Run all environment
-commands above rather than treating missing dependencies or browser skips as passes. Docs verification without
-explicit owned-browser environment values reports browser suites as skipped;
-it does not establish browser behavior proof.
+The package smoke check installs both built packages outside the checkout,
+checks their origins/versions, exercises declarations and native cases, and runs
+cross-language fixtures with isolated Python imports. It requires a prepared
+local pnpm dependency store; offline success is not a cold-cache/platform claim.
+Source-mode interop alone is not installed-artifact verification.
+
+All maintained tests live under `tests/`. Core pytest, isolated docs tooling, and
+Node checks have separate collection/environment boundaries. Docs verification
+builds the playground for its design tests, then restores product-only output.
+Browser suites require an explicitly owned browser/CDP endpoint; a skipped suite
+is not browser proof. No security-audit or exhaustive crash/power-loss claim is made.
+
+## Maintainers: preparation is not publication
+
+Record exact commits, artifact contents, versions, SHA256 hashes, installed-package
+results and coverage limits before release approval. Then obtain separate approval
+for package uploads, source/tag/docs pushes and deployment. Verify both registry
+versions before presenting the matching documentation as a published release.
+Keep the existing publishing-branch history; do not force-push or place generated
+site assets in `main`.

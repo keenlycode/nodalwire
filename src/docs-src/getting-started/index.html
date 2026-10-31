@@ -10,9 +10,14 @@
   code, Node.js setup, or source build.
 </p>
 <p>
-  This quick start uses the published Python release <strong>0.2.1</strong>.
-  Use that same release in all three terminals, including the relay; do not mix
-  an existing development relay with these clients.
+  This quick start is for <strong>NodalWire 0.3.0</strong>. Use that same
+  version in all three terminals, including the relay. Version 0.2.x cannot
+  communicate with a 0.3.0 relay.
+</p>
+<p>
+  <strong>Release preview:</strong> these installation instructions are prepared
+  for 0.3.0 and apply after its publication. A local documentation preview does
+  not mean the packages are already available.
 </p>
 
 <section aria-labelledby="install">
@@ -22,13 +27,13 @@
     <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a>.
     Install the command-line tool in its own environment:
   </p>
-  {% set install_example %}uv tool install 'nodalwire==0.2.1'
+  {% set install_example %}uv tool install 'nodalwire==0.3.0'
 nodalwire --version
 {% endset %}{{ code_block(install_example, 'install NodalWire', 'shell') }}
   <p>
     These commands use a Linux/macOS-style shell. Open three terminals before
     continuing, and check that <code>nodalwire --version</code> reports
-    <code>0.2.1</code> in each one.
+    <code>0.3.0</code> in each one.
   </p>
 </section>
 
@@ -105,7 +110,7 @@ nodalwire serve
     </dd>
     <dt>The message times out or Bob is unavailable</dt>
     <dd>
-      Keep the relay running and make sure all terminals use version 0.2.1.
+      Keep the relay running and make sure all terminals use version 0.3.0.
       Restart Terminal 2's receiver and wait for <code>ready</code> before sending.
       These commands all use the same default local relay; an existing protected
       network needs its own join credential.
@@ -124,7 +129,7 @@ nodalwire serve
     ready to use NodalWire from a program, or read
     <a href="{{ url('messaging/') }}">Messaging</a> to learn about sending,
     receiving, and waiting for replies. Check the version requirements there
-    before adding an SDK to this published-release setup.
+    before adding an SDK to this setup; the matching Node package is also 0.3.0.
   </p>
 </section>
 {% endblock %}

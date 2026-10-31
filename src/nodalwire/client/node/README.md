@@ -2,19 +2,19 @@
 
 ESM TypeScript byte client for the loopback-only NodalWire relay. Node.js 24;
 Deno orchestrates development, not runtime execution. Package identity remains
-`@devcapsule/nodalwire-client`; this worktree builds local version `0.3.0-dev.0`
-for a matching NWM3 relay. NWM3 is a breaking protocol change; there is no fallback.
+`@devcapsule/nodalwire-client`, version `0.3.0`, for a matching Python `0.3.0`
+NWM3 relay. This is a breaking protocol change from 0.2.x; there is no fallback.
 
 ## Consumers: use the built artifact
 
-This development worktree is not a released or publishable artifact. Any future
-consumer instructions require a separate release decision and a matching NWM3
-Python relay. Do not install a legacy client or relay with this breaking protocol.
-For a separately approved local artifact, the consumer setup would use pnpm 12.5.1:
+Use matching Python and Node versions; do not mix this SDK with a 0.2.x relay.
+After 0.3.0 is published, install with `npm install @devcapsule/nodalwire-client@0.3.0`.
+Source preparation alone does not establish registry availability. For an approved
+local tarball, use pnpm 12.5.1 in a new application directory:
 
 ```sh
 printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
-pnpm add /absolute/path/to/approved-nwm3-client.tgz
+pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.3.0.tgz
 ```
 
 Import the installed package by name, as below; applications do not need the
@@ -193,7 +193,7 @@ run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
 Source interop requires `NODALWIRE_PYTHON_SOURCE` to name the exact reviewed NWM3
 tree; the repository baseline may be incompatible. Installed Python tests require
 an independent `--python-version` matching that wheel's own metadata (Python and
-Node development version strings intentionally differ). Focused fake-router tests
+Node are both 0.3.0 for this release). Focused fake-router tests
 alone are not cross-language acceptance evidence.
 `NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` selects the exact matching reviewed
 Python source for source-mode interoperability without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
@@ -202,7 +202,7 @@ scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 explicit artifact-only check while Python is unavailable, run
 `deno task test:artifact --skip-interop`; its output labels real wire tests
 as skipped, not passed. For both packages installed outside the checkout, run
-`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl --python-version 0.3.0.dev0`.
+`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl --python-version 0.3.0`.
 This creates a fresh Python environment, uses `-I`, copies only interoperability
 fixtures outside the repository and asserts installed provenance/version. Default
 source-mode interop alone does not establish installed-Python acceptance. The

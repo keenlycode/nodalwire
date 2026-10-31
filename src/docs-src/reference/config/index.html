@@ -5,7 +5,7 @@
 {% set page_intro = 'Strict version 2 startup configuration, declared network policies, and honest persistence boundaries.' %}
 {% block content %}
 <section aria-labelledby="file"><h2 id="file">Load a version 2 file</h2>
-<p>Start with <code>.venv/bin/nodalwire serve --config local.toml</code>. Set <code>NODALWIRE_ADMIN_TOKEN</code> explicitly before startup, as in <a href="{{ url('getting-started/') }}">Getting Started</a>. This example deliberately contains no raw credential or verifier:</p>
+<p>Start with <code>nodalwire serve --config local.toml</code>. Set <code>NODALWIRE_ADMIN_TOKEN</code> explicitly before startup, as in <a href="{{ url('getting-started/') }}">Getting Started</a>. This example deliberately contains no raw credential or verifier:</p>
 {% set config_example %}config_version = 2
 revision = 0
 endpoint = "tcp://127.0.0.1:5555"

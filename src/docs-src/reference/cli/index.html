@@ -5,17 +5,17 @@
 {% set page_intro = 'A foreground relay and bounded one-shot client/admin commands, with structured output and no retries.' %}
 {% block content %}
 <section aria-labelledby="invoke"><h2 id="invoke">Invoke the installed CLI</h2>
-<p>Use <code>.venv/bin/nodalwire</code> from the application prepared in <a href="{{ url('getting-started/') }}">Getting Started</a>. Append <code>--help</code> to any command for the full generated option list. These commands assume matching installed artifacts and your own relay. Contributors in a locked checkout may instead use <code>uv run --locked python -m nodalwire</code>.</p>
-{% set help_commands %}.venv/bin/nodalwire --help
-.venv/bin/nodalwire serve --help
-.venv/bin/nodalwire send --help
+<p>Use <code>nodalwire</code> from the CLI installation in <a href="{{ url('getting-started/') }}">Getting started</a>. Append <code>--help</code> to any command for the full generated option list. These commands assume matching installed artifacts and your own relay. Contributors in a locked checkout may instead use <code>uv run --locked python -m nodalwire</code>.</p>
+{% set help_commands %}nodalwire --help
+nodalwire serve --help
+nodalwire send --help
 {% endset %}{{ code_block(help_commands, 'terminal', 'shell') }}
 <p>Each client invocation registers a new connection and explicitly joins the selected network, then disconnects. A later invocation does not inherit membership, pending requests, or an inbox. Use the <a href="{{ url('reference/api/') }}">Python/Node clients</a> for persistent service loops.</p></section>
 <section aria-labelledby="serve"><h2 id="serve">Relay: <code>serve</code></h2>
 <p><code>serve [--config PATH]</code> runs in the foreground. Invoking <code>nodalwire</code> without a subcommand shows help and exits; use <code>serve</code> explicitly to start the relay. Supply <code>NODALWIRE_ADMIN_TOKEN</code> explicitly, or a valid configuration verifier; missing/malformed credentials fail before bind. The service prints its data endpoint after native bind succeeds.</p>
 <p><code>serve</code> has no <code>--endpoint</code> option. Set data/admin endpoints in strict version 2 TOML. Without a file the configuration is memory-only; with <code>--config</code>, administration saves policy changes to that same file. Endpoints and native limits are startup-only.</p>
-{% set serve_commands %}export NODALWIRE_ADMIN_TOKEN="$(.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-.venv/bin/nodalwire serve --config local.toml
+{% set serve_commands %}export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire serve --config local.toml
 {% endset %}{{ code_block(serve_commands, 'terminal', 'shell') }}
 <p>See <a href="{{ url('reference/config/') }}">configuration</a> for a safe file and <a href="{{ url('guides/security/') }}">security</a> for credential handling.</p></section>
 <section aria-labelledby="peer"><h2 id="peer">Peer commands</h2>
@@ -30,17 +30,17 @@
 <p>Input commands default <code>--max-bytes</code> to 1,048,576. Receive defaults <code>--max-output-bytes</code> to 2,097,152 for message JSON. Request defaults <code>--max-unrelated</code> to 64 and <code>--max-output-bytes</code> to 1,048,576 for unrelated events; its terminal reply has a separate bounded JSON budget. Reaching an output cutoff is an explicit uncertain outcome, not proof of no effect.</p>
 <p>For an open default, run the receiver in one terminal, wait for its ready event, then send from another:</p>
 {% set exchange_commands %}# Terminal A: keep this invocation open until a message arrives.
-.venv/bin/nodalwire receive --name bob --timeout 30
+nodalwire receive --name bob --timeout 30
 
 # Terminal B, after Bob reports ready:
-printf 'hello' | .venv/bin/nodalwire send bob --name alice
+printf 'hello' | nodalwire send bob --name alice
 {% endset %}{{ code_block(exchange_commands, 'two terminals', 'shell') }}
 <p>There must already be a separately running matching relay with its explicit startup administrator credential. A nondefault network must already be declared; select it on both commands and supply join credentials if protected.</p></section>
 <section aria-labelledby="events"><h2 id="events">Output and exit status</h2>
 <p>Client/admin output is newline-delimited JSON on stdout; safe structured errors are written to stderr. Message and reply payloads are canonical base64 strings, not UTF-8 text or raw binary stdout. Every message event has exactly <code>event</code>, <code>id</code>, <code>reply_to</code>, <code>network</code>, <code>sender</code>, and <code>payload</code>; absent <code>reply_to</code> is explicit JSON <code>null</code>. A request's terminal reply uses <code>event:"reply"</code> and exposes the reply ID and referenced request ID. Send/reply accepted events include their generated ID and reply_to only after queue acceptance. Preserve exactly one message event for <code>reply --request-file</code>, not the whole ready/completion stream. The file parser rejects missing/unknown/duplicate keys, malformed metadata, noncanonical base64, nonfinite JSON, and wrong event types before connecting.</p>
 <p>Successful operations exit 0. Runtime/rejection/deadline failures exit 1; invalid input/configuration exits 2; interrupt exits 130. Errors include safe codes and an <code>outcome</code> such as <code>no_effect</code> or <code>indeterminate</code>. A release failure after a result was emitted is reported separately; do not reinterpret it as undoing that result.</p>
 <p>A timeout, cancellation, output cutoff, I/O failure, or lifecycle interruption may follow an effect. Never infer retry safety from a nonzero exit alone. No command automatically retries, reconnects, or replays.</p>
-<p>NWM3 is a breaking wire/API migration tracked as a coordinated <code>0.3</code> candidate, not a 0.2.x patch. This documentation does not assert that 0.3 artifacts are published or available. Reconnect to a matching NWM3 relay and regenerate saved receive events; old four-key event files are rejected. Remove envelope decoding and use raw payload bytes plus native message IDs/reply_to. NA1 administration and configuration version 2 are unchanged.</p></section>
+<p>NodalWire <code>0.3.0</code> is a breaking wire/API upgrade, not a 0.2.x patch. Use a matching 0.3.0 relay and regenerate saved receive events; old four-key event files are rejected. Remove envelope decoding and use raw payload bytes plus native message IDs/reply_to. NA1 administration and configuration version 2 are unchanged.</p></section>
 <section aria-labelledby="admin"><h2 id="admin">Administration</h2>
 <p><code>admin OPERATION</code> uses the separate endpoint (default <code>tcp://127.0.0.1:5556</code>). Common options: <code>--endpoint</code>, <code>--token-env</code> (default <code>NODALWIRE_ADMIN_TOKEN</code>), <code>--timeout</code>, and explicit <code>--expected-revision</code> for every mutation. Operation-specific arguments include <code>--network</code>, <code>--member</code>, <code>--protected</code>/<code>--no-protected</code>, and <code>--credential-env</code> for a new join/admin credential.</p>
 <p>Use dotted operations, not invented subcommands: <code>config.get</code>, <code>network.list</code>, <code>network.get</code>, <code>network.create</code>, <code>network.update</code>, <code>network.rotate</code>, <code>network.delete</code>, <code>member.list</code>, <code>member.remove</code>, and <code>admin.rotate</code>. See <a href="{{ url('reference/admin/') }}">administration</a> for arguments, revisions, and persistence cutoffs.</p></section>

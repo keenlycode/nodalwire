@@ -22,7 +22,9 @@ async function files(directory) {
 
 /** A fresh checkout needs only the pinned tools, not the prototype kernel. */
 export async function buildSite({ version = "dev", includeDesign = false, dev = false, mode = "local", stableVersion } = {}) {
-  if (version !== "dev") throw new Error("Current sources are unreleased; only --version dev is supported");
+  if (version !== "dev" && !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) {
+    throw new Error("Version must be dev or a strict major.minor.patch identifier");
+  }
   if (!["local", "artifact"].includes(mode)) throw new Error("Mode must be local or artifact");
   if (mode === "artifact" && (!stableVersion || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(stableVersion))) {
     throw new Error("Artifact root requires an explicit verified existing --stable-version");
@@ -142,8 +144,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (arg === "--include-design" || arg === "--dev") options.includeDesign = true;
     else if (["--version", "--mode", "--stable-version"].includes(arg) && args[i + 1] && !args[i + 1].startsWith("--")) {
       options[{ "--version": "version", "--mode": "mode", "--stable-version": "stableVersion" }[arg]] = args[++i];
-    } else throw new Error("Usage: node build.mjs [--version dev] [--include-design] [--mode local|artifact] [--stable-version X.Y.Z]");
+    } else throw new Error("Usage: node build.mjs [--version dev|X.Y.Z] [--include-design] [--mode local|artifact] [--stable-version X.Y.Z]");
   }
   await buildSite(options);
-  console.log(`Built src/docs-src/ → docs/dev/ (${options.includeDesign ? "with design playground" : "product only"}; ${options.mode ?? "local"} root policy)`);
+  console.log(`Built src/docs-src/ → docs/${options.version ?? "dev"}/ (${options.includeDesign ? "with design playground" : "product only"}; ${options.mode ?? "local"} root policy)`);
 }
