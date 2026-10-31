@@ -32,6 +32,21 @@ def run(args, cwd=PACKAGE, env=None):
     subprocess.run(args, cwd=cwd, env=env, check=True, timeout=90)
 
 
+def validate_distribution(distribution, sources=PACKAGE / "src"):
+    """Reject stale compiler outputs, including removed legacy modules."""
+    expected = set()
+    for source in sources.rglob("*.ts"):
+        if source.name.endswith(".d.ts"):
+            continue
+        stem = source.relative_to(sources).with_suffix("").as_posix()
+        expected.update((stem + ".js", stem + ".d.ts"))
+    actual = {p.relative_to(distribution).as_posix()
+              for p in distribution.rglob("*") if p.is_file()}
+    if not expected or actual != expected:
+        raise ValueError(f"Unexpected SDK distribution files: extra={sorted(actual - expected)}, "
+                         f"missing={sorted(expected - actual)}")
+
+
 def stage_native_fixtures(fixture_root, installed_root):
     """Mirror only public SDK test fixtures; every SDK import uses the artifact."""
     sdk = fixture_root / "src/nodalwire/client/node"
@@ -118,6 +133,7 @@ def main():
         if args.python_artifact and work.resolve().is_relative_to(ROOT.resolve()):
             parser.error("Installed-package evidence directory must be outside checkout")
         run(["pnpm", "run", "build"])
+        validate_distribution(PACKAGE / "dist")
         run(["pnpm", "pack", "--pack-destination", str(work)])
         tarball, = work.glob("*.tgz")
         consumer = work / "consumer"
@@ -180,6 +196,8 @@ void application;
         assert node_metadata["version"] == node_expected_version
         print(f"PASS installed Node provenance: version={node_metadata['version']}; "
               f"package={installed_root_resolved}", flush=True)
+        validate_distribution(installed_root / "dist")
+        print("PASS installed distribution inventory: current ESM/declarations only", flush=True)
         installed = installed_root / "dist/index.js"
         # Preserve root-relative fixture imports without changing any test body.
         # The scratch src SDK link targets the consumer install, never project dist.

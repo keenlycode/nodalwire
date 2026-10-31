@@ -1,5 +1,6 @@
 """Fast failure boundaries for the installed-artifact smoke command."""
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -26,6 +27,27 @@ def test_python_artifact_invalid_arguments_fail_before_build(tmp_path, conflicti
     )
     assert result.returncode == 2
     assert not list(tmp_path.glob("*.tgz"))
+
+
+def test_distribution_inventory_rejects_stale_and_missing_outputs(tmp_path):
+    spec = importlib.util.spec_from_file_location("artifact_smoke", SMOKE)
+    smoke = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(smoke)
+    sources, dist = tmp_path / "src", tmp_path / "dist"
+    sources.mkdir()
+    dist.mkdir()
+    (sources / "index.ts").write_text("export const value = 1;\n")
+    (dist / "index.js").write_text("export const value = 1;\n")
+    (dist / "index.d.ts").write_text("export declare const value = 1;\n")
+    smoke.validate_distribution(dist, sources)
+    obsolete = dist / "obsolete.js"
+    obsolete.write_text("export const legacy = true;\n")
+    with pytest.raises(ValueError, match="extra="):
+        smoke.validate_distribution(dist, sources)
+    obsolete.unlink()
+    (dist / "index.d.ts").unlink()
+    with pytest.raises(ValueError, match="missing="):
+        smoke.validate_distribution(dist, sources)
 
 
 def write_fake_wheel(path, version="0.3.0.dev0"):

@@ -5,7 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@12.5.1",
   "scripts": {
-    "build": "node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
+    "build": "pnpm run clean && node node_modules/typescript/bin/tsc -p tsconfig.json",
     "check": "node node_modules/typescript/bin/tsc --noEmit --noUnusedLocals --noUnusedParameters -p tsconfig.json",
     "test:native": "node --test '../../../../tests/unit/nodalwire/client/node/src/*.test.mjs' '../../../../tests/integration/nodalwire/client/node/*.test.mjs'",
     "test:unit": "pnpm run build && pnpm run test:native",
