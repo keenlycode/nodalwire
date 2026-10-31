@@ -183,7 +183,7 @@ navigation is supplied by the renderer, with no fake guide/reference index route
 Public HTML directories directly reflect URL paths. Shared underscore-prefixed
 HTML files are not pages. `style.ts` files export a default function receiving
 resolved tokens and returning CSS. The build discovers these files and emits
-matching paths under `docs/assets/`. Public `index.ts` files are bundled likewise.
+matching paths under `docs/dev/assets/`. Public `index.ts` files are bundled likewise.
 The examples in `tests/integration/docs/examples_test.py` and
 `guides_examples_test.py` run in the existing root locked Python environment via
 pytest; the docs venv intentionally does not absorb NodalWire/pytest runtime
@@ -220,7 +220,7 @@ source, not rewritten by templates.
 The Python kernel is optional for iteration, never required for a clean build.
 For live review it can run the same build command, then use a local Web Runtime
 host to serve the real generated page at its normal URL, such as
-`/design/tokens/`, without an iframe. The development server adds the bridge only
+`/dev/design/tokens/`, without an iframe. The development server adds the bridge only
 to its in-memory HTML response; maintained source and generated files remain
 bridge-free. Only generated `docs/` is served, not source, repository roots,
 connection files, or task state. Full navigation replaces the browser session:
