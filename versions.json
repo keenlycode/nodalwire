@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "latestStable": "0.3.0",
+  "versions": [
+    {
+      "id": "0.3.0",
+      "label": "0.3.0",
+      "path": "0.3.0/",
+      "status": "stable",
+      "releaseAvailable": true
+    },
+    {
+      "id": "dev",
+      "label": "Development (NWM3 candidate)",
+      "path": "dev/",
+      "status": "development"
+    }
+  ]
+}

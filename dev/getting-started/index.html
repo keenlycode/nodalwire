@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get started · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/_layouts/style.css">
+<link rel="stylesheet" href="../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="module" src="../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../" aria-label="NodalWire home">◈ NodalWire</a><span class="version-indicator" aria-label="Documentation version">Development (NWM3 candidate)</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<a href="../">Overview</a>
+<a href="./" aria-current="page">Get started</a>
+<a href="../messaging/">Messaging</a>
+<a href="../connect-your-apps/">Connect your apps</a>
+<a href="../run-a-relay/">Run a relay</a>
+<a href="../reference/api/">API reference</a>
+<a href="../protocol/">Protocol &amp; schemas</a>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Get started</a></li>
+</ol></nav></nw-page-path><h1>Get started</h1>
+<p class="lead">Install NodalWire, start a local relay, and send your first message.</p>
+</header>
+<div class="product-content"><p>
+  You will send <code>hello</code> between two terminals on your computer.
+  You only need the NodalWire command-line tool for this walkthrough—no application
+  code, Node.js setup, or source build.
+</p>
+<p>
+  This quick start is for <strong>NodalWire 0.3.0</strong>. Use that same
+  version in all three terminals, including the relay. Version 0.2.x cannot
+  communicate with a 0.3.0 relay.
+</p>
+<p>
+  <strong>Release preview:</strong> these installation instructions are prepared
+  for 0.3.0 and apply after its publication. A local documentation preview does
+  not mean the packages are already available.
+</p>
+
+<section aria-labelledby="install">
+  <h2 id="install">1. Install NodalWire</h2>
+  <p>
+    You need Python 3.12 or later and
+    <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a>.
+    Install the command-line tool in its own environment:
+  </p>
+<nw-code-block filename="install NodalWire" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">install NodalWire</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>uv tool install 'nodalwire==0.3.0'
+nodalwire --version
+</code></pre></nw-code-block>
+  <p>
+    These commands use a Linux/macOS-style shell. Open three terminals before
+    continuing, and check that <code>nodalwire --version</code> reports
+    <code>0.3.0</code> in each one.
+  </p>
+</section>
+
+<section aria-labelledby="start-relay">
+  <h2 id="start-relay">2. Start the relay — Terminal 1</h2>
+  <p>
+    The relay passes messages between your applications. Generate a private
+    administrator token, then start it:
+  </p>
+<nw-code-block filename="terminal 1" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 1</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+nodalwire serve
+</code></pre></nw-code-block>
+  <p>
+    Leave this terminal running. You should see
+    <code>tcp://127.0.0.1:5555</code> and a <code>serving</code> status event.
+    <strong>No configuration file is required.</strong>
+  </p>
+  <p>
+    Keep the token private. It protects relay administration; you do not need to
+    copy it into the other terminals for this example. The relay uses an open
+    <code>default</code> network and listens only on your computer.
+  </p>
+</section>
+
+<section aria-labelledby="receive">
+  <h2 id="receive">3. Wait for a message — Terminal 2</h2>
+  <p>Name this receiver <code>bob</code> and wait for one message:</p>
+<nw-code-block filename="terminal 2" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 2</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>nodalwire receive --name bob --timeout 60
+</code></pre></nw-code-block>
+  <p>
+    Wait until you see an event with <code>"event":"ready"</code>, then
+    continue to Terminal 3. The receiver will wait for up to 60 seconds.
+  </p>
+</section>
+
+<section aria-labelledby="send">
+  <h2 id="send">4. Send hello — Terminal 3</h2>
+  <p>Send a message to <code>bob</code>, using <code>alice</code> as the sender:</p>
+<nw-code-block filename="terminal 3" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 3</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>printf 'hello' | nodalwire send bob --name alice
+</code></pre></nw-code-block>
+  <p>
+    Terminal 3 prints an <code>accepted</code> event. In Terminal 2, you should see
+    a <code>message</code> event with sender <code>alice</code> and payload
+    <code>aGVsbG8=</code>, followed by a <code>complete</code> event.
+    That payload is simply <code>hello</code> encoded as base64: the CLI uses
+    JSON so it can display binary messages as well as text.
+  </p>
+  <p>
+    You have sent your first message. <code>accepted</code> means the relay queued
+    it; the <code>message</code> event shows that Bob received it. Neither event
+    promises that an application processed it or stored it permanently.
+  </p>
+  <p>
+    Both client commands exit after this exchange. To try again, restart the
+    receiver, wait for <code>ready</code>, then send another message. When you are
+    finished, press <strong>Ctrl-C in Terminal 1</strong> to stop your relay.
+  </p>
+</section>
+
+<section aria-labelledby="troubleshooting">
+  <h2 id="troubleshooting">If something does not work</h2>
+  <dl>
+    <dt><code>nodalwire</code> is not found</dt>
+    <dd>
+      Run <code>uv tool update-shell</code>, then open a new terminal and check
+      <code>nodalwire --version</code> again.
+    </dd>
+    <dt>The relay will not start</dt>
+    <dd>
+      Run the token-generation command in the same terminal as
+      <code>nodalwire serve</code>. If either default port (5555 or 5556) is
+      already in use, do not stop an unfamiliar process. See
+      <a href="../run-a-relay/">Run a relay</a> for choosing other ports.
+    </dd>
+    <dt>The message times out or Bob is unavailable</dt>
+    <dd>
+      Keep the relay running and make sure all terminals use version 0.3.0.
+      Restart Terminal 2's receiver and wait for <code>ready</code> before sending.
+      These commands all use the same default local relay; an existing protected
+      network needs its own join credential.
+    </dd>
+  </dl>
+  <p>
+    For command options, run <code>nodalwire --help</code> or
+    <code>nodalwire receive --help</code>.
+  </p>
+</section>
+
+<section aria-labelledby="next">
+  <h2 id="next">Where next?</h2>
+  <p>
+    <a href="../connect-your-apps/">Connect your apps</a> when you are
+    ready to use NodalWire from a program, or read
+    <a href="../messaging/">Messaging</a> to learn about sending,
+    receiving, and waiting for replies. Check the version requirements there
+    before adding an SDK to this setup; the matching Node package is also 0.3.0.
+  </p>
+</section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>

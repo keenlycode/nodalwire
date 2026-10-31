@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security and local trust · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../assets/_layouts/style.css">
+<link rel="stylesheet" href="../../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../../assets/style.css">
+<script type="module" src="../../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../../" aria-label="NodalWire home">◈ NodalWire</a><span class="version-indicator" aria-label="Documentation version">0.3.0</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<a href="../../">Overview</a>
+<a href="../../getting-started/">Get started</a>
+<a href="../../messaging/">Messaging</a>
+<a href="../../connect-your-apps/">Connect your apps</a>
+<a href="../../run-a-relay/">Run a relay</a>
+<a href="../../reference/api/">API reference</a>
+<a href="../../protocol/">Protocol &amp; schemas</a>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Security and local trust</a></li>
+</ol></nav></nw-page-path><h1>Security and local trust</h1>
+<p class="lead">NodalWire is a cooperative, same-machine byte relay—not an identity service or encrypted network.</p>
+</header>
+<div class="product-content"><section aria-labelledby="local"><h2 id="local">Loopback is a boundary, not a sandbox</h2>
+<p>Data and administration endpoints accept only loopback TCP addresses: literal IPv4/IPv6 or <code>localhost</code>, which is normalized without DNS. Wildcard hosts, remote hosts, and arbitrary DNS names are rejected. A wildcard port is allowed only when binding a relay, not when connecting a client.</p>
+<p>Local bearer authentication is <strong>not encryption</strong>. It does not protect traffic or credentials from a sufficiently privileged local process, root, or same-user memory inspection. Do not expose the service through a port forward or assume that network credentials isolate mutually hostile local users. No security-audit or production-hardening claim is made.</p></section>
+<section aria-labelledby="names"><h2 id="names">Routing names are not identities</h2>
+<p>A peer chooses an ephemeral name that is unique for its live registration. A name, an <code>allowed_names</code> admission list, a routing group, and a message's relay-supplied sender field do not authenticate a person or agent. Another process may claim a name after release or lease expiry.</p>
+<p>Request/reply IDs correlate traffic with a pending operation; they do not establish identity. Never grant additional authority merely because a payload, sender label, or routing-group selector claims it.</p></section>
+<section aria-labelledby="credentials"><h2 id="credentials">Keep the two authorities separate</h2>
+<dl>
+<dt>Administrator credential</dt><dd>Authenticates each operation on the separate administration endpoint. Startup requires an explicitly supplied <code>NODALWIRE_ADMIN_TOKEN</code> or a valid configured <code>admin_verifier</code>. Nothing generates or prints an administrator token automatically.</dd>
+<dt>Network join credential</dt><dd>Authorizes a join to a protected network. It grants neither name ownership nor administration rights. An administrator token is not implicitly a network join credential.</dd>
+</dl>
+<p>Use distinct high-entropy values for these roles. Token syntax is 1–1024 printable ASCII characters without spaces or control characters. Store verifiers rather than raw bearer values in configuration. The current verifier format is salted <code>scrypt-v1</code>; it still does not encrypt transport.</p>
+<p>Generate and explicitly export an administrator credential before starting your own relay:</p>
+<nw-code-block filename="terminal" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire serve --config local.toml
+</code></pre></nw-code-block>
+<p>Protect the terminal environment and configuration file. Avoid command-line bearer values, shell history containing literal secrets, logs, or copied screenshots. The CLI's <code>--token-env</code>, <code>--join-token-env</code>, and <code>--credential-env</code> flags name environment variables, not token values. Configuration reads redact verifiers; do not interpret redaction as immunity to local inspection.</p></section>
+<section aria-labelledby="policy"><h2 id="policy">Understand policy cutoffs</h2>
+<p>Networks are open unless protected. Open default autojoins; protected default requires explicit joining, and all nondefault networks require explicit joining even when open. Both peers must be members of the selected network. Directional deny rules can further restrict routing.</p>
+<p>Protecting a network or rotating its join credential changes future joins, including repeated joins. It does not evict existing members. <code>member.remove</code> removes one current membership, but a process with a still-valid credential may join again. Deleting a nondefault network removes its memberships; recreating it does not restore them. The reserved default network cannot be deleted.</p>
+<p>No policy change recalls data already accepted by native queues. If an operation times out or is canceled, its effect may already have happened. Read state and reconcile deliberately instead of blindly retrying. An environment-managed administrator credential cannot be rotated by the API; change startup configuration/environment and restart under your own operational controls.</p></section>
+<section aria-labelledby="versions"><h2 id="versions">Use matching protocol versions</h2>
+<p>Released 0.2.x artifacts use AR2 transport and strict <code>config_version = 2</code>; released wire/configuration incompatibilities are rejected, not silently downgraded. Version 0.3.0 uses NWM3, a breaking wire/API upgrade rather than a 0.2.x patch. Upgrade clients and relay together; mixed AR2/NWM3 deployments are unsupported. NA1 administration and configuration version 2 remain unchanged. Under NWM3, old NWR1-marked bytes are opaque application payload, never auto-detected or decoded.</p>
+<p>For practical operations see <a href="../networks/">networks and membership</a>, <a href="../../reference/admin/">administration</a>, and <a href="../../reference/config/">configuration</a>.</p></section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>

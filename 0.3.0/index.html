@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect local applications with NodalWire · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/_layouts/style.css">
+<link rel="stylesheet" href="assets/_ui/components/style.css">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="./" aria-label="NodalWire home">◈ NodalWire</a><span class="version-indicator" aria-label="Documentation version">0.3.0</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<a href="./" aria-current="page">Overview</a>
+<a href="getting-started/">Get started</a>
+<a href="messaging/">Messaging</a>
+<a href="connect-your-apps/">Connect your apps</a>
+<a href="run-a-relay/">Run a relay</a>
+<a href="reference/api/">API reference</a>
+<a href="protocol/">Protocol &amp; schemas</a>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="./" aria-current="page">Connect local applications with NodalWire</a></li>
+</ol></nav></nw-page-path><h1>Connect local applications with NodalWire</h1>
+<p class="lead">Pass bytes between named Python and Node.js applications through a local relay.</p>
+</header>
+<div class="product-content"><section aria-labelledby="what"><h2 id="what">What is NodalWire?</h2>
+<p>NodalWire helps cooperating processes on the same machine exchange messages. Each application connects with a name; a relay routes its bytes to another named connection on a shared network. The relay does not interpret your application data.</p>
+<nw-message-diagram kind="architecture"><figure><figcaption>Two applications communicate through a local relay</figcaption><ol><li>Alice and Bob connect to the same relay and join the same network.</li><li>Alice addresses bytes to Bob; the relay checks the selected network and routing policy.</li><li>The relay queues accepted data for Bob. Bob decides how to handle it.</li></ol></figure></nw-message-diagram>
+<p>Use it for local tools, agents, and small services that need an explicit routing boundary. It is not a remote-host transport, durable message store, or identity service.</p></section>
+<section aria-labelledby="start"><h2 id="start">Start here</h2>
+<ol><li><a href="getting-started/">Get started</a>: install NodalWire, start a local relay, and send your first message.</li><li><a href="messaging/">Learn messaging</a>: understand send, receive, and request/reply.</li><li><a href="connect-your-apps/">Connect your apps</a> or <a href="run-a-relay/">run a relay</a> for your own workflow.</li></ol>
+<p>When you need exact signatures and formats, use the <a href="reference/api/">API reference</a> and <a href="protocol/">protocol and schemas</a>.</p></section>
+<section aria-labelledby="boundaries"><h2 id="boundaries">Know the boundaries</h2>
+<ul><li>A successful send means the relay accepted the data into the destination's native queue—not that Bob read or processed it, or that it was stored durably.</li><li>A timeout can occur after an effect. NodalWire does not automatically retry, reconnect, or replay; don't blindly retry a mutation.</li><li>Credentials grant permission, not authenticated identity. Local bearer credentials do not encrypt traffic; see <a href="guides/security/">security and local trust</a>.</li></ul>
+<p>These docs target NodalWire <code>0.3.0</code>, using matching Python and Node packages. Version 0.2.x uses incompatible AR2; upgrade clients and relay together. Follow <a href="getting-started/">Getting started</a> for installation and release-availability guidance.</p></section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>

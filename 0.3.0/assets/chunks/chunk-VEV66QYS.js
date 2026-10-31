@@ -1,0 +1,18 @@
+import{a as p}from"./chunk-PGNQVJ2L.js";function q(o){return o==="architecture"||o==="send"||o==="request-reply"}p(q,"isDiagramKind");function f(o,c,l){if(!q(o))throw new RangeError("Unknown message diagram kind");if(c!=="wide"&&c!=="compact")throw new RangeError("Unknown diagram layout");if(l!==void 0&&(!Number.isFinite(l)||l<=0))throw new RangeError("Diagram width must be finite and positive");let d=c==="compact",e=o==="request-reply",r=Math.max(d?280:680,l??(d?360:900)),y=[],t=[],a=p((h,i,n,u,s,m,v,b)=>{y.push({id:h,role:i,label:n,x:u,y:s,width:m,height:v,...b?{parent:b}:{}})},"node"),g;if(d){let i=Math.min(200,r-96),n=r/2;g=e?990:670,a("sender","application",e?`Alice
+Requester`:`Alice
+Sending application`,n-164/2,18,164,74),a("relay","relay","Loopback relay",12,206,r-24,e?530:236),a("destination-queue","native-queue",`Bob's native
+destination queue`,n-i/2,272,i,76,"relay"),a("receiver","application",e?`Bob
+Service application`:`Bob
+Receiving application`,n-164/2,e?886:570,164,78),t.push({id:"outbound",role:"send",source:"sender",target:"destination-queue",label:e?"1. Request":"1. Send to Bob",sourceAnchor:"bottom",targetAnchor:"top",labelDistance:.44}),t.push({id:"accepted",role:"acceptance",source:"destination-queue",target:"sender",label:`Send
+accepted`,sourceAnchor:"left",targetAnchor:"left",vertices:[{x:30,y:310},{x:30,y:55}],labelDistance:.48}),t.push({id:"delivered",role:"delivery",source:"destination-queue",target:"receiver",label:`2. Receive later;
+process separately`,sourceAnchor:"right",targetAnchor:"right",vertices:[{x:r-32,y:310},{x:r-32,y:e?925:610}],labelDistance:e?.78:.64,labelOffset:{x:-72,y:0}}),e&&(a("reply-queue","native-queue",`Alice's native
+destination queue`,n-i/2,546,i,76,"relay"),t.push({id:"reply",role:"reply",source:"receiver",target:"reply-queue",label:"3. Reply",sourceAnchor:"top",targetAnchor:"bottom",freshId:!0,replyTo:"request"}),t.push({id:"matched",role:"reply-delivery",source:"reply-queue",target:"sender",label:`4. Matching
+reply`,sourceAnchor:"left",targetAnchor:"top",vertices:[{x:58,y:584},{x:58,y:4},{x:n,y:4}],labelDistance:.46}))}else{let i=Math.max(260,r*.34),n=(r-i)/2,u=i-64,s=n+32;g=e?570:440,a("sender","application",e?`Alice
+Requester`:`Alice
+Sending application`,12,190,154,84),a("relay","relay","Loopback relay",n,92,i,e?420:220),a("destination-queue","native-queue",`Bob's native
+destination queue`,s,166,u,78,"relay"),a("receiver","application",e?`Bob
+Service application`:`Bob
+Receiving application`,r-154-12,190,154,84),t.push({id:"outbound",role:"send",source:"sender",target:"destination-queue",label:e?"1. Request":`1. Send
+to Bob`,sourceAnchor:"right",targetAnchor:"left"}),t.push({id:"accepted",role:"acceptance",source:"destination-queue",target:"sender",label:"Send accepted",sourceAnchor:"top",targetAnchor:"top",vertices:[{x:r/2,y:44},{x:89,y:44}],labelDistance:.55}),t.push({id:"delivered",role:"delivery",source:"destination-queue",target:"receiver",label:`2. Receive later;
+process separately`,sourceAnchor:"right",targetAnchor:"left"}),e&&(a("reply-queue","native-queue",`Alice's native
+destination queue`,s,390,u,78,"relay"),t.push({id:"reply",role:"reply",source:"receiver",target:"reply-queue",label:"3. Reply",sourceAnchor:"bottom",targetAnchor:"right",vertices:[{x:r-89,y:429}],freshId:!0,replyTo:"request"}),t.push({id:"matched",role:"reply-delivery",source:"reply-queue",target:"sender",label:"4. Matching reply",sourceAnchor:"left",targetAnchor:"bottom",vertices:[{x:89,y:429}]}))}return{kind:o,layout:c,width:r,height:g,nodes:y,edges:t,acceptanceBoundary:"relay-native-destination-queue"}}p(f,"getDiagramModel");export{q as a,f as b};

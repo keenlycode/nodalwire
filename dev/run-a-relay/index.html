@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Run a relay · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/_layouts/style.css">
+<link rel="stylesheet" href="../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="module" src="../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../" aria-label="NodalWire home">◈ NodalWire</a><span class="version-indicator" aria-label="Documentation version">Development (NWM3 candidate)</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<a href="../">Overview</a>
+<a href="../getting-started/">Get started</a>
+<a href="../messaging/">Messaging</a>
+<a href="../connect-your-apps/">Connect your apps</a>
+<a href="./" aria-current="page">Run a relay</a>
+<a href="../reference/api/">API reference</a>
+<a href="../protocol/">Protocol &amp; schemas</a>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Run a relay</a></li>
+</ol></nav></nw-page-path><h1>Run a relay</h1>
+<p class="lead">Start a local relay, inspect its configuration, and administer networks deliberately.</p>
+</header>
+<div class="product-content"><section aria-labelledby="start"><h2 id="start">Start your relay</h2>
+<p>Install NodalWire 0.3.0 as described in <a href="../getting-started/">Get started</a>, then supply an administrator token and run the relay in the foreground:</p>
+<nw-code-block filename="terminal 1" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 1</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export NODALWIRE_ADMIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire serve
+</code></pre></nw-code-block>
+<p>Leave this terminal open. The relay reports its data endpoint after binding; the default data endpoint is <code>tcp://127.0.0.1:5555</code>, and administration uses the separate <code>tcp://127.0.0.1:5556</code>. Do not start another relay on ports already in use. Press Ctrl-C to stop your relay when finished.</p>
+<p>Without a configuration file, administrative changes are memory-only. To persist supported policy changes, start with <code>serve --config local.toml</code>; see the <a href="../reference/config/">version 2 configuration reference</a> for a valid file and persistence boundaries. Endpoints and native limits are startup-only.</p></section>
+<section aria-labelledby="admin"><h2 id="admin">Administration: create a network</h2>
+<p>In a second terminal, make the same administrator token available securely as <code>NODALWIRE_ADMIN_TOKEN</code>; do not paste it into a command or share it as a network join token. Read the current revision first:</p>
+<nw-code-block filename="terminal 2" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 2</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>nodalwire admin config.get
+</code></pre></nw-code-block>
+<p>The JSON response includes the current revision and redacted configuration, not bearer values. On a relay without a <code>team</code> network, replace <code>REVISION</code> below with the observed integer. This creates a protected network using a separate generated join credential:</p>
+<nw-code-block filename="terminal 2" language="shell">
+<div class="code-block-header"><span class="code-block-labels"><span class="code-block-filename">terminal 2</span><span class="code-block-language">shell</span></span></div><pre tabindex="0" aria-label="shell code example"><code>export TEAM_JOIN_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+nodalwire admin network.create \
+  --network team --credential-env TEAM_JOIN_TOKEN --expected-revision REVISION
+nodalwire admin member.list --network team
+</code></pre></nw-code-block>
+<p>The create response identifies <code>team</code> as protected and reports the new revision. The member list is initially empty if no one has joined. Give the join credential to authorized applications through a trusted local channel; each must explicitly join <code>team</code>. It grants join permission, not identity or administrator authority. See <a href="../guides/networks/">networks and membership</a> for client examples.</p>
+<p>If the revision has changed, reconsider your intended operation against current state; do not blindly retry. A timeout can also follow a mutation, so read and reconcile the state before deciding what to do. Configuration-file commits can have indeterminate persistence outcomes; consult the exact reference.</p></section>
+<section aria-labelledby="reference"><h2 id="reference">Detailed operations and safety</h2>
+<ul><li><a href="../reference/admin/">Administration reference</a>: operation arguments, revisions, errors, and persistence outcomes.</li><li><a href="../reference/config/">Configuration reference</a>: fields, startup policy, and file persistence.</li><li><a href="../reference/cli/">CLI reference</a>: commands, JSON output, and exit status.</li><li><a href="../guides/security/">Security and local trust</a>: separate credentials, loopback limits, and policy cutoffs.</li></ul></section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>

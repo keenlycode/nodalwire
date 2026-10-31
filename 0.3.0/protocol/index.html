@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Protocol &amp; schemas · NodalWire</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/_layouts/style.css">
+<link rel="stylesheet" href="../assets/_ui/components/style.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="module" src="../assets/index.js"></script>
+</head>
+<body class="product-page">
+  <a class="skip" href="#main">Skip to content</a>
+<div class="product-brand"><div class="product-shell"><a href="../" aria-label="NodalWire home">◈ NodalWire</a><span class="version-indicator" aria-label="Documentation version">0.3.0</span></div></div>
+<div class="product-shell product-menu"><nav class="product-navigation" aria-label="Documentation">
+<a href="../">Overview</a>
+<a href="../getting-started/">Get started</a>
+<a href="../messaging/">Messaging</a>
+<a href="../connect-your-apps/">Connect your apps</a>
+<a href="../run-a-relay/">Run a relay</a>
+<a href="../reference/api/">API reference</a>
+<a href="./" aria-current="page">Protocol &amp; schemas</a>
+</nav></div>
+<main id="main"><nw-container>
+<header class="page-header">
+<nw-page-path><nav aria-label="Page Path"><ol>
+<li><a href="../">NodalWire</a></li><li><span aria-hidden="true">›</span><a href="./" aria-current="page">Protocol &amp; schemas</a></li>
+</ol></nav></nw-page-path><h1>Protocol &amp; schemas</h1>
+<p class="lead">Understand the different representations before reaching for the exact contracts.</p>
+</header>
+<div class="product-content"><section aria-labelledby="layers"><h2 id="layers">Four representations, different jobs</h2>
+<dl>
+<dt>NWM3 messaging wire</dt><dd>ZeroMQ multipart binary frames carry commands, metadata, and an arbitrary byte payload. These frames are not a JSON document. The exact frame order, grammar, validation, and lifecycle are in the <a href="../specs/nwm3.md">frozen NWM3 messaging specification</a>.</dd>
+<dt>Python and Node SDK messages</dt><dd>A received <code>Message</code> presents <code>id</code>, <code>sender</code>, <code>network</code>, <code>payload</code>, and optional <code>reply_to</code> to application code. Payload remains bytes; absent <code>reply_to</code> is <code>None</code> in Python and <code>undefined</code> in Node. See the <a href="../reference/api/">API reference</a>.</dd>
+<dt>CLI events</dt><dd>Client and admin commands emit newline-delimited JSON. A message event has six keys: <code>event</code>, <code>id</code>, <code>reply_to</code>, <code>network</code>, <code>sender</code>, and <code>payload</code>. The payload is canonical base64; absent <code>reply_to</code> is JSON <code>null</code>. See the <a href="../reference/cli/">CLI reference</a> for event types and exact input rules.</dd>
+<dt>Relay configuration</dt><dd>Version 2 configuration is strict TOML, not the messaging wire or a message payload schema. It declares endpoints, limits, and network policy. See the <a href="../reference/config/">configuration reference</a>.</dd>
+</dl>
+<p>These representations are related, but they are not one universal JSON schema. Applications define their own payload format.</p></section>
+<section aria-labelledby="admin"><h2 id="admin">Administration is separate</h2>
+<p>NA1 administration uses a separate local endpoint and authority. Its operations and revision semantics are described in the <a href="../reference/admin/">administration reference</a>; a practical walkthrough is in <a href="../run-a-relay/">Run a relay</a>. Administrator and network-join credentials grant distinct permissions, not peer identity.</p></section>
+<section aria-labelledby="compatibility"><h2 id="compatibility">Version compatibility</h2>
+<p>NodalWire <code>0.3.0</code> uses NWM3. Use matching Python and Node 0.3.0 packages with the relay; 0.2.x uses incompatible AR2 and cannot be mixed with them. NA1 administration and configuration version 2 are unchanged. The frozen specification retains its original development-planning context; package release versions and installation are described in <a href="../getting-started/">Getting started</a>.</p>
+<p>Sending success is relay native per-destination queue acceptance—not proof of processing or durable storage. See <a href="../messaging/">Messaging</a> for the practical meaning and timeout boundaries.</p></section>
+</div>
+<footer class="product-footer"><p>NodalWire · MIT License · <a href="../assets/licenses/runtime/NOTICE.txt">Runtime licenses</a> · <a href="../assets/licenses/gnomicon/NOTICE.md">Icon attribution</a></p></footer>
+</nw-container></main>
+</body>
+</html>
