@@ -50,7 +50,11 @@ test("Message diagrams in an explicitly owned browser target", { skip: !enabled 
     ({ targetId } = await owner.call("Target.createTarget", { url: "about:blank", background: true }));
     page = await connect(process.env.DOCS_TEST_CDP.replace(/\/devtools\/.*$/, `/devtools/page/${targetId}`));
     await page.call("Page.enable");
-    const url = process.env.DOCS_TEST_ORIGIN.replace(/\/$/, "") + "/";
+    // The whole-site runner supplies an origin; focused runs may supply /dev/
+    // (or a release-version prefix). Do not navigate to root /messaging/.
+    const base = new URL(process.env.DOCS_TEST_ORIGIN);
+    base.pathname = base.pathname === "/" ? "/dev/" : base.pathname.replace(/\/$/, "") + "/";
+    const url = base.href;
     async function navigate(destination = url) {
       // Subscribe before navigation; do not await a page-side load Promise when
       // script execution is disabled or the execution context is being replaced.
@@ -75,7 +79,7 @@ test("Message diagrams in an explicitly owned browser target", { skip: !enabled 
       await page.call("Emulation.setDeviceMetricsOverride", { width: 375, height: 1000, deviceScaleFactor: 1, mobile: false });
       for (const [route, kinds] of [["", ["architecture"]], ["messaging/", ["send", "request-reply"]]]) {
         await navigate(url + route);
-        const result = await run(`await customElements.whenDefined('nw-message-diagram');const expected=${JSON.stringify(kinds)},end=performance.now()+8000;while(expected.some(kind=>document.querySelector('nw-message-diagram[kind="'+kind+'"]')?.dataset.diagramState!=='ready')){if(performance.now()>end)throw Error('Authored first-load enhancement timeout: '+JSON.stringify([...document.querySelectorAll('nw-message-diagram')].map(d=>({kind:d.getAttribute('kind'),state:d.dataset.diagramState,width:d.clientWidth}))));await new Promise(r=>setTimeout(r,25));}return expected.every(kind=>{const d=document.querySelector('nw-message-diagram[kind="'+kind+'"]');return !!d.querySelector('svg')&&d.querySelector('figure > ol').getBoundingClientRect().height>0;});`);
+        const result = await run(`await Promise.race([customElements.whenDefined('nw-message-diagram'),new Promise((_,reject)=>setTimeout(()=>reject(Error('authored diagram registration timeout at '+location.href)),8000))]);const expected=${JSON.stringify(kinds)},end=performance.now()+8000;while(expected.some(kind=>document.querySelector('nw-message-diagram[kind="'+kind+'"]')?.dataset.diagramState!=='ready')){if(performance.now()>end)throw Error('Authored first-load enhancement timeout: '+JSON.stringify([...document.querySelectorAll('nw-message-diagram')].map(d=>({kind:d.getAttribute('kind'),state:d.dataset.diagramState,width:d.clientWidth}))));await new Promise(r=>setTimeout(r,25));}return expected.every(kind=>{const d=document.querySelector('nw-message-diagram[kind="'+kind+'"]');return !!d.querySelector('svg')&&d.querySelector('figure > ol').getBoundingClientRect().height>0;});`);
         assert.equal(result, true, route || "Overview");
       }
     });
