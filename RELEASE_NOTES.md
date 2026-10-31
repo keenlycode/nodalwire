@@ -1,4 +1,23 @@
-# NodalWire 0.2.1
+# NodalWire 0.3 candidate — unreleased migration notes
+
+NWM3 is a breaking messaging wire and API migration. This source tree describes
+candidate behavior only; it does not establish that 0.3 artifacts are published
+or available. Do not mix NWM3 clients with AR2 relays or AR2 clients with NWM3
+relays. Coordinate matching client/relay migration; NA1 administration and
+configuration version 2 remain unchanged.
+
+- Message IDs and optional `reply_to` are native metadata; there is no NWR1
+  envelope parser, automatic translation, or legacy compatibility shim.
+- `Message.payload` contains raw application bytes. Remove envelope imports and
+  decoding, use `id`/`reply_to` for application correlation, and consume the IDs
+  returned by accepted `send` and `reply` operations.
+- Saved CLI receive events must be regenerated with the exact six-key message
+  schema. `reply --request-file` rejects legacy event files and malformed or
+  duplicate fields before connecting.
+- Queue acceptance is not delivery or application completion. Timeouts and
+  cancellation can have uncertain effects; no automatic retry is added.
+
+## Released 0.2.1
 
 Python-only patch release. The Python relay version is 0.2.1; the Node package
 remains 0.2.0. Source preparation does not establish registry availability;

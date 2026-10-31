@@ -10,7 +10,6 @@ import select
 import signal
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
@@ -179,20 +178,23 @@ def _positive_deadline(timeout: float) -> float:
 def _message_event(message, *, event: str = "message") -> dict:
     return {
         "event": event,
+        "id": message.id,
+        "reply_to": message.reply_to,
         "network": message.network,
         "sender": message.sender,
         "payload": base64.b64encode(message.payload).decode("ascii"),
     }
 
 
-@dataclass(frozen=True)
-class _Incoming:
-    network: str
-    sender: str
-    payload: bytes
+def _valid_message_id(value) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 32
+        and all(char in "0123456789abcdef" for char in value)
+    )
 
 
-def _decode_incoming(data: bytes, max_payload: int) -> _Incoming:
+def _decode_incoming(data: bytes, max_payload: int) -> Message:
     def unique(pairs):
         result = {}
         for key, value in pairs:
@@ -201,12 +203,20 @@ def _decode_incoming(data: bytes, max_payload: int) -> _Incoming:
             result[key] = value
         return result
 
+    def reject_constant(_value):
+        raise ValueError("nonfinite JSON number")
+
     try:
-        item = json.loads(data, object_pairs_hook=unique)
-        if not isinstance(item, dict) or set(item) != {"event", "network", "sender", "payload"}:
+        item = json.loads(data, object_pairs_hook=unique, parse_constant=reject_constant)
+        if not isinstance(item, dict) or set(item) != {
+            "event", "id", "reply_to", "network", "sender", "payload"
+        }:
             raise ValueError("invalid message fields")
-        if item["event"] != "message" or not all(
-            valid_name(item[key]) for key in ("network", "sender")
+        if (
+            item["event"] != "message"
+            or not _valid_message_id(item["id"])
+            or (item["reply_to"] is not None and not _valid_message_id(item["reply_to"]))
+            or not all(valid_name(item[key]) for key in ("network", "sender"))
         ):
             raise ValueError("invalid message metadata")
         encoded = item["payload"]
@@ -217,7 +227,13 @@ def _decode_incoming(data: bytes, max_payload: int) -> _Incoming:
             raise ValueError("invalid payload encoding")
     except (ValueError, TypeError, UnicodeError, binascii.Error, RecursionError):
         raise CLIInputError("invalid incoming message JSON") from None
-    return _Incoming(item["network"], item["sender"], payload)
+    return Message(
+        id=item["id"],
+        sender=item["sender"],
+        network=item["network"],
+        payload=payload,
+        reply_to=item["reply_to"],
+    )
 
 
 class _OutputBudget:
@@ -380,7 +396,7 @@ async def _peer_operation(
     timeout: float,
     count: int,
     output: _OutputBudget,
-    incoming: _Incoming | None = None,
+    incoming: Message | None = None,
     ready=None,
 ) -> dict:
     if operation not in {"send", "receive", "request", "reply"}:
@@ -393,24 +409,27 @@ async def _peer_operation(
         raise CLIInputError("receive count must be between one and 1024")
     if operation == "reply":
         if incoming is None:
-            raise CLIInputError("incoming request metadata required")
+            raise CLIInputError("incoming message metadata required")
         network = incoming.network
     async with asyncio.timeout(_positive_deadline(timeout)):
         # Even open nondefault networks require a new explicit join per invocation.
         await node.join(network, credential, timeout=timeout)
         if operation == "send":
-            await node.send(destination, payload, network=network, timeout=timeout)
+            message_id = await node.send(destination, payload, network=network, timeout=timeout)
             return {
                 "event": "accepted",
+                "id": message_id,
+                "reply_to": None,
                 "network": network,
                 "recipient": destination,
                 "meaning": "native_queue_acceptance_only",
             }
         if operation == "reply":
-            message = Message(incoming.sender, incoming.payload, incoming.network)
-            await node.reply(message, payload, timeout=timeout)
+            message_id = await node.reply(incoming, payload, timeout=timeout)
             return {
                 "event": "accepted",
+                "id": message_id,
+                "reply_to": incoming.id,
                 "network": network,
                 "recipient": incoming.sender,
                 "meaning": "native_queue_acceptance_only",
@@ -535,7 +554,7 @@ async def _client_run(
     count: int,
     max_unrelated: int,
     max_output_bytes: int,
-    incoming: _Incoming | None,
+    incoming: Message | None,
 ) -> None:
     remaining = _positive_deadline(deadline - time.monotonic())
     output = _OutputBudget(
@@ -738,7 +757,7 @@ def request(
     Count/byte cutoff cancels the wait with an uncertain outcome; timeout does NOT
     mean the remote application did nothing. No retry/reconnect/replay.
     --max-output-bytes bounds unrelated events; terminal reply JSON <=2MiB.
-    Matching is sender/network/kind/unpredictable ID, NOT authenticated identity.
+    Matching is reply_to, sender and network, NOT authenticated identity.
     """
     _client(
         "request",
@@ -768,9 +787,9 @@ def reply(
 ) -> None:
     """Reply using a prior receive message JSON file and new stdin/file bytes.
 
-    The file must contain exactly one message event with the original request
-    envelope. Uses its incoming network explicitly and joins on a NEW connection;
-    no hidden connection is retained. The requester must still be connected.
+    The file must contain exactly one six-key message event. Uses its incoming
+    network explicitly and joins on a NEW connection; no hidden connection is
+    retained. The requester must still be connected.
     """
     _client(
         "reply",

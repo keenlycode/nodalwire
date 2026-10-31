@@ -1,8 +1,8 @@
-"""Bounded owned AR2 relay/Python clients to built or installed Node client.
+"""Bounded owned NWM3 relay/Python clients to built or installed Node client.
 
-Default mode uses this checkout, or NODALWIRE_PYTHON_SOURCE selects reviewed src/.
-NODALWIRE_PYTHON_INSTALLED=1 instead requires an isolated external environment;
-package_smoke.py --python-artifact stages these fixtures outside the checkout.
+Source-mode execution requires NODALWIRE_PYTHON_SOURCE to select exact reviewed
+NWM3 src/. NODALWIRE_PYTHON_INSTALLED=1 instead requires an isolated external
+environment; package_smoke.py --python-artifact stages fixtures outside checkout.
 """
 
 import asyncio
@@ -11,18 +11,10 @@ import sys
 from pathlib import Path
 
 INSTALLED = os.environ.get("NODALWIRE_PYTHON_INSTALLED") == "1"
-if not INSTALLED:
-    SOURCE = Path(os.environ.get(
-        "NODALWIRE_PYTHON_SOURCE", str(Path(__file__).resolve().parents[5] / "src"),
-    )).resolve()
+SOURCE_SETTING = os.environ.get("NODALWIRE_PYTHON_SOURCE")
+SOURCE = Path(SOURCE_SETTING).resolve() if SOURCE_SETTING else None
+if not INSTALLED and SOURCE is not None and str(SOURCE) not in sys.path:
     sys.path.insert(0, str(SOURCE))
-
-import nodalwire  # noqa: E402
-from nodalwire import AdminClient, Node, Relay, RelayConfig  # noqa: E402
-from nodalwire.client.python import decode_envelope  # noqa: E402
-from nodalwire.config import NetworkConfig  # noqa: E402
-from nodalwire.config_store import ConfigStore  # noqa: E402
-from nodalwire.credentials import make_verifier  # noqa: E402
 
 
 def validate_installed_paths(module, prefix, runtime, paths, checkout, cwd):
@@ -45,19 +37,40 @@ def validate_installed_paths(module, prefix, runtime, paths, checkout, cwd):
                 "Checkout path outside managed interpreter leaked")
 
 
-if INSTALLED:
-    from importlib.metadata import distribution
+def load_interop_runtime():
+    """Load a selected NWM3 source or installed Python artifact only at execution."""
+    global SOURCE, nodalwire, AdminClient, Node, Relay, RelayConfig
+    global NetworkConfig, ConfigStore, make_verifier
 
-    SOURCE = Path(nodalwire.__file__).resolve().parent
-    prefix = Path(sys.prefix).resolve()
-    metadata = distribution("nodalwire")
-    assert sys.flags.isolated, "Installed acceptance requires Python -I"
-    assert Path(metadata.locate_file("")).resolve().is_relative_to(prefix)
-    forbidden = Path(os.environ["NODALWIRE_FORBIDDEN_SOURCE"]).resolve()
-    validate_installed_paths(SOURCE, prefix, sys.base_prefix, sys.path, forbidden, Path.cwd())
-    assert metadata.version == os.environ["NODALWIRE_EXPECTED_VERSION"]
-    print(f"PASS installed Python provenance: version={metadata.version}; "
-          f"module={SOURCE}; prefix={prefix}; sys.path={sys.path}", flush=True)
+    if not INSTALLED:
+        if SOURCE is None:
+            raise RuntimeError(
+                "Set NODALWIRE_PYTHON_SOURCE to the exact reviewed NWM3 source tree"
+            )
+        if str(SOURCE) not in sys.path:
+            sys.path.insert(0, str(SOURCE))
+
+    import nodalwire
+    from nodalwire import AdminClient, Node, Relay, RelayConfig
+    from nodalwire.config import NetworkConfig
+    from nodalwire.config_store import ConfigStore
+    from nodalwire.credentials import make_verifier
+    from nodalwire.protocol import VERSION as python_version
+
+    assert python_version == b"NWM3", f"Interop requires NWM3, got {python_version!r}"
+    SOURCE = Path(nodalwire.__file__).resolve().parent if INSTALLED else SOURCE
+    if INSTALLED:
+        from importlib.metadata import distribution
+
+        prefix = Path(sys.prefix).resolve()
+        metadata = distribution("nodalwire")
+        assert sys.flags.isolated, "Installed acceptance requires Python -I"
+        assert Path(metadata.locate_file("")).resolve().is_relative_to(prefix)
+        forbidden = Path(os.environ["NODALWIRE_FORBIDDEN_SOURCE"]).resolve()
+        validate_installed_paths(SOURCE, prefix, sys.base_prefix, sys.path, forbidden, Path.cwd())
+        assert metadata.version == os.environ["NODALWIRE_EXPECTED_VERSION"]
+        print(f"PASS installed Python provenance: version={metadata.version}; "
+              f"module={SOURCE}; prefix={prefix}; sys.path={sys.path}", flush=True)
 
 
 async def scenario(protected_default=False):
@@ -105,11 +118,10 @@ async def scenario(protected_default=False):
                 message = await echo.receive()
                 assert message.sender == "js-node", message.sender
                 seen.append(message.payload.hex())
-                envelope = decode_envelope(message.payload, max_bytes=1024)
-                if envelope is not None and envelope.kind == "request":
-                    # Ordinary unrelated DATA must survive request correlation.
+                if message.payload.startswith(b"node-request-fixture:"):
+                    # Request is ordinary raw DATA; its reply uses fresh native IDs.
                     await echo.send(message.sender, b"unrelated", network=message.network)
-                    await echo.reply(message, envelope.payload)
+                    await echo.reply(message, message.payload[len(b"node-request-fixture:"):])
                 elif message.payload == b"rotate-team-fixture":
                     result = await admin.call(
                         "network.rotate", {"network": "team", "credential": "fixture-team-new"},
@@ -166,7 +178,7 @@ async def scenario(protected_default=False):
             await asyncio.gather(exit_wait, return_exceptions=True)
         if not protected_default:
             assert "" in seen and bytes(range(256)).hex() in seen, seen
-        print(f"PASS Python↔Node AR2 ({'protected' if protected_default else 'open'} default): "
+        print(f"PASS Python↔Node NWM3 ({'protected' if protected_default else 'open'} default): "
               f"{len(seen)} messages; python={SOURCE}; "
               f"mode={'installed' if INSTALLED else 'source'}")
     finally:
@@ -189,6 +201,7 @@ async def scenario(protected_default=False):
 
 
 async def main():
+    load_interop_runtime()
     await scenario()
     await scenario(protected_default=True)
 

@@ -1,43 +1,53 @@
 {% extends "_layouts/product.html" %}
 {% set page_path = 'getting-started/' %}
 {% set page_title = 'Getting Started' %}
-{% set page_intro = 'Send a message from Node.js to Python and get a reply.' %}
+{% set page_intro = 'Build and install matching local NWM3 development artifacts, then exchange native messages between Node.js and Python.' %}
 {% set page_ancestors = [] %}
 {% block content %}
 <section aria-labelledby="setup">
   <h2 id="setup">1. Set up</h2>
   <p>
-    You need Python 3.12+, Node.js 24, <code>uv</code>, pnpm 12.5.1 and Python
-    <code>0.2.1</code> plus Node <code>0.2.0</code> artifacts from your maintainer
-    for prepublication, offline or local-artifact use. A source checkout does not establish public registry
-    availability. Create your own application; no checkout or SDK compilation is needed:
+    This walkthrough targets the coordinated NWM3 development candidate, not a
+    published release. Use the same ROOT-reviewed assembled NWM3 source checkout
+    to build both local artifacts. The development labels are Python
+    <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code>; they identify local
+    candidate builds only and make no claim of registry availability. Released
+    Python 0.2.x / Node 0.2.0 artifacts use AR2 and are incompatible with NWM3.
+    You need Python 3.12+, Node.js 24, <code>uv</code>, and pnpm 12.5.1.
   </p>
+  {% set build_example %}# From the reviewed, assembled NWM3 source checkout:
+uv sync --locked
+pnpm --dir src/nodalwire/client/node install --frozen-lockfile
+pnpm --dir src/nodalwire/client/node exec tsc -p tsconfig.json
+mkdir -p /tmp/nodalwire-nwm3-candidate
+uv build --out-dir /tmp/nodalwire-nwm3-candidate
+pnpm --dir src/nodalwire/client/node pack --pack-destination /tmp/nodalwire-nwm3-candidate
+{% endset %}{{ code_block(build_example, 'build local candidate artifacts', 'shell') }}
+  <p>Confirm both outputs came from that same reviewed checkout. Then create a
+    separate application directory and install the local files; do not install by
+    package name or overwrite an existing application's pnpm script policy:</p>
   {% set setup_example %}mkdir my-nodalwire-app
 cd my-nodalwire-app
 uv venv .venv
-uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.2.1-py3-none-any.whl
+uv pip install --python .venv/bin/python /absolute/path/nodalwire-0.3.0.dev0-py3-none-any.whl
 printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
-pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
-{% endset %}{{ code_block(setup_example, 'terminal', 'shell') }}
-  <p>Replace the two artifact paths. Run subsequent commands from this application
-    directory, not the NodalWire repository. Do not overwrite an existing app's
-    pnpm script policy. These shell paths are for Linux/macOS; local verification
-    covered Linux only.</p>
-  <p>Only after the matching approved release is published and registry availability
-    is verified, replace the two artifact installation commands with
-    <code>uv pip install --python .venv/bin/python nodalwire==0.2.1</code> and
-    <code>pnpm add @devcapsule/nodalwire-client@0.2.0</code>. Do not substitute old
-    packages while publication is pending.</p>
+pnpm add /absolute/path/devcapsule-nodalwire-client-0.3.0-dev.0.tgz
+{% endset %}{{ code_block(setup_example, 'install local candidate artifacts', 'shell') }}
+  <p>Replace the local artifact paths with the files built above. Run the remaining
+    walkthrough commands from this application directory. These shell paths are
+    for Linux/macOS; local verification covered Linux only. Do not substitute
+    released 0.2.x artifacts for either NWM3 dependency.</p>
   <details>
     <summary>About the Node.js setup</summary>
     <p>
-      The tarball includes compiled JavaScript and declarations; consumers need
-      neither Deno nor TypeScript. The native <code>zeromq</code> install script
-      is required and explicitly permitted above. Native prebuild/fallback build
-      availability is platform-dependent; other package managers have different
-      script policies. Contributor builds and maintainer artifact acceptance are
-      separate steps described in the repository README. Do not install public
-      0.1 packages as substitutes for these 0.2 artifacts.
+      The local tarball includes compiled JavaScript and declarations; consumers
+      need neither Deno nor TypeScript. The native <code>zeromq</code> install
+      script is required and explicitly permitted above. Native prebuild/fallback
+      build availability is platform-dependent; other package managers have
+      different script policies. Contributor builds and maintainer artifact
+      acceptance are separate steps described in the repository README. Building
+      or installing these local candidate files does not publish them or establish
+      registry availability.
     </p>
   </details>
 </section>
@@ -52,7 +62,7 @@ pnpm add /absolute/path/devcapsule-nodalwire-client-0.2.0.tgz
     The token is required to start the relay, but these clients do not need it.
     This example uses the default local endpoint and an open <code>default</code>
     network. Do not start a second relay if one is already using these ports, or
-    connect these clients to an existing 0.1 relay. For a separate instance, use
+    connect these clients to a released AR2 relay. For a separate instance, use
     <code>.venv/bin/nodalwire serve --config relay.toml</code> with unused loopback
     data/admin ports in a <a href="../reference/config/">v2 configuration</a>.
     Set <code>NODALWIRE_ENDPOINT</code> to its data endpoint in both client terminals.

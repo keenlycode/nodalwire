@@ -64,3 +64,15 @@ def test_checkout_consumer_is_rejected(validate_paths, tmp_path):
     repo, venv = tmp_path / "repo", tmp_path / "consumer/venv"
     with pytest.raises(AssertionError):
         validate_paths(venv / "site-packages/nodalwire", venv, tmp_path / "runtime", [], repo, repo)
+
+
+def test_provenance_helper_import_needs_no_source_or_installed_environment(monkeypatch):
+    monkeypatch.delenv("NODALWIRE_PYTHON_SOURCE", raising=False)
+    monkeypatch.delenv("NODALWIRE_PYTHON_INSTALLED", raising=False)
+    path = ROOT / "tests/integration/nodalwire/client/node/interop.py"
+    spec = importlib.util.spec_from_file_location("interop_without_runtime", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert callable(module.validate_installed_paths)
+    with pytest.raises(RuntimeError, match="NODALWIRE_PYTHON_SOURCE"):
+        module.load_interop_runtime()

@@ -24,7 +24,7 @@ async function silentRelay(admit = true) {
         if (admit && frames[2].toString() === "HELLO") {
           await router.send([
             frames[0],
-            "AR2",
+            "NWM3",
             "OK",
             "",
             frames[3],

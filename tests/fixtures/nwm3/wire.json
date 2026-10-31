@@ -1,0 +1,2117 @@
+{
+  "schema_version": 1,
+  "protocol": "NWM3",
+  "encoding": "Each frame has exactly one ascii (strict 7-bit text) or hex (lowercase even-length bytes) key. No ROUTER address.",
+  "context": {
+    "max_payload_bytes": 256,
+    "registrations": [
+      {
+        "name": "alpha",
+        "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "memberships": [
+          "default",
+          "red"
+        ]
+      },
+      {
+        "name": "beta",
+        "token": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "memberships": [
+          "default",
+          "red"
+        ]
+      }
+    ],
+    "networks": [
+      "default",
+      "red"
+    ],
+    "routes": "allow all; target native queues available"
+  },
+  "control_packets": [
+    {
+      "name": "hello",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "HELLO"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "alpha"
+        }
+      ]
+    },
+    {
+      "name": "hello_ok_open",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "10.0"
+        },
+        {
+          "ascii": "256"
+        },
+        {
+          "ascii": "[\"default\"]"
+        }
+      ]
+    },
+    {
+      "name": "hello_ok_protected",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "10.0"
+        },
+        {
+          "ascii": "256"
+        },
+        {
+          "ascii": "[]"
+        }
+      ]
+    },
+    {
+      "name": "hello_error",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "duplicate_name"
+        }
+      ]
+    },
+    {
+      "name": "join",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "JOIN"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "red"
+        },
+        {
+          "hex": ""
+        }
+      ]
+    },
+    {
+      "name": "join_with_credential",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "JOIN"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "red"
+        },
+        {
+          "ascii": "fixture-credential"
+        }
+      ]
+    },
+    {
+      "name": "join_ok",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "red"
+        },
+        {
+          "ascii": "1"
+        }
+      ]
+    },
+    {
+      "name": "leave",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "LEAVE"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "red"
+        }
+      ]
+    },
+    {
+      "name": "leave_unchanged_ok",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        },
+        {
+          "ascii": "red"
+        },
+        {
+          "ascii": "0"
+        }
+      ]
+    },
+    {
+      "name": "heartbeat",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "HEARTBEAT"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
+    },
+    {
+      "name": "close",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "CLOSE"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        }
+      ]
+    },
+    {
+      "name": "close_ok",
+      "frames": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "cccccccccccccccccccccccccccccccc"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "name": "binary",
+      "source": "alpha",
+      "destination": "beta",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "receipt": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        }
+      ],
+      "message": {
+        "id": "11111111111111111111111111111111",
+        "reply_to": null,
+        "network": "default",
+        "sender": "alpha",
+        "payload_hex": "00ff"
+      }
+    },
+    {
+      "name": "empty_payload",
+      "source": "alpha",
+      "destination": "beta",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "22222222222222222222222222222222"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": ""
+        }
+      ],
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "22222222222222222222222222222222"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": ""
+        }
+      ],
+      "receipt": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "22222222222222222222222222222222"
+        }
+      ],
+      "message": {
+        "id": "22222222222222222222222222222222",
+        "reply_to": null,
+        "network": "default",
+        "sender": "alpha",
+        "payload_hex": ""
+      }
+    },
+    {
+      "name": "reply_new_id",
+      "source": "beta",
+      "destination": "alpha",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "22222222222222222222222222222222"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "hex": "616e7377657200ff"
+        }
+      ],
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "22222222222222222222222222222222"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "hex": "616e7377657200ff"
+        }
+      ],
+      "receipt": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "22222222222222222222222222222222"
+        }
+      ],
+      "message": {
+        "id": "22222222222222222222222222222222",
+        "reply_to": "11111111111111111111111111111111",
+        "network": "default",
+        "sender": "beta",
+        "payload_hex": "616e7377657200ff"
+      }
+    },
+    {
+      "name": "all_byte_values_at_limit",
+      "source": "alpha",
+      "destination": "beta",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "33333333333333333333333333333333"
+        },
+        {
+          "ascii": "red"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+        }
+      ],
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "33333333333333333333333333333333"
+        },
+        {
+          "ascii": "red"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+        }
+      ],
+      "receipt": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "33333333333333333333333333333333"
+        }
+      ],
+      "message": {
+        "id": "33333333333333333333333333333333",
+        "reply_to": null,
+        "network": "red",
+        "sender": "alpha",
+        "payload_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+      }
+    },
+    {
+      "name": "nwr1_is_opaque",
+      "source": "alpha",
+      "destination": "beta",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "33333333333333333333333333333333"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "4e5752310a7b2276223a312c226b696e64223a227265706c79222c226964223a223131313131313131313131313131313131313131313131313131313131313131222c227061796c6f6164223a224150383d227d"
+        }
+      ],
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "33333333333333333333333333333333"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "4e5752310a7b2276223a312c226b696e64223a227265706c79222c226964223a223131313131313131313131313131313131313131313131313131313131313131222c227061796c6f6164223a224150383d227d"
+        }
+      ],
+      "receipt": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "33333333333333333333333333333333"
+        }
+      ],
+      "message": {
+        "id": "33333333333333333333333333333333",
+        "reply_to": null,
+        "network": "default",
+        "sender": "alpha",
+        "payload_hex": "4e5752310a7b2276223a312c226b696e64223a227265706c79222c226964223a223131313131313131313131313131313131313131313131313131313131313131222c227061796c6f6164223a224150383d227d"
+      }
+    },
+    {
+      "name": "zero_id_is_valid",
+      "source": "alpha",
+      "destination": "beta",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "00000000000000000000000000000000"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "7a65726f"
+        }
+      ],
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "00000000000000000000000000000000"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "7a65726f"
+        }
+      ],
+      "receipt": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "OK"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "00000000000000000000000000000000"
+        }
+      ],
+      "message": {
+        "id": "00000000000000000000000000000000",
+        "reply_to": null,
+        "network": "default",
+        "sender": "alpha",
+        "payload_hex": "7a65726f"
+      }
+    }
+  ],
+  "relay_rejections": [
+    {
+      "name": "invalid_id_short",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "1111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "1111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "invalid_id_long_bounded",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "111111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "111111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "invalid_id_uppercase",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        {
+          "ascii": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "invalid_id_nonhex",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "gggggggggggggggggggggggggggggggg"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "gggggggggggggggggggggggggggggggg"
+        },
+        {
+          "ascii": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "invalid_id_nonascii",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "ascii": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "invalid_id_newline",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "1111111111111111111111111111111\n"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "1111111111111111111111111111111\n"
+        },
+        {
+          "ascii": "invalid_id"
+        }
+      ]
+    },
+    {
+      "name": "invalid_id_missing",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "drop"
+    },
+    {
+      "name": "invalid_id_unbounded",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "drop"
+    },
+    {
+      "name": "invalid_reply_to_short",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "ascii": "2222222222222222222222222222222"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "invalid_reply_to_uppercase",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "ascii": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "invalid_reply_to_nonhex",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "ascii": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "invalid_reply_to_nonascii",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "invalid_reply_to_nul_not_absent",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": "00"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "invalid_reply_to_json_null_not_absent",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "ascii": "null"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "invalid_reply_to_unbounded",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "ascii": "22222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_reply_to"
+        }
+      ]
+    },
+    {
+      "name": "missing_reply_frame",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_command"
+        }
+      ]
+    },
+    {
+      "name": "extra_frame",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        },
+        {
+          "hex": "6578747261"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "invalid_command"
+        }
+      ]
+    },
+    {
+      "name": "payload_limit_plus_one",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "7878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "payload_too_large"
+        }
+      ]
+    },
+    {
+      "name": "old_ar2",
+      "send": [
+        {
+          "ascii": "AR2"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "drop"
+    },
+    {
+      "name": "stale_incarnation",
+      "send": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "SEND"
+        },
+        {
+          "ascii": "dddddddddddddddddddddddddddddddd"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "beta"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "error",
+      "response": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "ERROR"
+        },
+        {
+          "ascii": "dddddddddddddddddddddddddddddddd"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "not_registered"
+        }
+      ]
+    }
+  ],
+  "client_discard": [
+    {
+      "name": "invalid_id",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "invalid_reply_to",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": "00"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "old_ar2",
+      "data": [
+        {
+          "ascii": "AR2"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "stale_incarnation",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "dddddddddddddddddddddddddddddddd"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "missing_reply_frame",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "extra_frame",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        },
+        {
+          "hex": "78"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "invalid_network",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "red space"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "nonascii_sender",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "hex": "e16c706861"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "00ff"
+        }
+      ],
+      "action": "discard"
+    },
+    {
+      "name": "oversized_payload",
+      "data": [
+        {
+          "ascii": "NWM3"
+        },
+        {
+          "ascii": "DATA"
+        },
+        {
+          "ascii": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "ascii": "11111111111111111111111111111111"
+        },
+        {
+          "ascii": "default"
+        },
+        {
+          "ascii": "alpha"
+        },
+        {
+          "hex": ""
+        },
+        {
+          "hex": "7878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878"
+        }
+      ],
+      "action": "discard"
+    }
+  ],
+  "correlation": {
+    "local_name": "alpha",
+    "local_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "waiter": {
+      "id": "11111111111111111111111111111111",
+      "sender": "beta",
+      "network": "default"
+    },
+    "cases": [
+      {
+        "name": "matching",
+        "data": [
+          {
+            "ascii": "NWM3"
+          },
+          {
+            "ascii": "DATA"
+          },
+          {
+            "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "ascii": "22222222222222222222222222222222"
+          },
+          {
+            "ascii": "default"
+          },
+          {
+            "ascii": "beta"
+          },
+          {
+            "ascii": "11111111111111111111111111111111"
+          },
+          {
+            "hex": "7265706c79"
+          }
+        ],
+        "owner": "request"
+      },
+      {
+        "name": "no_reply_to",
+        "data": [
+          {
+            "ascii": "NWM3"
+          },
+          {
+            "ascii": "DATA"
+          },
+          {
+            "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "ascii": "22222222222222222222222222222222"
+          },
+          {
+            "ascii": "default"
+          },
+          {
+            "ascii": "beta"
+          },
+          {
+            "hex": ""
+          },
+          {
+            "hex": "7265706c79"
+          }
+        ],
+        "owner": "inbox"
+      },
+      {
+        "name": "wrong_reference",
+        "data": [
+          {
+            "ascii": "NWM3"
+          },
+          {
+            "ascii": "DATA"
+          },
+          {
+            "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "ascii": "22222222222222222222222222222222"
+          },
+          {
+            "ascii": "default"
+          },
+          {
+            "ascii": "beta"
+          },
+          {
+            "ascii": "33333333333333333333333333333333"
+          },
+          {
+            "hex": "7265706c79"
+          }
+        ],
+        "owner": "inbox"
+      },
+      {
+        "name": "wrong_sender",
+        "data": [
+          {
+            "ascii": "NWM3"
+          },
+          {
+            "ascii": "DATA"
+          },
+          {
+            "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "ascii": "22222222222222222222222222222222"
+          },
+          {
+            "ascii": "default"
+          },
+          {
+            "ascii": "gamma"
+          },
+          {
+            "ascii": "11111111111111111111111111111111"
+          },
+          {
+            "hex": "7265706c79"
+          }
+        ],
+        "owner": "inbox"
+      },
+      {
+        "name": "wrong_network",
+        "data": [
+          {
+            "ascii": "NWM3"
+          },
+          {
+            "ascii": "DATA"
+          },
+          {
+            "ascii": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "ascii": "22222222222222222222222222222222"
+          },
+          {
+            "ascii": "red"
+          },
+          {
+            "ascii": "beta"
+          },
+          {
+            "ascii": "11111111111111111111111111111111"
+          },
+          {
+            "hex": "7265706c79"
+          }
+        ],
+        "owner": "inbox"
+      }
+    ],
+    "late_or_duplicate_matching_reply_owner": "inbox"
+  },
+  "cli": {
+    "message": {
+      "event": "message",
+      "id": "11111111111111111111111111111111",
+      "reply_to": null,
+      "network": "default",
+      "sender": "alpha",
+      "payload": "AP8="
+    },
+    "reply": {
+      "event": "reply",
+      "id": "22222222222222222222222222222222",
+      "reply_to": "11111111111111111111111111111111",
+      "network": "default",
+      "sender": "beta",
+      "payload": "YW5zd2VyAP8="
+    },
+    "send_accepted": {
+      "event": "accepted",
+      "id": "11111111111111111111111111111111",
+      "reply_to": null,
+      "network": "default",
+      "recipient": "beta",
+      "meaning": "native_queue_acceptance_only"
+    },
+    "reply_accepted": {
+      "event": "accepted",
+      "id": "22222222222222222222222222222222",
+      "reply_to": "11111111111111111111111111111111",
+      "network": "default",
+      "recipient": "alpha",
+      "meaning": "native_queue_acceptance_only"
+    }
+  }
+}

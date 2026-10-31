@@ -38,9 +38,10 @@ def test_full_native_destination_errors_and_other_route_progresses_without_drops
                 received = []
                 for _ in accepted:
                     packet = await asyncio.wait_for(socket.recv_multipart(), 2)
-                    assert packet[:5] == [VERSION, b"DATA", token, b"default", b"sender"]
-                    assert len(packet[5]) == payload_size
-                    received.append(int.from_bytes(packet[5][:4], "big"))
+                    assert packet[:3] == [VERSION, b"DATA", token]
+                    assert packet[4:7] == [b"default", b"sender", b""]
+                    assert len(packet[7]) == payload_size
+                    received.append(int.from_bytes(packet[7][:4], "big"))
                 assert received == accepted
                 assert not await socket.poll(timeout=30)
 

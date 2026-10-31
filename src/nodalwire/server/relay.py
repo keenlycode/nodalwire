@@ -29,6 +29,7 @@ from ..protocol import (
     VERSION,
     json_object,
     valid_credential,
+    valid_message_id,
     valid_name,
 )
 
@@ -189,7 +190,7 @@ class Relay:
         if len(packet) < 3 or bytes(packet[1]) != VERSION:
             return  # Strict version rejection; no legacy insecure success/fallback.
         address, command = bytes(packet[0]), bytes(packet[2])
-        if len(packet) > 8:
+        if len(packet) > 9:
             # Bound copying; correlated rejection only after incarnation validation.
             frames = [bytes(frame) for frame in packet[3:5]]
             command = b"INVALID"
@@ -217,11 +218,20 @@ class Relay:
         if command in (JOIN, LEAVE) and request:
             await self._membership(registration, command, request, frames)
             return
-        if command != SEND or len(frames) != 5 or not request:
+        if command != SEND or len(frames) != 6 or not request:
             if request:
                 await self._error(address, token, request, "invalid_command")
             return
-        network, destination, payload = _name(frames[2]), _name(frames[3]), frames[4]
+        # SEND's correlation ID is the message ID, forwarded without replacement.
+        # An empty or unbounded ID cannot be safely correlated and was dropped above.
+        if not valid_message_id(request):
+            await self._error(address, token, request, "invalid_id")
+            return
+        reply_to = frames[4]
+        if reply_to and not valid_message_id(reply_to):
+            await self._error(address, token, request, "invalid_reply_to")
+            return
+        network, destination, payload = _name(frames[2]), _name(frames[3]), frames[5]
         target = self._names.get(destination) if destination is not None else None
         if network is None:
             error = "invalid_network"
@@ -241,8 +251,8 @@ class Relay:
             error = "route_denied"
         else:
             error = await self._emit(
-                target.address, DATA, target.token, network.encode("ascii"),
-                registration.name.encode("ascii"), payload,
+                target.address, DATA, target.token, request, network.encode("ascii"),
+                registration.name.encode("ascii"), reply_to, payload,
             )
         if error is None:
             await self._emit(address, OK, token, request)

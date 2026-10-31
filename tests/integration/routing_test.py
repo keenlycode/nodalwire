@@ -50,9 +50,11 @@ def test_absent_destination_invalid_payload_and_local_size_limit():
             with pytest.raises(ValueError):
                 await source.send("@bad", b"x")
             async with raw_node(h.endpoint, "raw") as (socket, token):
-                reply = await raw_request(socket, SEND, token, b"default", b"source", b"123456789")
+                reply = await raw_request(
+                    socket, SEND, token, b"default", b"source", b"", b"123456789"
+                )
                 assert reply[-1] == b"payload_too_large"
-                reply = await raw_request(socket, SEND, token, b"default", b"@bad", b"x")
+                reply = await raw_request(socket, SEND, token, b"default", b"@bad", b"", b"x")
                 assert reply[-1] == b"invalid_destination"
 
     asyncio.run(check())
@@ -117,12 +119,14 @@ def test_sender_is_registration_not_application_payload_or_claimed_frame():
             bob = await h.node("bob")
             async with raw_node(h.endpoint, "alice") as (socket, token):
                 claimed = b'{"sender":"admin"}\x00'
-                reply = await raw_request(socket, SEND, token, b"default", b"bob", claimed)
+                reply = await raw_request(socket, SEND, token, b"default", b"bob", b"", claimed)
                 assert reply[1] == b"OK"
                 message = await bob.receive()
                 assert message.sender == "alice" and message.payload == claimed
                 # Extra claimed-sender frame is not a valid transport message.
-                reply = await raw_request(socket, SEND, token, b"default", b"bob", b"admin", b"x")
+                reply = await raw_request(
+                    socket, SEND, token, b"default", b"bob", b"", b"admin", b"x"
+                )
                 assert reply[-1] == b"invalid_command"
                 await raw_request(socket, CLOSE, token)
 

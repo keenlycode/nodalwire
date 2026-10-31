@@ -2,27 +2,24 @@
 
 ESM TypeScript byte client for the loopback-only NodalWire relay. Node.js 24;
 Deno orchestrates development, not runtime execution. Package identity remains
-`@devcapsule/nodalwire-client`; version `0.2.0` requires a matching `0.2.0` relay.
-AR2 is intentionally incompatible with AR1: neither endpoint silently downgrades.
+`@devcapsule/nodalwire-client`; this worktree builds local version `0.3.0-dev.0`
+for a matching NWM3 relay. NWM3 is a breaking protocol change; there is no fallback.
 
 ## Consumers: use the built artifact
 
-For prepublication, offline or local-artifact use, obtain the matching built
-`0.2.0` tarball and Python relay wheel from your maintainer. A source checkout
-does not establish registry availability; do not mix legacy public packages
-with this AR2 client. In a new
-application directory, using pnpm 12.5.1:
+This development worktree is not a released or publishable artifact. Any future
+consumer instructions require a separate release decision and a matching NWM3
+Python relay. Do not install a legacy client or relay with this breaking protocol.
+For a separately approved local artifact, the consumer setup would use pnpm 12.5.1:
 
 ```sh
 printf 'allowBuilds:\n  zeromq: true\n' > pnpm-workspace.yaml
-pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.2.0.tgz
+pnpm add /absolute/path/to/approved-nwm3-client.tgz
 ```
 
 Import the installed package by name, as below; applications do not need the
 source checkout, Deno or a TypeScript compiler. The tarball ships compiled ESM
 and declarations. Do not overwrite an existing application's script policy.
-Only after `0.2.0` is actually published could
-`npm install @devcapsule/nodalwire-client@0.2.0` replace the artifact path.
 
 ## Contributors: build the distribution
 
@@ -81,12 +78,14 @@ inspection; remote-host networking is deliberately unsupported.
   including default. Receipts have readonly `{ network, joined, changed }` fields.
   Repeated joins recheck current policy; already joined/absent returns
   `changed: false`. A receipt describes an instant, not future membership state.
-- `send(destination, payload: Uint8Array, { network?, timeout?, signal? }?) ->
-  Promise<void>` snapshots bytes synchronously, preserving subarray bounds.
+- `send(destination, payload: Uint8Array, { network?, reply_to?, timeout?, signal? }?) ->
+  Promise<string>` snapshots bytes synchronously and returns its generated message ID
+  only after an empty SEND acceptance receipt.
   `Buffer` is supported. Omitted network selects **default only**, never another
   shared network. Both peers must belong to the selected network.
 - `receive({ signal? }?) -> Promise<Message>` returns readonly metadata
-  `{ network, sender, payload }`. Payload is caller-owned mutable bytes.
+  `{ id, sender, network, reply_to, payload }`; `reply_to` is `undefined` when absent.
+  Payload is caller-owned mutable bytes.
 - `receiveNowait() -> Message | undefined` removes one currently queued ordinary
   message. Empty returns `undefined`, even after close. It performs no native
   read and never takes a correlated reply from an active request.
@@ -113,25 +112,17 @@ const response = await alice.request("bob", Uint8Array.of(1, 2), {
 });
 console.log(response.network, response.sender, response.payload);
 
-// Service: ordinary receive gives opaque bytes; reply validates a request envelope.
+// Service: ordinary receive gives a native Message; reply targets its sender/network.
 const incoming = await bob.receive();
-await bob.reply(incoming, Uint8Array.of(3, 4)); // always incoming.network
+const replyId = await bob.reply(incoming, Uint8Array.of(3, 4));
 ```
 
 `request(destination, payload, { network?, timeout?, signal? }?) -> Promise<Message>`
-returns decoded reply payload with original sender/network. `reply(incoming,
-payload, { timeout?, signal? }?) -> Promise<void>` requires a valid request
-message and permits no network override. Incoming metadata/envelope ID and outgoing
-bytes are captured before awaiting. Ordinary `receive` never decodes payloads.
-
-Exported `encodeEnvelope(envelope, maxBytes=1048576) -> Uint8Array` and
-`decodeEnvelope(bytes, maxBytes=1048576) -> Envelope | undefined` use readonly
-`Envelope { kind: "request" | "reply", id: string, payload: Uint8Array }`. Wire
-bytes are `NWR1\n` plus UTF-8 JSON with exactly `v:1`, `kind`, a 32-lowercase-hex
-random ID and canonical padded base64 `payload`. Duplicate keys, invalid UTF-8,
-extra fields and noncanonical base64 are not envelopes. Invalid encode input is
-`TypeError`; encoded size above the cap is `RelayError("payload_too_large")`.
-Decoding invalid/oversize data returns `undefined`; clients use negotiated limits.
+returns the whole native matching reply Message. `reply(incoming, payload,
+{ timeout?, signal? }?) -> Promise<string>` may reply to any valid Message, creates
+a fresh ID and references `incoming.id` in `reply_to`; it permits no network
+override. Payload and metadata are captured before awaiting. All payload bytes,
+including NWR1-looking data, are opaque; no envelope codec is exported.
 
 Request matching is registered before SEND and checks ID, expected sender,
 network and reply kind. It proves no peer identity. One overall deadline includes
@@ -177,17 +168,17 @@ zeromq context. No security audit or production-hardening claim is made.
 
 ## Development checks
 
-Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching AR2
+Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching NWM3
 server/Python source. From this directory:
 
 ```sh
 deno task fmt --check
 deno task lint
 deno task check
-deno task test:unit     # build + root codec/inbox/protocol and fake-router checks
-deno task test:interop  # real Python relay/client interoperability
-deno task test         # build + native checks + Python interoperability
-deno task test:artifact # pack/install consumer, types + real interop
+deno task test:unit     # build + NWM3 fake-relay/native-client checks
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test:interop
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test:artifact
 ```
 
 All maintained tests live under repository-root `tests/`, not this package.
@@ -199,16 +190,19 @@ relative to this package and use its pinned dependencies.
 
 Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
 run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
-Interoperability/artifact checks depend on matching Python/server implementation;
-focused fake-router tests alone are not cross-language acceptance evidence.
-`NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` can select matching reviewed Python
-source without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
+Source interop requires `NODALWIRE_PYTHON_SOURCE` to name the exact reviewed NWM3
+tree; the repository baseline may be incompatible. Installed Python tests require
+an independent `--python-version` matching that wheel's own metadata (Python and
+Node development version strings intentionally differ). Focused fake-router tests
+alone are not cross-language acceptance evidence.
+`NODALWIRE_PYTHON_SOURCE=/reviewed/tree/src` selects the exact matching reviewed
+Python source for source-mode interoperability without copying or editing it. `NODALWIRE_EVIDENCE_DIR` selects artifact
 scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 `NODALWIRE_PNPM_STORE` overrides the package-local dependency store. For an
 explicit artifact-only check while Python is unavailable, run
 `deno task test:artifact --skip-interop`; its output labels real wire tests
 as skipped, not passed. For both packages installed outside the checkout, run
-`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/nodalwire-0.2.0-py3-none-any.whl`.
+`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl --python-version 0.3.0.dev0`.
 This creates a fresh Python environment, uses `-I`, copies only interoperability
 fixtures outside the repository and asserts installed provenance/version. Default
 source-mode interop alone does not establish installed-Python acceptance. The
