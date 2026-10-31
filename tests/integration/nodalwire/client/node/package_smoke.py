@@ -117,7 +117,7 @@ def main():
         work = Path(temporary)
         if args.python_artifact and work.resolve().is_relative_to(ROOT.resolve()):
             parser.error("Installed-package evidence directory must be outside checkout")
-        run(["deno", "task", "build"])
+        run(["pnpm", "run", "build"])
         run(["pnpm", "pack", "--pack-destination", str(work)])
         tarball, = work.glob("*.tgz")
         consumer = work / "consumer"

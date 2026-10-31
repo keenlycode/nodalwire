@@ -18,6 +18,9 @@ deployment require a separate release approval.
   now includes a complete first-message walkthrough, command examples, parameter
   descriptions and administration/revision guidance. No startup or authentication
   requirement was relaxed.
+- **Node development tooling:** Node.js, TypeScript and pnpm scripts replace the
+  Deno task runner. The SDK ships compiled ESM and declarations; no SDK bundler
+  or new dependency is needed. Browser documentation bundles continue using esbuild.
 - **User documentation:** version-aware routing, task-oriented learning pages,
   API/admin/protocol references and accessible static messaging diagrams. Getting
   started follows install → relay → receive → send, without a source build.
@@ -56,8 +59,8 @@ npm install @devcapsule/nodalwire-client@0.3.0
 ```
 
 Python requires **3.12+**; the Node ESM client supports **Node.js 24** and needs
-its native `zeromq` dependency's install script. Consumers need no source checkout,
-Deno or TypeScript compiler. For prepublication verification, install the built
+its native `zeromq` dependency's install script. Consumers need no source checkout
+or TypeScript compiler. For prepublication verification, install the built
 wheel/tarball instead of assuming these versions are already in the registries.
 The release-readiness report records actual artifact hashes and tested platforms;
 source version strings alone establish neither publication nor certification.

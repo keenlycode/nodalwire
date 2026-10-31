@@ -1,7 +1,7 @@
 # NodalWire Node client
 
-ESM TypeScript byte client for the loopback-only NodalWire relay. Node.js 24;
-Deno orchestrates development, not runtime execution. Package identity remains
+ESM TypeScript byte client for the loopback-only NodalWire relay. Node.js 24
+runs both applications and development checks; pnpm 12.5.1 runs package scripts. Package identity remains
 `@devcapsule/nodalwire-client`, version `0.3.0`, for a matching Python `0.3.0`
 NWM3 relay. This is a breaking protocol change from 0.2.x; there is no fallback.
 
@@ -18,7 +18,7 @@ pnpm add /absolute/path/to/devcapsule-nodalwire-client-0.3.0.tgz
 ```
 
 Import the installed package by name, as below; applications do not need the
-source checkout, Deno or a TypeScript compiler. The tarball ships compiled ESM
+source checkout or a TypeScript compiler. The tarball ships compiled ESM
 and declarations. Do not overwrite an existing application's script policy.
 
 ## Contributors: build the distribution
@@ -28,7 +28,7 @@ From a source checkout, not the consumer application:
 ```sh
 cd src/nodalwire/client/node
 pnpm install --frozen-lockfile --store-dir ./node_modules/.pnpm-store
-deno task build
+pnpm run build
 pnpm pack
 ```
 
@@ -39,7 +39,7 @@ separate maintainer acceptance path. Building a tarball does not publish it.
 The native `zeromq` install script is required. For pnpm versions requiring script
 approval, allow only `zeromq` in the application's `pnpm-workspace.yaml`:
 `allowBuilds: { zeromq: true }`. Platform/prebuilt availability belongs to zeromq;
-other Node versions/platforms and Deno runtime execution are not supported here.
+other Node major versions/platforms are not certified here.
 
 ```ts
 import { Node } from "@devcapsule/nodalwire-client";
@@ -168,18 +168,21 @@ zeromq context. No security audit or production-hardening claim is made.
 
 ## Development checks
 
-Requires local dependencies, Node 24, Deno, Python with PyZMQ and the matching NWM3
-server/Python source. From this directory:
+Requires the locked local dependencies, Node.js 24, pnpm 12.5.1, Python with
+PyZMQ and the matching 0.3.0 relay/Python source. From this directory:
 
 ```sh
-deno task fmt --check
-deno task lint
-deno task check
-deno task test:unit     # build + NWM3 fake-relay/native-client checks
-NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test:interop
-NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test
-NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src deno task test:artifact
+pnpm run check        # TypeScript strict/unused checks; no emitted files
+pnpm run test:unit    # build ESM/declarations + native Node tests
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src pnpm run test:interop
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src pnpm test
+NODALWIRE_PYTHON_SOURCE=/reviewed/nwm3/src pnpm run test:artifact
 ```
+
+TypeScript emits ESM and declarations directly; the SDK does not need a bundler.
+Node's built-in test runner executes the native suites. No separate development
+runtime or new formatter/linter dependency is required. The documentation site's
+browser build uses esbuild in its own locked tooling environment.
 
 All maintained tests live under repository-root `tests/`, not this package.
 Atomic module suites mirror `src/nodalwire/client/node/src/` under
@@ -189,7 +192,7 @@ lives in `tests/helpers/nodalwire/client/node/`. Tasks resolve these locations
 relative to this package and use its pinned dependencies.
 
 Tests bind owned ephemeral endpoints, never the coordination relay. Native tests
-run with Node, not Deno. TypeScript emits ESM/declarations into `dist/`.
+run with Node. TypeScript emits ESM/declarations into `dist/`.
 Source interop requires `NODALWIRE_PYTHON_SOURCE` to name the exact reviewed NWM3
 tree; the repository baseline may be incompatible. Installed Python tests require
 an independent `--python-version` matching that wheel's own metadata (Python and
@@ -200,9 +203,9 @@ Python source for source-mode interoperability without copying or editing it. `N
 scratch placement, `NODALWIRE_ARTIFACT_DIR` optionally retains the tarball and
 `NODALWIRE_PNPM_STORE` overrides the package-local dependency store. For an
 explicit artifact-only check while Python is unavailable, run
-`deno task test:artifact --skip-interop`; its output labels real wire tests
+`pnpm run test:artifact --skip-interop`; its output labels real wire tests
 as skipped, not passed. For both packages installed outside the checkout, run
-`NODALWIRE_EVIDENCE_DIR=/tmp deno task test:artifact --python-artifact /absolute/path/approved-nwm3-python.whl --python-version 0.3.0`.
+`NODALWIRE_EVIDENCE_DIR=/tmp pnpm run test:artifact --python-artifact /absolute/path/nodalwire-0.3.0-py3-none-any.whl --python-version 0.3.0`.
 This creates a fresh Python environment, uses `-I`, copies only interoperability
 fixtures outside the repository and asserts installed provenance/version. Default
 source-mode interop alone does not establish installed-Python acceptance. The

@@ -48,7 +48,7 @@ npm install @devcapsule/nodalwire-client@0.3.0
 ```
 
 Use `import { Node } from "@devcapsule/nodalwire-client"` from an ESM application.
-No source checkout, Deno or TypeScript compiler is required by consumers. The
+No source checkout or TypeScript compiler is required by consumers. The
 native `zeromq` dependency needs its installation script; with pnpm, explicitly
 allow only `zeromq` in your application's script policy. Do not overwrite an
 existing policy. Native prebuild/fallback availability is platform-dependent.
@@ -86,7 +86,7 @@ Consumers do not perform these steps. Prepare the locked environments first:
 ```sh
 uv sync --locked
 pnpm -C src/nodalwire/client/node install --frozen-lockfile
-(cd src/nodalwire/client/node && deno task build)
+pnpm --dir src/nodalwire/client/node build
 uv build --out-dir /tmp/nodalwire-artifacts
 pnpm -C src/nodalwire/client/node pack --pack-destination /tmp/nodalwire-artifacts
 ```
@@ -94,13 +94,13 @@ pnpm -C src/nodalwire/client/node pack --pack-destination /tmp/nodalwire-artifac
 Install the wheel or tarball into a separate consumer environment for testing.
 For example, `uv pip install --python /path/to/venv/bin/python
 /tmp/nodalwire-artifacts/nodalwire-0.3.0-py3-none-any.whl` installs the local Python
-artifact. Do not commit generated SDK `dist/` by default. Deno orchestrates SDK
-development checks, not application execution.
+artifact. Do not commit generated SDK `dist/` by default. SDK development uses
+Node.js, TypeScript and pnpm; the docs browser bundles use esbuild.
 
 ```sh
 uv run --locked --no-sync pytest
 pnpm --dir src/tools/docs verify
-(cd src/nodalwire/client/node && NODALWIRE_PYTHON_SOURCE="$PWD/../../.." deno task test)
+NODALWIRE_PYTHON_SOURCE="$PWD/src" pnpm --dir src/nodalwire/client/node test
 NODALWIRE_EVIDENCE_DIR=/tmp uv run --locked --no-sync python \
   tests/integration/nodalwire/client/node/package_smoke.py \
   --python-artifact /tmp/nodalwire-artifacts/nodalwire-0.3.0-py3-none-any.whl \

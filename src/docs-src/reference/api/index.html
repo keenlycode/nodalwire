@@ -35,7 +35,7 @@ asyncio.run(main())
 </dl>
 <p>Per-operation <code>timeout=None</code> uses the connection timeout. Invalid argument types/values raise <code>TypeError</code>/<code>ValueError</code>; relay/local protocol failures use <code>RelayError.code</code>. Cancellation uses Python's asyncio cancellation semantics and can follow an effect.</p></section>
 <section aria-labelledby="node"><h2 id="node">Node.js</h2>
-<p>The ESM package is <code>@devcapsule/nodalwire-client@0.3.0</code> for Node.js 24. After publication, install it with <code>npm install @devcapsule/nodalwire-client@0.3.0</code>; before publication, use the verified local tarball. Consumers need neither Deno nor a TypeScript compiler. Save this fragment as <code>client.mjs</code> and run <code>node client.mjs</code> while a matching relay and responding Bob are connected.</p>
+<p>The ESM package is <code>@devcapsule/nodalwire-client@0.3.0</code> for Node.js 24. After publication, install it with <code>npm install @devcapsule/nodalwire-client@0.3.0</code>; before publication, use the verified local tarball. Consumers do not need a source checkout or TypeScript compiler. Save this fragment as <code>client.mjs</code> and run <code>node client.mjs</code> while a matching relay and responding Bob are connected.</p>
 {% set node_lifecycle %}import { Node } from "@devcapsule/nodalwire-client";
 
 const endpoint = process.env.NODALWIRE_ENDPOINT ?? "tcp://127.0.0.1:5555";
