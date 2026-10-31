@@ -42,6 +42,21 @@ be selected as stable by artifact mode, and a verified stable snapshot cannot be
 overwritten. Registry verification and stable promotion belong to the separate
 publication gate. The frozen wire specification is copied byte-for-byte.
 
+Only AFTER publication approval and verification that BOTH registry packages are
+available at 0.3.0, an operator can attest availability and build the stable site:
+
+```sh
+node src/tools/docs/build.mjs --version 0.3.0 --mode artifact \\
+  --stable-version 0.3.0 --release-available
+```
+
+This flag is an explicit operator attestation, not registry discovery or
+publication permission. It requires artifact mode selecting the same matching
+release, renders the stable version label, removes the conditional quick-start
+preview notice, and records verified availability/latestStable. Do not run it on
+real release output during prepublication preparation. Existing stable snapshots
+are immutable: rerunning this build refuses to overwrite them.
+
 Local mode writes a relative root redirect to the selected version (`dev/` by
 default, `0.3.0/` for that preview). Before its first replacement,
 the exact original root index is saved once to
@@ -76,7 +91,8 @@ The existing remote tip may still contain source files, so a reviewed append-onl
 conversion commit is required before it can serve only the public site.
 
 A local build is **not** a deployment artifact: its root intentionally opens dev.
-Artifact mode refuses to change output unless `--stable-version X.Y.Z` selects an
+Without the postpublication availability attestation above, artifact mode refuses
+to change output unless `--stable-version X.Y.Z` selects an
 already existing `docs/X.Y.Z/index.html` whose manifest entry has `status: stable`
 and `releaseAvailable: true`. The explicit selection is an operator approval
 boundary, not registry discovery. Tags alone are not availability evidence.
@@ -89,8 +105,8 @@ When that verified snapshot exists, artifact mode preserves it and all other
 versions, rebuilds only dev, records `latestStable`, and uses a relative root
 redirect to the selected stable snapshot. Without such evidence it fails rather
 than making unreleased dev the public stable default. Historical release import
-is not implemented by this tool. Explicit matching-version builds prepare release
-previews only; they do not declare stable availability. Never copy credentials, task state, `node_modules`, build tooling or
+is not implemented by this tool. Matching-version builds default to release
+previews; stable output requires the explicit availability attestation above. Never copy credentials, task state, `node_modules`, build tooling or
 the source checkout into published output. The ignored local `docs/` tree can
 contain preserved legacy files: review the complete artifact before any separately
 approved publication. No command here pushes, deploys or changes Pages settings.

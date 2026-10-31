@@ -21,13 +21,16 @@ async function files(directory) {
 }
 
 /** A fresh checkout needs only the pinned tools, not the prototype kernel. */
-export async function buildSite({ version = "dev", includeDesign = false, dev = false, mode = "local", stableVersion } = {}) {
+export async function buildSite({ version = "dev", includeDesign = false, dev = false, mode = "local", stableVersion, releaseAvailable = false } = {}) {
   if (version !== "dev" && !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) {
     throw new Error("Version must be dev or a strict major.minor.patch identifier");
   }
   if (!["local", "artifact"].includes(mode)) throw new Error("Mode must be local or artifact");
   if (mode === "artifact" && (!stableVersion || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(stableVersion))) {
     throw new Error("Artifact root requires an explicit verified existing --stable-version");
+  }
+  if (releaseAvailable && (version === "dev" || mode !== "artifact" || stableVersion !== version)) {
+    throw new Error("--release-available requires artifact mode selecting the matching release version");
   }
   // Legacy dev means design playground, never a documentation version.
   includeDesign ||= dev;
@@ -131,6 +134,7 @@ export async function buildSite({ version = "dev", includeDesign = false, dev = 
     "--source", source, "--stage", stage, "--output", path.join(root, "docs"), "--data", dataFile,
     "--version", version, "--mode", mode,
     ...(stableVersion ? ["--stable-version", stableVersion] : []),
+    ...(releaseAvailable ? ["--release-available"] : []),
     ...(includeDesign ? ["--include-design"] : []),
   ], { cwd: root, stdio: "inherit" });
   return { data, stage, output: path.join(root, "docs", version) };
@@ -142,9 +146,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--include-design" || arg === "--dev") options.includeDesign = true;
+    else if (arg === "--release-available") options.releaseAvailable = true;
     else if (["--version", "--mode", "--stable-version"].includes(arg) && args[i + 1] && !args[i + 1].startsWith("--")) {
       options[{ "--version": "version", "--mode": "mode", "--stable-version": "stableVersion" }[arg]] = args[++i];
-    } else throw new Error("Usage: node build.mjs [--version dev|X.Y.Z] [--include-design] [--mode local|artifact] [--stable-version X.Y.Z]");
+    } else throw new Error("Usage: node build.mjs [--version dev|X.Y.Z] [--include-design] [--mode local|artifact] [--stable-version X.Y.Z] [--release-available]");
   }
   await buildSite(options);
   console.log(`Built src/docs-src/ → docs/${options.version ?? "dev"}/ (${options.includeDesign ? "with design playground" : "product only"}; ${options.mode ?? "local"} root policy)`);

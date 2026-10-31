@@ -101,10 +101,12 @@ def version_id(value: str) -> str:
     return value
 
 
-def documentation_version(source: Path, version: str) -> dict:
+def documentation_version(source: Path, version: str, *, release_available: bool = False) -> dict:
     """Allow a release preview only for the matching Python/Node source version."""
     version_id(version)
     if version == "dev":
+        if release_available:
+            raise ValueError("Development docs cannot assert release availability")
         return DEVELOPMENT_VERSION.copy()
     root = source.parent.parent
     try:
@@ -116,13 +118,15 @@ def documentation_version(source: Path, version: str) -> dict:
         raise ValueError("Release preview requires Python and Node version metadata") from error
     if python_version != version or node_version != version:
         raise ValueError("Release preview must match both Python and Node package versions")
-    return {"id": version, "label": f"{version} (release preview)",
-            "path": version + "/", "status": "preview", "releaseAvailable": False}
+    return {"id": version,
+            "label": version if release_available else f"{version} (release preview)",
+            "path": version + "/", "status": "stable" if release_available else "preview",
+            "releaseAvailable": release_available}
 
 
 def render_site(source: Path, stage: Path, data: dict, *, development: bool = False,
-                version: str = "dev") -> None:
-    metadata = documentation_version(source, version)
+                version: str = "dev", release_available: bool = False) -> None:
+    metadata = documentation_version(source, version, release_available=release_available)
     load = get_template(
         dir_src=source,
         autoescape=jinja2.select_autoescape(["html"]),
@@ -189,8 +193,11 @@ def no_symlink(path: Path) -> None:
 
 
 def publish(stage: Path, source: Path, output: Path, *, version: str = "dev",
-            mode: str = "local", stable_version: str | None = None) -> None:
-    metadata = documentation_version(source, version)
+            mode: str = "local", stable_version: str | None = None,
+            release_available: bool = False) -> None:
+    metadata = documentation_version(source, version, release_available=release_available)
+    if release_available and (mode != "artifact" or stable_version != version):
+        raise ValueError("Availability assertion requires artifact mode selecting this release")
     if mode not in {"local", "artifact"}:
         raise ValueError("Publication mode must be local or artifact")
     if (source.name != "docs-src" or source.parent.name != "src"
@@ -226,13 +233,15 @@ def publish(stage: Path, source: Path, output: Path, *, version: str = "dev",
         # A tag or version string is not evidence of package/source availability.
         if stable_version is None or version_id(stable_version) == "dev":
             raise ValueError("Artifact root requires an explicitly verified existing stable snapshot")
-        stable = next((e for e in manifest["versions"] if e["id"] == stable_version), None)
+        promoting = release_available and stable_version == version
+        stable = metadata if promoting else next(
+            (e for e in manifest["versions"] if e["id"] == stable_version), None)
         if not stable or stable.get("status") != "stable" or stable.get("releaseAvailable") is not True:
             raise ValueError("Stable snapshot metadata must explicitly verify release availability")
         stable_root = output / stable_version
         no_symlink(stable_root)
         no_symlink(stable_root / "index.html")
-        if not (stable_root / "index.html").is_file():
+        if not promoting and not (stable_root / "index.html").is_file():
             raise ValueError("Verified stable snapshot is missing")
         root_target, root_label = stable_version + "/", stable.get("label", stable_version)
         manifest["latestStable"] = stable_version
@@ -281,11 +290,14 @@ def main() -> None:
     parser.add_argument("--version", default="dev")
     parser.add_argument("--mode", choices=("local", "artifact"), default="local")
     parser.add_argument("--stable-version")
+    parser.add_argument("--release-available", action="store_true",
+                        help="Operator attestation: both registry versions are verified available")
     args = parser.parse_args()
     data = json.loads(args.data.read_text(encoding="utf-8"))
-    render_site(args.source, args.stage, data, development=args.include_design, version=args.version)
+    render_site(args.source, args.stage, data, development=args.include_design, version=args.version,
+                release_available=args.release_available)
     publish(args.stage, args.source, args.output, version=args.version, mode=args.mode,
-            stable_version=args.stable_version)
+            stable_version=args.stable_version, release_available=args.release_available)
 
 
 if __name__ == "__main__":

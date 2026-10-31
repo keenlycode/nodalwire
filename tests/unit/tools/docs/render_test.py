@@ -257,6 +257,35 @@ class RenderTests(unittest.TestCase):
             render.publish(self.stage, self.source, output, version="0.3.0")
         self.assertEqual(before, self.snapshot(output))
 
+    def test_explicit_available_release_promotes_fixture_only_after_operator_attestation(self):
+        self.release_metadata()
+        output = self.fixture_output()
+        (self.source / "index.html").write_text(
+            "{{ docs_version.id }}:{{ docs_version.status }}:{{ docs_version.releaseAvailable }}"
+        )
+        render.render_site(self.source, self.stage, {}, version="0.3.0", release_available=True)
+        self.assertEqual((self.stage / "index.html").read_text().strip(), "0.3.0:stable:True")
+        before = self.snapshot(output)
+        for kwargs in ({}, {"mode": "artifact", "stable_version": "0.2.0"}):
+            with self.assertRaises(ValueError):
+                render.publish(self.stage, self.source, output, version="0.3.0",
+                               release_available=True, **kwargs)
+            self.assertEqual(before, self.snapshot(output))
+        with self.assertRaises(ValueError):
+            render.documentation_version(self.source, "dev", release_available=True)
+        render.publish(self.stage, self.source, output, version="0.3.0", mode="artifact",
+                       stable_version="0.3.0", release_available=True)
+        manifest = json.loads((output / "versions.json").read_text())
+        self.assertEqual(manifest["latestStable"], "0.3.0")
+        self.assertEqual(manifest["versions"][0]["status"], "stable")
+        self.assertIs(manifest["versions"][0]["releaseAvailable"], True)
+        self.assertIn('url=0.3.0/', (output / "index.html").read_text())
+        stable = self.snapshot(output)
+        with self.assertRaises(ValueError):
+            render.publish(self.stage, self.source, output, version="0.3.0", mode="artifact",
+                           stable_version="0.3.0", release_available=True)
+        self.assertEqual(stable, self.snapshot(output))
+
     def test_broken_stage_leaves_existing_output_untouched(self):
         output = self.fixture_output()
         (self.stage / "index.html").write_text('<a href="missing/">Broken</a>')
