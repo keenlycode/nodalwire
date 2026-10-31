@@ -35,7 +35,7 @@ Quick start (POSIX shell; three terminals)
 ----------------------------------------
 Terminal 1: start the relay. No config file is needed; an admin token is required::
 
-    ADMIN_TOKEN=$(python -c 'import secrets; print(secrets.token_hex(32))')
+    ADMIN_TOKEN=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
     export NODALWIRE_ADMIN_TOKEN="$ADMIN_TOKEN"
     nodalwire serve
 
@@ -695,7 +695,7 @@ def main(*, config: Path | None = None) -> None:
     An administrator credential IS required, even without a file. Generate one
     and start the relay in a POSIX shell::
 
-        ADMIN_TOKEN=$(python -c 'import secrets; print(secrets.token_hex(32))')
+        ADMIN_TOKEN=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
         export NODALWIRE_ADMIN_TOKEN="$ADMIN_TOKEN"
         nodalwire serve
 
