@@ -604,6 +604,27 @@ def test_no_subcommand_shows_root_help_and_exits(monkeypatch):
     asyncio.run(run())
 
 
+@pytest.mark.parametrize("command", ["serve", "send", "receive", "request", "reply", "admin"])
+def test_each_command_help_is_eager_and_secret_safe(command):
+    """Help must work without required arguments, valid credentials or a relay."""
+    async def run():
+        outputs = []
+        secret = "invalid private admin token"
+        for flag in ("--help", "-h"):
+            process = await spawn(command, flag, env={"NODALWIRE_ADMIN_TOKEN": secret})
+            try:
+                out, err = await asyncio.wait_for(process.communicate(), 2)
+                assert process.returncode == 0 and err == b""
+                assert command.encode() in out.splitlines()[0]
+                assert secret.encode() not in out
+                outputs.append(out)
+            finally:
+                await close_child(process)
+        assert outputs[0] == outputs[1]
+
+    asyncio.run(run())
+
+
 def test_help_and_startup_errors_are_secret_safe_and_on_correct_streams(tmp_path, monkeypatch):
     monkeypatch.delenv("NODALWIRE_ADMIN_TOKEN", raising=False)
 
