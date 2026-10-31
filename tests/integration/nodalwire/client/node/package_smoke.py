@@ -1,8 +1,8 @@
 """Install actual local tarball; verify exports/types/native transport and real wire.
 
 --skip-interop explicitly limits evidence to the installed Node artifact.
-Default interop uses the explicitly selected matching reviewed NWM3 Python source. --python-artifact installs
-matching Python into a fresh external venv and runs copied interop fixtures there
+Default interop uses the explicitly selected matching reviewed NWM3 Python source.
+--python-artifact installs matching Python into a fresh external venv and runs copied fixtures there
 with isolated imports, proving both installed packages instead of Python source.
 NODALWIRE_PYTHON_SOURCE selects source-mode src/, NODALWIRE_ARTIFACT_DIR optionally
 retains the checked tarball, NODALWIRE_EVIDENCE_DIR selects scratch placement.
@@ -165,7 +165,8 @@ async function application() {
   const queued: Message | undefined = node.receiveNowait();
   const response: Message = await node.request("peer", bytes, requestOptions);
   const replyId: string = await node.reply(message, response.payload, { timeout: 1 });
-  console.log(message.id, message.reply_to, message.sender, message.network, queued, acceptedId, replyId);
+  console.log(message.id, message.reply_to, message.sender, message.network,
+    queued, acceptedId, replyId);
   // @ts-expect-error string is not a byte payload
   await node.send("peer", "not bytes");
   // @ts-expect-error callers cannot bypass admission
@@ -186,8 +187,8 @@ void application;
         run(["node", str(PACKAGE / "node_modules/typescript/bin/tsc"),
              "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2022",
              "consumer.ts"], cwd=consumer)
-        print("PASS installed declarations: bytes/network/membership/request/reply metadata contracts",
-              flush=True)
+        print("PASS installed declarations: "
+              "bytes/network/membership/request/reply metadata contracts", flush=True)
         installed_root = consumer / "node_modules/@devcapsule/nodalwire-client"
         installed_root_resolved = installed_root.resolve(strict=True)
         assert installed_root_resolved.is_relative_to(consumer.resolve())
