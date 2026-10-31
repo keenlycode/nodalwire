@@ -2,7 +2,7 @@
 
 `src/docs-src/` is the maintained source. Root `docs/` is ignored, generated local
 preview output, not source-branch content. Do not edit generated files by hand:
-rebuilding replaces that directory. Commit maintained source/tooling/tests on the
+rebuilding replaces only the selected `docs/dev/` subtree, never all of `docs/`. Commit maintained source/tooling/tests on the
 source branch; publish validated static output separately at the dedicated
 `docs` branch root (Pages **Deploy from a branch → docs → /(root)**), only after
 release/publication and deployment approval. Building does not commit, push,
@@ -18,15 +18,26 @@ uv sync --project src/tools/docs --locked
 pnpm --dir src/tools/docs verify
 ```
 
-After setup, `pnpm --dir src/tools/docs build` rebuilds the **public product site**.
-The default excludes `/design/`, its navigation and showcase bundles/styles.
-`pnpm --dir src/tools/docs build:dev` explicitly includes the local design playground,
-including all six detailed token pages. Both modes use the same templates,
-components, tokens and pipeline; each replaces the marked generated `docs/`
-directory, so a public rebuild also removes stale development output.
-`verify` runs the design-dependent suites against an explicit development build,
-then rebuilds public output after successful checks. A failed verification can leave
-development output; run `build` before any public handoff. A global Engrave
+After setup, `pnpm --dir src/tools/docs build` rebuilds the product site at
+`docs/dev/`. Current sources describe an **unreleased NWM3 development candidate**;
+this command does not create a 0.3 release or relabel them as 0.2.1.
+
+`pnpm --dir src/tools/docs build:dev` adds the design playground under
+`docs/dev/design/`, including the six token pages. Its canonical switch is
+`--include-design`; legacy `--dev` remains a playground-only alias, **not** a
+version selector. Both builds target version `dev`, use the same pipeline and
+replace only that subtree. A product-only rebuild removes its stale playground
+pages, but preserves other version directories and legacy root assets.
+
+Local mode writes a relative root redirect to `dev/`. Before its first replacement,
+the exact original root index is saved once to
+`src/tools/docs/.build/root-index.once.html`, outside the served artifact.
+`docs/versions.json` records truthful development metadata, with `latestStable:
+null` until an existing stable snapshot has explicit availability evidence.
+
+`verify` runs the design-dependent suites against an explicit playground build,
+then rebuilds product-only output after successful checks. A failed verification
+can leave playground output; run `build` before a product-only handoff. A global Engrave
 installation is optional; the build uses the exact version in this tooling
 project's `uv.lock`. These dependencies do not enter NodalWire's runtime project.
 The local pnpm policy explicitly denies esbuild's lifecycle script; the optional
@@ -39,8 +50,8 @@ uv run --project src/tools/docs --locked python -m http.server 8765 \
   --bind 127.0.0.1 --directory docs
 ```
 
-Open `http://127.0.0.1:8765/`. For the explicitly enabled development build,
-`http://127.0.0.1:8765/design/` opens the playground. Stop the server with Ctrl-C.
+Open `http://127.0.0.1:8765/`; local mode opens `/dev/`. For an explicitly enabled
+playground build, `http://127.0.0.1:8765/dev/design/` opens the design reference. Stop the server with Ctrl-C.
 Do not serve the repository root, tooling directories, or kernel task storage.
 
 ## Dedicated publishing candidate
@@ -50,14 +61,25 @@ new candidate on that tip; do not create an orphan replacement or force-push.
 The existing remote tip may still contain source files, so a reviewed append-only
 conversion commit is required before it can serve only the public site.
 
-Build with `pnpm --dir src/tools/docs build` (not `build:dev`). Copy only its
-validated generated public files, including `.nojekyll`, into an isolated site
-artifact and the candidate's root. Never copy credentials, task state,
-`node_modules`, build tooling or the source checkout. Preserve the candidate's
-`.git` link; never point a destructive build-output replacement at a Git worktree
-root. Review deletions of the old branch tree and compare every copied byte to
-the generated artifact. The normal local `docs/` path remains ignored for existing
-development/test commands.
+A local build is **not** a deployment artifact: its root intentionally opens dev.
+Artifact mode refuses to change output unless `--stable-version X.Y.Z` selects an
+already existing `docs/X.Y.Z/index.html` whose manifest entry has `status: stable`
+and `releaseAvailable: true`. The explicit selection is an operator approval
+boundary, not registry discovery. Tags alone are not availability evidence.
+
+```sh
+node src/tools/docs/build.mjs --mode artifact --stable-version X.Y.Z
+```
+
+When that verified snapshot exists, artifact mode preserves it and all other
+versions, rebuilds only dev, records `latestStable`, and uses a relative root
+redirect to the selected stable snapshot. Without such evidence it fails rather
+than making unreleased dev the public stable default. Historical release import
+is not implemented by this tool. Current sources cannot be built under a release
+identifier. Never copy credentials, task state, `node_modules`, build tooling or
+the source checkout into published output. The ignored local `docs/` tree can
+contain preserved legacy files: review the complete artifact before any separately
+approved publication. No command here pushes, deploys or changes Pages settings.
 
 Publication order is a separate approval gate: verify matching Python/Node
 artifacts, approve and publish both packages, verify registry availability, then
@@ -167,9 +189,13 @@ The examples in `tests/integration/docs/examples_test.py` and
 pytest; the docs venv intentionally does not absorb NodalWire/pytest runtime
 packages. Renderer/navigation unittest checks remain in the docs environment.
 
-No page routing manifest is needed for rendering. The renderer's small navigation
-inventory names the nine public destinations; development-only design pages remain
-automatically discovered.
+No page routing manifest is needed for rendering. The renderer's navigation names
+seven top-level destinations: Overview, Get started, Messaging, Connect your apps,
+Run a relay, API reference, and Protocol & schemas. Detailed existing guides,
+configuration, CLI and Administration remain deeper routes; Administration is
+linked from Run a relay. Design pages remain automatically discovered when enabled.
+The version-local `specs/nwm3.md` download is copied byte-for-byte from maintained
+source, not rewritten by templates.
 
 ## Build pipeline
 
@@ -185,9 +211,11 @@ automatically discovered.
 4. Engrave's `get_template()` API renders Jinja templates with the resolved token
    data and Markdown helpers. Undefined template data is an error. Page-relative
    asset/navigation URLs work both locally and below `/nodalwire/` on Pages.
-5. Local links and fragment targets are checked before replacing `docs/`.
-   `.nojekyll` tells Pages to serve the generated files directly, including
-   underscore-prefixed asset directories.
+5. Local links and fragment targets are checked before replacing `docs/dev/`.
+   Version/output traversal and symlinks are rejected. The generated root marker,
+   small version manifest and explicit root-entry policy are managed separately;
+   other versions/root assets are preserved. `.nojekyll` tells Pages to serve the
+   generated files directly, including underscore-prefixed asset directories.
 
 The Python kernel is optional for iteration, never required for a clean build.
 For live review it can run the same build command, then use a local Web Runtime

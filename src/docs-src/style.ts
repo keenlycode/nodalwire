@@ -11,7 +11,8 @@ export default function styles(t: Tokens): string {
 .product-brand span { color: var(--muted); font-size: .85rem; }
 .product-menu { padding-top: 1.5rem; padding-bottom: 1.5rem; }
 .product-page nav { position: static; margin: 0; }
-.product-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.product-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; }
+.product-navigation a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .product-navigation h2 { font-size: .85rem; color: var(--muted); letter-spacing: 0; margin: 0 0 .4rem; }
 .product-navigation a { display: block; padding: .4rem .6rem; border: 0; border-radius: ${t.radius.sm}; color: var(--ink); font-size: .9rem; overflow-wrap: anywhere; }
 .product-navigation a:hover, .product-navigation a[aria-current="page"] { color: var(--accent); background: var(--surface); }
@@ -37,7 +38,8 @@ export default function styles(t: Tokens): string {
 .product-content nw-card h2 { margin-top: 0; font-size: 1.2rem; }
 .product-footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .8rem; }
 @media (max-width: 650px) {
-  .product-navigation { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .product-navigation { gap: .3rem; }
+  .product-navigation a { flex: 1 1 40%; }
   .product-brand > .product-shell { align-items: start; flex-direction: column; gap: .3rem; }
   .product-content .home-cards { grid-template-columns: minmax(0,1fr); }
 }

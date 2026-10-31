@@ -1,9 +1,6 @@
 <nav class="product-navigation" aria-label="Documentation">
-{% for group in navigation %}
-<div class="navigation-group">
-{% if group.label %}<h2>{{ group.label }}</h2>{% endif %}
-{% for item in group['items'] %}<a href="{{ url(item.path) }}"{% if page_path == item.path %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
-</div>
+{% for item in navigation %}
+<a href="{{ url(item.path) }}"{% if page_path == item.path %} aria-current="page"{% endif %}>{{ item.label }}</a>
 {% endfor %}
-{% if development %}<div class="navigation-group"><h2>Development</h2><a href="{{ url('design/') }}">Design playground</a></div>{% endif %}
+{% if development %}<a href="{{ url('design/') }}">Design playground</a>{% endif %}
 </nav>

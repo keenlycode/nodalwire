@@ -8,7 +8,7 @@
 <script type="module" src="{{ url('assets/index.js') }}"></script>
 {% endblock %}
 {% block header %}
-<div class="product-brand"><div class="product-shell"><a href="{{ url('') }}" aria-label="NodalWire home">◈ NodalWire</a><span>Local byte relay · NWM3 development candidate</span></div></div>
+<div class="product-brand"><div class="product-shell"><a href="{{ url('') }}" aria-label="NodalWire home">◈ NodalWire</a><span class="version-indicator" aria-label="Documentation version">{{ docs_version.label }}</span></div></div>
 {% endblock %}
 {% block page_layout %}
 <div class="product-shell product-menu">{% include "_partials/product-navigation.html" %}</div>

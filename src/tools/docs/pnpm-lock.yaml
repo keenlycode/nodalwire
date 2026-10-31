@@ -169,6 +169,9 @@ importers:
       '@devcapsule/adapter':
         specifier: https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz
         version: '@jsr/devcapsule__adapter@https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz'
+      '@joint/core':
+        specifier: 4.3.4
+        version: 4.3.4
       colorjs.io:
         specifier: 0.7.1
         version: 0.7.1
@@ -339,6 +342,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@joint/core@4.3.4':
+    resolution: {integrity: sha512-dgfrGuOa2AhBwpaB+xuhkb8PyxWeFfaAydhjuaDQNo0P9pQC0fQC+AeiES5XsNtmR5+7fCOoq6H5iSH5F23vyA==}
 
   '@jsr/devcapsule__adapter@https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz':
     resolution: {integrity: sha512-ZdzRcypXV0eC72uQ2NGcZDwm9/oUjEInvmff8y+CZKowPqhGyqw/zCeNXdTrdEKfLQiof/GeFv9M3Qk2AErh1Q==, tarball: https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz}
@@ -700,6 +706,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@joint/core@4.3.4': {}
 
   '@jsr/devcapsule__adapter@https://npm.jsr.io/~/11/@jsr/devcapsule__adapter/4.0.0.tgz': {}
 

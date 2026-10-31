@@ -7,6 +7,7 @@
     "noEmit": true,
     "paths": {
       "colorjs.io": ["./node_modules/colorjs.io/types/index.d.ts"],
+      "@joint/core": ["./node_modules/@joint/core/types/index.d.ts"],
       "shiki/core": ["./node_modules/shiki/dist/core.d.mts"],
       "shiki/engine/javascript": ["./node_modules/shiki/dist/engine-javascript.d.mts"],
       "shiki/langs/*": ["./node_modules/shiki/dist/langs/*"],

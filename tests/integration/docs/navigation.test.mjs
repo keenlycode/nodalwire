@@ -6,14 +6,14 @@ test('All-design navigation actual-browser behavior', {skip:!process.env.DOCS_TE
   const owner=await connect(process.env.DOCS_TEST_CDP);let page,targetId;
   try{
     ({targetId}=await owner.call('Target.createTarget',{url:'about:blank',background:true}));page=await connect(process.env.DOCS_TEST_CDP.replace(/\/devtools\/.*$/,`/devtools/page/${targetId}`));await page.call('Page.enable');
-    async function navigate(path,noJS=false){await page.call('Emulation.setScriptExecutionDisabled',{value:noJS});const loaded=page.event('Page.loadEventFired');await page.call('Page.navigate',{url:process.env.DOCS_TEST_ORIGIN+path});await loaded;}
+    async function navigate(path,noJS=false){await page.call('Emulation.setScriptExecutionDisabled',{value:noJS});const loaded=page.event('Page.loadEventFired');await page.call('Page.navigate',{url:process.env.DOCS_TEST_ORIGIN+'/dev'+path});await loaded;}
     async function value(code){const r=await page.call('Runtime.evaluate',{expression:`(()=>{${code}})()`,returnByValue:true});assert.equal(r.exceptionDetails,undefined,JSON.stringify(r.exceptionDetails));return r.result.value;}
     async function check(code){assert.equal(await value(code),true,code);}
     async function key(key,shift=false){const codes={Enter:13,Escape:27,Tab:9,' ':32};for(const type of(key==='Enter'?['rawKeyDown','char','keyUp']:['rawKeyDown','keyUp']))await page.call('Input.dispatchKeyEvent',{type,key,code:key===' '?'Space':key,windowsVirtualKeyCode:codes[key],nativeVirtualKeyCode:codes[key],modifiers:shift?8:0,...(type==='char'?{text:'\r',unmodifiedText:'\r'}:{})});}
     for(const path of ['/design/','/design/components/','/design/tokens/','/design/tokens/color/','/design/components/button-pin/','/design/components/menu-stack/']){
       await t.test(path+' floating native hierarchy, keyboard and state',async()=>{
         await navigate(path);await page.call('Page.bringToFront');await page.call('Emulation.setFocusEmulationEnabled',{enabled:true});
-        await check(`const h=document.querySelector('[data-design-navigation]'),n=h.querySelector('nav'),landing=location.pathname==='/design/',current=n.querySelectorAll('a[aria-current=page]'),parent=n.querySelector('[data-current-parent]');return document.querySelectorAll('[data-design-navigation]').length===1&&!document.querySelector('nw-top-navigation,nw-bottom-navigation')&&n.querySelectorAll('details[open]').length===2&&current.length===(landing?0:1)&&(landing?!parent:new URL(current[0].href).pathname===location.pathname&&parent.dataset.currentParent===location.pathname.split('/')[2])&&[...n.querySelectorAll('a')].every(a=>!new URL(a.href).hash);`);
+        await check(`const h=document.querySelector('[data-design-navigation]'),n=h.querySelector('nav'),landing=location.pathname==='/dev/design/',current=n.querySelectorAll('a[aria-current=page]'),parent=n.querySelector('[data-current-parent]');return document.querySelectorAll('[data-design-navigation]').length===1&&!document.querySelector('nw-top-navigation,nw-bottom-navigation')&&n.querySelectorAll('details[open]').length===2&&current.length===(landing?0:1)&&(landing?!parent:new URL(current[0].href).pathname===location.pathname&&parent.dataset.currentParent===location.pathname.split('/')[3])&&[...n.querySelectorAll('a')].every(a=>!new URL(a.href).hash);`);
         for(const [width,height] of [[1440,1050],[390,844],[390,360]]){
           await page.call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
           await check(`const main=document.querySelector('main#main'),c=main.querySelector(':scope > nw-container'),h=c.querySelector(':scope > .page-header'),r=c.getBoundingClientRect(),available=document.documentElement.clientWidth;return document.querySelectorAll('main').length===1&&main.querySelectorAll('nw-container').length===1&&c.firstElementChild===h&&h.querySelectorAll('h1').length===1&&getComputedStyle(h).position==='static'&&!c.contains(document.querySelector('[data-design-navigation]'))&&Math.abs(r.width-Math.min(1000,available))<1&&Math.abs(r.left-(available-r.width)/2)<1&&document.documentElement.scrollWidth<=innerWidth;`);
@@ -43,14 +43,14 @@ test('All-design navigation actual-browser behavior', {skip:!process.env.DOCS_TE
     }
     for(const noJS of [false,true])await t.test('Token overview preview destinations and responsive layout '+(noJS?'without scripts':'with scripts'),async()=>{
       await navigate('/design/tokens/',noJS);await page.call('Page.bringToFront');
-      await check(`const main=document.querySelector('main'),links=[...main.querySelectorAll('.token-topics > a')],expected=['color','typography','spacing','radius','layout','lift'].map(s=>'/design/tokens/'+s+'/');return links.length===6&&links.every((a,i)=>a instanceof HTMLAnchorElement&&new URL(a.href).pathname===expected[i]&&a.querySelector('nw-card')&&a.querySelector('[aria-hidden=true]'))&&!main.querySelector('input,button,output,.palette-family,[data-lift-level],.page-toc')&&document.querySelector('main > nw-container .page-header nw-page-path')!==null;`);
+      await check(`const main=document.querySelector('main'),links=[...main.querySelectorAll('.token-topics > a')],expected=['color','typography','spacing','radius','layout','lift'].map(s=>'/dev/design/tokens/'+s+'/');return links.length===6&&links.every((a,i)=>a instanceof HTMLAnchorElement&&new URL(a.href).pathname===expected[i]&&a.querySelector('nw-card')&&a.querySelector('[aria-hidden=true]'))&&!main.querySelector('input,button,output,.palette-family,[data-lift-level],.page-toc')&&document.querySelector('main > nw-container .page-header nw-page-path')!==null;`);
       for(const [width,height] of [[1440,1050],[768,900],[390,844]]){
         await page.call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
         await check(`const c=document.querySelector('nw-container'),links=[...c.querySelectorAll('.token-topic')];return document.documentElement.scrollWidth<=innerWidth&&links.every(a=>{const r=a.getBoundingClientRect(),p=a.querySelector('.token-topic-preview');return r.width>0&&r.right<=innerWidth&&r.left>=0&&p.scrollWidth<=p.clientWidth+1&&p.scrollHeight<=p.clientHeight+1;})&&links.every(a=>links.filter(b=>Math.abs(a.getBoundingClientRect().top-b.getBoundingClientRect().top)<1).every(b=>Math.abs(a.querySelector('h2').getBoundingClientRect().top-b.querySelector('h2').getBoundingClientRect().top)<1));`);
       }
       await check(`document.querySelector('.token-topic').focus();return getComputedStyle(document.activeElement).outlineStyle==='solid';`);
       const loaded=page.event('Page.loadEventFired');await key('Enter');await loaded;
-      await check(`return location.pathname==='/design/tokens/color/'&&document.querySelectorAll('.palette-family').length>0&&document.querySelector('main > nw-container .page-header')!==null;`);
+      await check(`return location.pathname==='/dev/design/tokens/color/'&&document.querySelectorAll('.palette-family').length>0&&document.querySelector('main > nw-container .page-header')!==null;`);
     });
     await t.test('Detailed token playgrounds remain functional on their subpages',async()=>{
       await navigate('/design/tokens/typography/');
@@ -60,20 +60,20 @@ test('All-design navigation actual-browser behavior', {skip:!process.env.DOCS_TE
     });
     for(const noJS of [false,true])await t.test('PagePath native ancestor navigation '+(noJS?'without scripts':'with scripts'),async()=>{
       await navigate('/design/components/button/',noJS);await page.call('Page.bringToFront');
-      await check(`const p=document.querySelector('.page-header > nw-page-path'),nav=p.querySelector('nav'),links=[...nav.querySelectorAll('ol > li > a')];links[0].focus();return links.length===3&&nav.getAttribute('aria-label').trim().length>0&&links.every(a=>a instanceof HTMLAnchorElement)&&links.filter(a=>a.getAttribute('aria-current')==='page').length===1&&links.at(-1).getAttribute('aria-current')==='page'&&new URL(links.at(-1).href).pathname===location.pathname&&new URL(links[0].href).pathname==='/design/'&&new URL(links[1].href).pathname==='/design/components/'&&getComputedStyle(links[0]).outlineStyle==='solid'&&[...p.querySelectorAll('svg')].every(s=>s.getAttribute('aria-hidden')==='true')&&getComputedStyle(nav).position==='static';`);
+      await check(`const p=document.querySelector('.page-header > nw-page-path'),nav=p.querySelector('nav'),links=[...nav.querySelectorAll('ol > li > a')];links[0].focus();return links.length===3&&nav.getAttribute('aria-label').trim().length>0&&links.every(a=>a instanceof HTMLAnchorElement)&&links.filter(a=>a.getAttribute('aria-current')==='page').length===1&&links.at(-1).getAttribute('aria-current')==='page'&&new URL(links.at(-1).href).pathname===location.pathname&&new URL(links[0].href).pathname==='/dev/design/'&&new URL(links[1].href).pathname==='/dev/design/components/'&&getComputedStyle(links[0]).outlineStyle==='solid'&&[...p.querySelectorAll('svg')].every(s=>s.getAttribute('aria-hidden')==='true')&&getComputedStyle(nav).position==='static';`);
       const loaded=page.event('Page.loadEventFired');await key('Enter');await loaded;
-      await check(`return location.pathname==='/design/'&&document.querySelector('.page-header > nw-page-path a[aria-current=page]')!==null;`);
+      await check(`return location.pathname==='/dev/design/'&&document.querySelector('.page-header > nw-page-path a[aria-current=page]')!==null;`);
     });
     for(const noJS of [false,true])await t.test('header native landing navigation '+(noJS?'without scripts':'with scripts'),async()=>{
       await navigate('/design/components/menu-stack/',noJS);await page.call('Page.bringToFront');
-      await check(`const host=document.querySelector('[data-design-navigation]');if(!${noJS})host.querySelector('button').click();const a=host.querySelector('.design-menu-heading a');a.focus();return a instanceof HTMLAnchorElement&&new URL(a.href).pathname==='/design/'&&!a.closest('summary,button')&&document.activeElement===a&&getComputedStyle(a).outlineStyle==='solid';`);
+      await check(`const host=document.querySelector('[data-design-navigation]');if(!${noJS})host.querySelector('button').click();const a=host.querySelector('.design-menu-heading a');a.focus();return a instanceof HTMLAnchorElement&&new URL(a.href).pathname==='/dev/design/'&&!a.closest('summary,button')&&document.activeElement===a&&getComputedStyle(a).outlineStyle==='solid';`);
       const colors=await value(`const a=document.querySelector('.design-menu-heading a'),h=a.closest('.design-menu-heading');return {text:getComputedStyle(a).color,background:getComputedStyle(h).backgroundColor,focus:getComputedStyle(a).outlineColor};`);
       const luminance=color=>color.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
       const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
       assert.ok(contrast(colors.text,colors.background)>=4.5,'Header link must retain readable text contrast');
       assert.ok(contrast(colors.focus,colors.background)>=3,'Header focus ring must remain visible');
       const loaded=page.event('Page.loadEventFired');await key('Enter');await loaded;
-      await check(`return location.pathname==='/design/'&&document.querySelector('[data-design-navigation]')!==null;`);
+      await check(`return location.pathname==='/dev/design/'&&document.querySelector('[data-design-navigation]')!==null;`);
     });
   }finally{if(targetId)await owner.call('Target.closeTarget',{targetId});page?.socket.close();owner.socket.close();}
 });

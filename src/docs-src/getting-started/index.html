@@ -1,21 +1,22 @@
 {% extends "_layouts/product.html" %}
 {% set page_path = 'getting-started/' %}
-{% set page_title = 'Getting Started' %}
-{% set page_intro = 'Build and install matching local NWM3 development artifacts, then exchange native messages between Node.js and Python.' %}
+{% set page_title = 'Get started' %}
+{% set page_intro = 'Build the local development candidate, then exchange a message between Python and Node.js.' %}
 {% set page_ancestors = [] %}
 {% block content %}
+<p>In this walkthrough you will build matching local artifacts, start your own relay, and run two small programs. Python receives a greeting and sends one back to Node.js. Keep the relay and both programs on the same machine.</p>
 <section aria-labelledby="setup">
-  <h2 id="setup">1. Set up</h2>
+  <h2 id="setup">1. Prepare matching local artifacts</h2>
   <p>
-    This walkthrough targets the coordinated NWM3 development candidate, not a
-    published release. Use the same ROOT-reviewed assembled NWM3 source checkout
-    to build both local artifacts. The development labels are Python
+    This walkthrough targets the NWM3 development candidate, not a published
+    0.3 release. Build both local artifacts from the same reviewed NWM3 source
+    checkout. The development labels are Python
     <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code>; they identify local
     candidate builds only and make no claim of registry availability. Released
     Python 0.2.x / Node 0.2.0 artifacts use AR2 and are incompatible with NWM3.
     You need Python 3.12+, Node.js 24, <code>uv</code>, and pnpm 12.5.1.
   </p>
-  {% set build_example %}# From the reviewed, assembled NWM3 source checkout:
+  {% set build_example %}# From the reviewed NWM3 source checkout:
 uv sync --locked
 pnpm --dir src/nodalwire/client/node install --frozen-lockfile
 pnpm --dir src/nodalwire/client/node exec tsc -p tsconfig.json
@@ -134,11 +135,12 @@ try {
 <section aria-labelledby="next">
   <h2 id="next">Next steps</h2>
   <p>
-    You have exchanged bytes between two local applications. The reply confirms
-    that Python handled the message; sending alone does not confirm processing.
-    Continue with <a href="../guides/networks/">networks</a>,
-    <a href="../guides/request-reply/">request/reply</a>, or the
-    <a href="../reference/api/">API reference</a>.
+    You have exchanged bytes between two local applications. The reply shows
+    that Python ran the reply line in this example; a reply in your own application
+    confirms only what that application chooses to acknowledge. Sending alone does
+    not confirm processing. Continue with <a href="{{ url('messaging/') }}">messaging</a>,
+    <a href="{{ url('connect-your-apps/') }}">connecting your apps</a>, or the
+    <a href="{{ url('reference/api/') }}">API reference</a>.
     Read <a href="../guides/security/">security</a> before sharing credentials:
     they grant permission, not peer identity or encryption.
   </p>

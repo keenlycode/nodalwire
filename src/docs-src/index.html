@@ -1,18 +1,16 @@
 {% extends "_layouts/product.html" %}
 {% set page_path = '' %}
-{% set page_title = 'A byte relay for local applications' %}
-{% set page_intro = 'Connect trusted local Python and Node.js applications through a bounded, loopback-only relay with explicit network membership and separate administration.' %}
+{% set page_title = 'Connect local applications with NodalWire' %}
+{% set page_intro = 'Pass bytes between named Python and Node.js applications through a local relay.' %}
 {% block content %}
-<p>NodalWire moves opaque bytes between named connections. Use it for local agent tools, small services and cooperating processes that need an explicit routing boundary without an application-specific message format.</p>
-<p><nw-link><a href="{{ url('getting-started/') }}">Get started: install, start and exchange bytes →</a></nw-link></p>
-<div class="home-cards">
-<nw-card><h2>Choose a network</h2><p>Open default membership is automatic; other networks require an explicit join. Protect a network with its own join credential.</p><a href="{{ url('guides/networks/') }}">Understand networks and membership</a></nw-card>
-<nw-card><h2>Ask and reply</h2><p>Use client-layer request correlation while keeping ordinary messages opaque. Understand timeouts and bounded queues before retrying an operation.</p><a href="{{ url('guides/request-reply/') }}">Build request/reply flows</a></nw-card>
-<nw-card><h2>Know the boundary</h2><p>Credentials grant permission, not identity. Loopback bearer authentication is not encryption or protection from the same user or root.</p><a href="{{ url('guides/security/') }}">Read the security model</a></nw-card>
-<nw-card><h2>Operate explicitly</h2><p>Supply an administrator token before starting the relay. Keep configuration policy separate from live connections and membership.</p><a href="{{ url('reference/admin/') }}">Administration reference</a></nw-card>
-</div>
-<section aria-labelledby="scope"><h2 id="scope">What it does—and does not promise</h2>
-<ul><li>Python and Node.js clients exchange raw bytes through a matching NWM3 local development candidate.</li><li>Declared networks are open unless protected; a protected default needs an explicit join.</li><li>A successful send returns its message ID after native destination-queue acceptance, not application receipt, execution or durable storage.</li><li>Timeouts can occur after an effect. There is no automatic retry, reconnect, replay or remote-host transport.</li></ul>
-<p>The maintained walkthrough builds matching local NWM3 development artifacts labeled Python <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code>; this does not imply registry availability. Released 0.2.x artifacts use AR2 and are not compatible with this NWM3 guide. Start with <a href="{{ url('getting-started/') }}">local candidate setup</a>, then consult the <a href="{{ url('reference/api/') }}">Python and Node API</a>, <a href="{{ url('reference/cli/') }}">CLI</a> and <a href="{{ url('reference/config/') }}">configuration reference</a>.</p>
-</section>
+<section aria-labelledby="what"><h2 id="what">What is NodalWire?</h2>
+<p>NodalWire helps cooperating processes on the same machine exchange messages. Each application connects with a name; a relay routes its bytes to another named connection on a shared network. The relay does not interpret your application data.</p>
+<nw-message-diagram kind="architecture"><figure><figcaption>Two applications communicate through a local relay</figcaption><ol><li>Alice and Bob connect to the same relay and join the same network.</li><li>Alice addresses bytes to Bob; the relay checks the selected network and routing policy.</li><li>The relay queues accepted data for Bob. Bob decides how to handle it.</li></ol></figure></nw-message-diagram>
+<p>Use it for local tools, agents, and small services that need an explicit routing boundary. It is not a remote-host transport, durable message store, or identity service.</p></section>
+<section aria-labelledby="start"><h2 id="start">Start here</h2>
+<ol><li><a href="{{ url('getting-started/') }}">Get started</a>: build matching local development artifacts and exchange a message between Python and Node.js.</li><li><a href="{{ url('messaging/') }}">Learn messaging</a>: understand send, receive, and request/reply.</li><li><a href="{{ url('connect-your-apps/') }}">Connect your apps</a> or <a href="{{ url('run-a-relay/') }}">run a relay</a> for your own workflow.</li></ol>
+<p>When you need exact signatures and formats, use the <a href="{{ url('reference/api/') }}">API reference</a> and <a href="{{ url('protocol/') }}">protocol and schemas</a>.</p></section>
+<section aria-labelledby="boundaries"><h2 id="boundaries">Know the boundaries</h2>
+<ul><li>A successful send means the relay accepted the data into the destination's native queue—not that Bob read or processed it, or that it was stored durably.</li><li>A timeout can occur after an effect. NodalWire does not automatically retry, reconnect, or replay; don't blindly retry a mutation.</li><li>Credentials grant permission, not authenticated identity. Local bearer credentials do not encrypt traffic; see <a href="{{ url('guides/security/') }}">security and local trust</a>.</li></ul>
+<p>These docs describe the unreleased NWM3 development candidate, not a published 0.3 release. Build matching local artifacts: Python <code>0.3.0.dev0</code> and Node <code>0.3.0-dev.0</code>. Released 0.2.x artifacts use incompatible AR2. Follow the <a href="{{ url('getting-started/') }}">local setup</a>; do not mix versions.</p></section>
 {% endblock %}
